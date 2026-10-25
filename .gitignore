@@ -1,0 +1,24 @@
+# Especificações originais privadas: preservar no disco, nunca versionar.
+/00_COMECE_AQUI.md
+/PROMPT_CODEX.md
+/REQUISITOS_ATLAS.md
+/REFERENCIAS_E_DECISOES.md
+/.private/
+/backups/
+/anexos/
+
+# Segredos locais (somente exemplos sanitizados podem ser versionados).
+.env
+.env.*
+!.env.example
+*.local
+
+# Dependências, builds e resultados locais.
+node_modules/
+dist/
+coverage/
+test-results/
+playwright-report/
+*.log
+Thumbs.db
+.DS_Store
