@@ -18,6 +18,7 @@
     "check": "npm run test && npm run build && npm run test:browser && npm run test:pwa"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.118.0",
     "dexie": "4.4.7",
     "lucide-react": "1.61.0",
     "react": "19.3.1",

@@ -94,6 +94,19 @@ export function deserializeFinancialDataset(json: string, expectedUserId: string
   return dataset;
 }
 
+/** Decodes a command's rows without assuming its references are all in this packet. */
+export function deserializeFinancialAggregate(json: string, expectedUserId: string): FinancialDataset {
+  const root = readObject(JSON.parse(json) as unknown, ['schemaVersion', 'userId', 'accounts', 'categories', 'events', 'settlements', 'postings']);
+  if (root.schemaVersion !== 1 || readString(root, 'userId') !== expectedUserId) throw new TypeError('Schema ou proprietário de comando inválido.');
+  return {
+    accounts: root.accounts === undefined ? [] : readCollection(root, 'accounts', readAccount),
+    categories: root.categories === undefined ? [] : readCollection(root, 'categories', readCategory),
+    events: root.events === undefined ? [] : readCollection(root, 'events', readEvent),
+    settlements: root.settlements === undefined ? [] : readCollection(root, 'settlements', readSettlement),
+    postings: root.postings === undefined ? [] : readCollection(root, 'postings', readPosting),
+  };
+}
+
 type JsonObject = Record<string, unknown>;
 
 function readObject(value: unknown, allowedKeys: readonly string[]): JsonObject {

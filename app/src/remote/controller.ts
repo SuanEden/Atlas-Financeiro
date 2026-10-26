@@ -1,0 +1,166 @@
+import type { LocalCommand } from '../application';
+import { SessionPolicy, type SessionView } from '../auth/session-policy';
+import type { AuthPort } from '../auth/supabase-adapter';
+import type { AuthReturn } from '../auth/callback';
+import { SyncEngine, SyncFailure, type SyncResult, type SyncTransport } from '../sync/engine';
+import { LocalSyncStore } from '../sync/local-sync-store';
+import { commandEnvelope, prepareBootstrap, type BootstrapEnvelope } from '../sync/protocol';
+import { canonicalLocalState } from '../backup/validate-i2-backup';
+import { jsonDigest } from '../sync/protocol';
+import type { LocalFinancialState } from '../domain';
+
+export interface SourcePort {read():Promise<{ownerId:string;state:LocalFinancialState}>}
+export interface RemoteSnapshot {session:SessionView;loading:boolean;dataRevision:number;notice:string;syncing:boolean;store:LocalSyncStore|undefined}
+
+export class RemoteController {
+  readonly policy:SessionPolicy;
+  #snapshot:RemoteSnapshot;
+  #listeners=new Set<()=>void>();
+  #store:LocalSyncStore|undefined;
+  #engine:SyncEngine|undefined;
+  #initialize:Promise<void>|undefined;
+  #verification:Promise<void>|undefined;
+  #generation=0;
+  #lastBootstrap:BootstrapEnvelope|undefined;
+  #syncing:Promise<SyncResult>|undefined;
+  readonly #unsubscribeAuth:()=>void;
+  constructor(readonly serverId:string,private readonly auth:AuthPort,private readonly transport:SyncTransport,storage:Storage,private readonly source:SourcePort,private readonly deviceNamespace='default',private readonly now=()=>Date.now()) {
+    this.policy=new SessionPolicy(serverId,storage,now);
+    this.#snapshot={session:this.policy.snapshot,loading:true,dataRevision:0,notice:'',syncing:false,store:undefined};
+    this.#unsubscribeAuth=auth.onChange(()=>{if(!this.policy.snapshot.message.startsWith('Entre com Google')||this.policy.snapshot.userId==='')void this.verify(false);});
+  }
+  getSnapshot=()=>this.#snapshot;
+  subscribe=(listener:()=>void)=>{this.#listeners.add(listener);return()=>{this.#listeners.delete(listener);};};
+  start(authReturn:AuthReturn={kind:'none'}):Promise<void> {
+    if(this.#initialize) return this.#initialize;
+    this.#initialize=(async()=>{
+      try {
+        if(authReturn.kind==='error') {this.policy.lock();this.publish({notice:'O retorno do Google não pôde ser validado. Entre novamente.'});return;}
+        if(authReturn.kind==='code') {await this.auth.callback(authReturn.code);await this.verify(true);}
+        else await this.verify(false);
+      } catch {this.policy.expire();this.publish({notice:'Não foi possível confirmar o login. Seus registros locais foram preservados.'});}
+      finally {await this.openStore();this.publish({loading:false});}
+    })();return this.#initialize;
+  }
+  async login() {this.publish({notice:''});try {await this.auth.login();}catch{this.publish({notice:'Não foi possível abrir o Google. Confira a conexão e tente novamente.'});}}
+  async verify(interactive=false):Promise<void> {
+    if(this.#verification&&!interactive) return this.#verification;
+    const generation=this.#generation;
+    const run=(async()=>{
+      try {
+        // A durable explicit logout cannot be undone by a cached SDK token/event.
+        if(!interactive&&this.policy.snapshot.userId&&!this.policy.snapshot.canView&&this.policy.snapshot.message.startsWith('Entre com Google')) return;
+        const identity=await this.auth.verify();
+        if(generation!==this.#generation) return;
+        this.policy.verify(identity.userId,identity.expiresAt,identity.writesEnabled,interactive);
+        await this.openStore();
+        const state=await this.#store?.read();
+        if(state?.meta.binding==='active') this.policy.markAssociated(identity.userId);
+        this.publish({notice:identity.writesEnabled?'':'Login verificado. O envio remoto aguarda liberação.'});
+      } catch(reason) {
+        if(generation!==this.#generation) return;
+        if(reason instanceof SyncFailure&&reason.reason==='access_denied') this.policy.deny();else this.policy.expire();
+        this.publish({notice:reason instanceof SyncFailure&&reason.reason==='access_denied'?'Esta conta não tem acesso liberado.':'Entre novamente para sincronizar. Os dados locais continuam preservados.'});
+      }
+    })();
+    this.#verification=run;try {await run;}finally {if(this.#verification===run)this.#verification=undefined;}
+  }
+  async logout() {
+    this.#generation++;
+    try {this.policy.lock();}finally {this.publish({notice:'Acesso local bloqueado. As pendências foram preservadas.'});}
+    try {await this.auth.logout();}catch {this.publish({notice:'Acesso local bloqueado. A saída no servidor depende de conexão; suas pendências foram preservadas.'});}
+  }
+  storageChanged() {this.#generation++;this.policy.reloadFromStorage();this.publish({notice:'A sessão mudou em outra aba. Entre novamente para sincronizar.'});}
+  expireIfNeeded() {if(!this.policy.snapshot.onlineVerified){this.policy.expire();this.publish({});}}
+
+  async previewLocalSource() {
+    this.requireOnline();const source=await this.source.read();
+    return {ownerId:source.ownerId,accounts:source.state.accounts.length,events:source.state.events.length,pending:source.state.outbox.length,digest:await jsonDigest(JSON.parse(canonicalLocalState(source.state,source.ownerId)))};
+  }
+  async associateEmpty() {
+    this.requireOnline();
+    const ownerId=crypto.randomUUID();const state:LocalFinancialState={accounts:[],categories:[],events:[],settlements:[],postings:[],outbox:[]};
+    await this.prepareAndSend(state,ownerId,'empty');
+  }
+  async associateLocal(expectedDigest:string) {
+    this.requireOnline();const source=await this.source.read();
+    if(await jsonDigest(JSON.parse(canonicalLocalState(source.state,source.ownerId)))!==expectedDigest) throw new Error('A base local mudou. Faça uma nova conferência antes de associar.');
+    await this.prepareAndSend(source.state,source.ownerId,'i2');
+  }
+  async joinExisting() {
+    this.requireOnline();await this.#store!.prepareJoin();await this.sync();
+  }
+  async sync():Promise<SyncResult> {
+    if(this.#syncing) return this.#syncing;
+    this.#syncing=(async()=>{
+      if(!this.policy.snapshot.canTransmit||!this.#engine)return 'login_required';
+      const epoch=this.policy.snapshot.epoch;const store=this.#store!;
+      this.publish({syncing:true,notice:''});
+      try {
+        const result=await this.#engine.run();
+        if(this.policy.snapshot.epoch!==epoch||store!==this.#store)return 'login_required';
+        const state=await store.read();
+        if(state.meta.binding==='verifying_source') {
+          const pendingEnvelope=this.#lastBootstrap;
+          const receipt=state.receipts.find((row)=>row.operationId===state.meta.associationId);
+          if(!receipt) throw new Error('Confirmação da associação ausente.');
+          // Source metadata is persisted; a reload may resume without any in-memory proposal.
+          const sourceOwner=state.meta.sourceOwnerId;
+          let digest:string;
+          if(state.meta.sourceMode==='empty'&&sourceOwner) digest=await jsonDigest(JSON.parse(canonicalLocalState({accounts:[],categories:[],events:[],settlements:[],postings:[],outbox:[]},sourceOwner)));
+          else {const source=await this.source.read();if(source.ownerId!==sourceOwner) throw new Error('A origem ativa mudou.');digest=await jsonDigest(JSON.parse(canonicalLocalState(source.state,source.ownerId)));}
+          void pendingEnvelope;
+          if(!this.policy.snapshot.onlineVerified||this.policy.snapshot.epoch!==epoch) return 'login_required';
+          await store.activateAssociation(digest);
+        }
+        if((await store.read()).meta.binding==='active'&&this.policy.snapshot.onlineVerified)this.policy.markAssociated(store.userId);
+        if(result==='login_required')this.policy.expire();
+        if(result==='access_denied')this.policy.deny();
+        this.publish({dataRevision:this.#snapshot.dataRevision+1,notice:syncMessage(result,(await store.read()).meta.binding==='active')});
+        return result;
+      } catch {this.publish({notice:'A sincronização precisa de conferência. Os registros, a origem e as pendências foram preservados.'});return 'retry_later';}
+      finally {this.publish({syncing:false});}
+    })().finally(()=>{this.#syncing=undefined;});return this.#syncing;
+  }
+  async enqueue(command:LocalCommand) {
+    if(!this.policy.snapshot.canWriteLocal||command.operation.userId!==this.policy.snapshot.userId||!this.#store) throw new Error('Entre com a conta correta antes de registrar.');
+    const store=this.#store;const epoch=this.policy.snapshot.epoch;const state=await store.read();
+    if(epoch!==this.policy.snapshot.epoch||!this.policy.snapshot.canWriteLocal) throw new Error('A sessão mudou. Seus dados anteriores foram preservados.');
+    await store.enqueue(commandEnvelope(command.operation,state.meta.cursor));
+    if(epoch===this.policy.snapshot.epoch)this.publish({dataRevision:this.#snapshot.dataRevision+1});
+  }
+  async acceptRemoteConflict(id:string) {
+    if(!this.policy.snapshot.canView||!this.#store)throw new Error('Entre novamente antes de revisar conflitos.');
+    await this.#store.resolveConflict(id);this.publish({dataRevision:this.#snapshot.dataRevision+1});
+  }
+  dispose() {this.#generation++;this.#unsubscribeAuth();this.#store?.close();this.#listeners.clear();}
+
+  private requireOnline() {if(!this.policy.snapshot.onlineVerified||!this.policy.snapshot.canTransmit||!this.#store)throw new Error('Conclua o login e aguarde a liberação do envio antes de associar.');}
+  private async prepareAndSend(state:LocalFinancialState,sourceOwner:string,mode:'empty'|'i2') {
+    const store=this.#store!;const epoch=this.policy.snapshot.epoch;
+    const envelope=await prepareBootstrap(state,sourceOwner,store.userId,crypto.randomUUID());
+    if(epoch!==this.policy.snapshot.epoch) throw new Error('A sessão mudou durante a conferência.');
+    await store.prepareAssociation(envelope,mode);this.#lastBootstrap=envelope;
+    await this.sync();
+  }
+  private async openStore() {
+    const owner=this.policy.snapshot.userId;if(!owner)return;
+    if(this.#store?.userId!==owner) {
+      const previous=this.#store;this.#store=new LocalSyncStore(owner,this.serverId,this.deviceNamespace);
+      this.#engine=new SyncEngine(this.#store,this.transport,()=>this.policy.snapshot);
+      // Old handles are closed only after their pending IDB transaction can settle; namespaces remain on disk.
+      previous?.close();
+    }
+    this.publish({});
+  }
+  private publish(patch:Partial<RemoteSnapshot>) {
+    this.#snapshot={...this.#snapshot,...patch,session:this.policy.snapshot,store:this.#store};
+    for(const listener of this.#listeners)listener();
+  }
+}
+
+function syncMessage(result:SyncResult,active:boolean):string {
+  return result==='synced'||(result==='unassociated'&&active)?'Alterações confirmadas até a última revisão recebida.':{
+    offline:'Sem conexão. Os registros locais e as pendências foram preservados.',login_required:'Entre novamente antes de sincronizar.',access_denied:'O acesso remoto foi bloqueado. Dados locais preservados.',quota:'O serviço atingiu um limite. As pendências foram preservadas; não ative plano pago.',retry_later:'Não foi possível confirmar tudo. Tente novamente mais tarde.',conflict:'Há alterações para revisar antes de continuar.',unassociated:'A associação inicial ainda não foi concluída.',synced:'',
+  }[result];
+}
