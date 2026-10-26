@@ -12,9 +12,10 @@ Executados a partir de `app/`:
 | `npm test` | 5 arquivos aprovados; 99 testes enumerados, 98 aprovados e 1 ignorado pela ausência do manifesto privado. |
 | `npm run build` | Concluído; build Vite estático gerado sem sourcemaps. |
 | `npm run test:browser` | 8 testes aprovados em Edge, nos perfis desktop e móvel. |
+| `npx playwright test --repeat-each=3` | 24 execuções aprovadas após a correção da inicialização do Dexie. |
 | `npm run check` | Fluxo sequencial completo aprovado: testes, typecheck/build e navegador. |
 
-Uma primeira execução do teste de navegador, feita simultaneamente ao build, perdeu o contexto de uma página em um dos perfis; a mesma suíte foi repetida isoladamente e os 8 testes passaram. A verificação final deve usar `npm run check`, que serializa testes, build e navegador.
+Uma execução em cache frio revelou que a descoberta tardia do Dexie pelo Vite podia recarregar a página durante o `page.evaluate` do primeiro perfil. O caso foi reproduzido, e `vite.config.ts` passou a pré-otimizar o Dexie na inicialização. A validação final inclui execução sem cache prévio e repetições da suíte. `npm run check` serializa testes, build e navegador.
 
 ## Evidências cobertas
 

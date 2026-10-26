@@ -37,6 +37,9 @@ export default defineConfig({
   root: appRoot,
   plugins: [protectPrivateDocuments(), react()],
   publicDir: false,
+  // Browser tests import the persistence harness lazily. Pre-bundle Dexie at
+  // server startup so first use cannot trigger a Vite reload mid-evaluation.
+  optimizeDeps: { include: ['dexie'] },
   server: {
     host: '127.0.0.1',
     port: 5173,
