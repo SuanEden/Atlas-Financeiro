@@ -1,0 +1,40 @@
+import { assertEntityId, type LocalFinancialState } from '../domain';
+import { serializeFinancialDataset } from '../serialization';
+
+export const LOCAL_BACKUP_SCHEMA_VERSION = 1 as const;
+
+/** Export-only I2 backup. Full restore and generations remain scoped to I4. */
+export function serializeLocalBackup(state: LocalFinancialState, userId: string, exportedAt = new Date().toISOString()): string {
+  assertEntityId(userId, 'Proprietário do backup');
+  const dataset = JSON.parse(serializeFinancialDataset(state, userId)) as Record<string, unknown>;
+  const outbox = state.outbox.map((operation) => ({
+    id: operation.id,
+    userId: operation.userId,
+    kind: operation.kind,
+    createdAt: operation.createdAt,
+    payload: JSON.parse(operation.payloadJson) as unknown,
+  }));
+  return JSON.stringify({
+    format: 'atlas-financeiro-local-backup',
+    schemaVersion: LOCAL_BACKUP_SCHEMA_VERSION,
+    exportedAt,
+    userId,
+    manifest: {
+      financialSchemaVersion: dataset.schemaVersion,
+      accounts: state.accounts.length,
+      categories: state.categories.length,
+      events: state.events.length,
+      settlements: state.settlements.length,
+      postings: state.postings.length,
+      pendingOperations: state.outbox.length,
+      attachmentsIncluded: false,
+    },
+    data: dataset,
+    outbox,
+  }, null, 2);
+}
+
+export function backupFilename(date: string): string {
+  return `atlas-financeiro-backup-${date}.json`;
+}
+

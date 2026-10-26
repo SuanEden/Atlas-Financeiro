@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 import { IDBObjectStore as FakeObjectStore } from 'fake-indexeddb';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createAccountCommand, type CommandContext } from '../application';
 import type { FinancialDataset } from '../domain';
 import { createLocalFinancialStore, LocalFinancialStore } from './local-financial-store';
 import { syntheticDataset } from './synthetic-fixture.test-helper';
@@ -111,5 +112,47 @@ describe('local financial persistence', () => {
     await store.appendAggregate({ accounts: dataset.accounts, categories: dataset.categories, events: dataset.events });
     await store.appendAggregate({ settlements: dataset.settlements, postings: dataset.postings });
     expect(await store.readSnapshot()).toEqual(dataset);
+  });
+
+  it('commits financial rows and the pending operation in the same transaction', async () => {
+    const store = openStore();
+    let sequence = 500;
+    const context: CommandContext = {
+      userId: store.userId,
+      nextId: () => `00000000-0000-4000-8000-${String(++sequence).padStart(12, '0')}`,
+      now: () => '2026-10-26T12:00:00.000Z',
+      today: () => '2026-10-26',
+    };
+    const command = createAccountCommand({ name: 'Conta com outbox', kind: 'cash', availability: 'free', openingDate: '2026-10-26' }, context);
+    await store.commitOperation(command.aggregate, command.operation);
+    const state = await store.readLocalState();
+    expect(state.accounts).toHaveLength(1);
+    expect(state.outbox).toEqual([command.operation]);
+  });
+
+  it('rolls back financial rows when the outbox write fails', async () => {
+    const store = openStore();
+    let sequence = 700;
+    const context: CommandContext = {
+      userId: store.userId,
+      nextId: () => `00000000-0000-4000-8000-${String(++sequence).padStart(12, '0')}`,
+      now: () => '2026-10-26T12:00:00.000Z',
+      today: () => '2026-10-26',
+    };
+    const command = createAccountCommand({ name: 'Conta revertida', kind: 'cash', availability: 'free', openingDate: '2026-10-26' }, context);
+    const originalAdd = FakeObjectStore.prototype.add;
+    const failure = vi.spyOn(FakeObjectStore.prototype, 'add').mockImplementation(function (
+      this: IDBObjectStore,
+      value: unknown,
+      key?: IDBValidKey,
+    ) {
+      if (this.name === 'outbox') throw new DOMException('Falha sintética na outbox.', 'DataCloneError');
+      return originalAdd.call(this, value, key);
+    });
+    await expect(store.commitOperation(command.aggregate, command.operation)).rejects.toThrow();
+    failure.mockRestore();
+    const state = await store.readLocalState();
+    expect(state.accounts).toHaveLength(0);
+    expect(state.outbox).toHaveLength(0);
   });
 });

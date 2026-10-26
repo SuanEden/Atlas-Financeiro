@@ -18,7 +18,7 @@ describe('versioned explicit financial JSON', () => {
     const dataset = syntheticDataset(USER_ID);
     const json = serializeFinancialDataset(dataset, USER_ID);
     const root = JSON.parse(json) as Record<string, unknown>;
-    expect(root.schemaVersion).toBe(1);
+    expect(root.schemaVersion).toBe(2);
     expect(firstEvent(root).source).toBe('manual');
     expect(firstEvent(root).amountCents).toBe('1207');
     expect((root.postings as Record<string, unknown>[])[0]!.amountCents).toBe('-1207');
@@ -53,7 +53,7 @@ describe('versioned explicit financial JSON', () => {
 
   it('rejects unsupported versions, missing collections, unknown fields and another user', () => {
     const unsupported = representation();
-    unsupported.schemaVersion = 2;
+    unsupported.schemaVersion = 3;
     expect(() => deserializeFinancialDataset(JSON.stringify(unsupported), USER_ID)).toThrow();
     const missing = representation();
     delete missing.settlements;
@@ -62,6 +62,12 @@ describe('versioned explicit financial JSON', () => {
     firstEvent(unknown).accessToken = 'synthetic-do-not-accept';
     expect(() => deserializeFinancialDataset(JSON.stringify(unknown), USER_ID)).toThrow();
     expect(() => deserializeFinancialDataset(JSON.stringify(representation()), 'other-user')).toThrow();
+  });
+
+  it('continues to read version 1 datasets without revision links', () => {
+    const root = representation();
+    root.schemaVersion = 1;
+    expect(deserializeFinancialDataset(JSON.stringify(root), USER_ID)).toEqual(syntheticDataset(USER_ID));
   });
 
   it('does not interpret descriptions as money or include undeclared properties in output', () => {
