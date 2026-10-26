@@ -27,12 +27,14 @@ test('conta, categoria, despesa, correção e backup sobrevivem à recarga', asy
   await page.getByRole('button', { name: 'Criar minha primeira conta' }).click();
   await page.getByLabel('Nome da conta').fill('Conta de teste');
   await page.getByPlaceholder('R$ 0,00').fill('50,00');
+  await page.screenshot({ path: join(tmpdir(), `atlas-i2-account-${testInfo.project.name}.png`), fullPage: false });
   await page.getByRole('button', { name: 'Criar conta' }).click();
   await expect(page.getByText('R$ 50,00').first()).toBeVisible();
 
   await navigate(page, testInfo, 'Categorias');
   await page.getByRole('button', { name: 'Nova categoria' }).click();
   await page.getByLabel('Nome').fill('Mercado de teste');
+  await page.screenshot({ path: join(tmpdir(), `atlas-i2-category-${testInfo.project.name}.png`), fullPage: false });
   await page.getByRole('dialog').getByRole('button', { name: 'Criar categoria' }).click();
   await expect(page.getByText('Mercado de teste')).toBeVisible();
 
@@ -62,6 +64,7 @@ test('conta, categoria, despesa, correção e backup sobrevivem à recarga', asy
   await page.screenshot({ path: join(tmpdir(), `atlas-i2-dashboard-${testInfo.project.name}.png`), fullPage: true });
 
   await navigate(page, testInfo, 'Backup');
+  await page.screenshot({ path: join(tmpdir(), `atlas-i2-backup-${testInfo.project.name}.png`), fullPage: false });
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Baixar backup' }).click();
   const download = await downloadPromise;
@@ -88,8 +91,8 @@ test('transferência para reserva mantém o total entre contas', async ({ page }
   const transactionDialog = page.getByRole('dialog');
   await transactionDialog.getByRole('button', { name: 'Transferência' }).click();
   await transactionDialog.getByLabel('Valor em reais').fill('10,00');
-  await expect(transactionDialog.getByRole('combobox').nth(0)).not.toHaveValue('');
-  await expect(transactionDialog.getByRole('combobox').nth(1)).not.toHaveValue('');
+  await transactionDialog.getByRole('combobox').nth(0).selectOption({ label: 'Conta livre' });
+  await transactionDialog.getByRole('combobox').nth(1).selectOption({ label: 'Reserva de teste' });
   await transactionDialog.getByRole('button', { name: 'Salvar lançamento' }).click();
 
   await navigate(page, testInfo, 'Início');

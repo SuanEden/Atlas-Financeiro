@@ -128,6 +128,25 @@ describe('local financial persistence', () => {
     const state = await store.readLocalState();
     expect(state.accounts).toHaveLength(1);
     expect(state.outbox).toEqual([command.operation]);
+    store.close();
+    expect(await openStore(store.userId).readLocalState()).toEqual(state);
+    const replay = openStore(store.userId);
+    await expect(replay.commitOperation(command.aggregate, command.operation)).rejects.toThrow();
+    expect(await replay.readLocalState()).toEqual(state);
+  });
+
+  it('rejects an outbox payload describing different financial rows before writing', async () => {
+    const store = openStore();
+    const context: CommandContext = {
+      userId: store.userId, nextId: () => crypto.randomUUID(),
+      now: () => '2026-10-26T12:00:00.000Z', today: () => '2026-10-26',
+    };
+    const command = createAccountCommand({ name: 'Conta sintética', kind: 'cash', availability: 'free', openingDate: context.today() }, context);
+    const changed = structuredClone(command.aggregate);
+    changed.accounts![0]!.name = 'Conteúdo divergente';
+    await expect(store.commitOperation(changed, command.operation)).rejects.toThrow(/não corresponde/);
+    expect((await store.readLocalState()).accounts).toEqual([]);
+    expect((await store.readLocalState()).outbox).toEqual([]);
   });
 
   it('rolls back financial rows when the outbox write fails', async () => {

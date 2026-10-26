@@ -1,4 +1,14 @@
 import type { Account, FinancialDataset, FinancialEvent } from '../domain';
+import { assertIsoDate, type DatePeriod } from '../domain';
+
+export function financialMonthPeriod(date: string): DatePeriod {
+  assertIsoDate(date);
+  const year = Number(date.slice(0, 4));
+  const month = Number(date.slice(5, 7));
+  const days = month === 2 ? (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0) ? 29 : 28)
+    : [4, 6, 9, 11].includes(month) ? 30 : 31;
+  return { start: `${date.slice(0, 7)}-01`, end: `${date.slice(0, 7)}-${days}` };
+}
 
 export const accountKindLabels: Record<Account['kind'], string> = {
   checking: 'Conta-corrente',
@@ -46,5 +56,5 @@ export function activeEventIds(dataset: FinancialDataset): Set<string> {
     if (event.reversesEventId !== undefined) superseded.add(event.reversesEventId);
     if (event.replacesEventId !== undefined) superseded.add(event.replacesEventId);
   }
-  return new Set(dataset.events.filter((event) => event.reversesEventId === undefined && !superseded.has(event.id)).map((event) => event.id));
+  return new Set(dataset.events.filter((event) => event.status !== 'cancelled' && event.reversesEventId === undefined && !superseded.has(event.id)).map((event) => event.id));
 }

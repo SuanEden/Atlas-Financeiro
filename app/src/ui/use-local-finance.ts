@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createDefaultCommandContext, getOrCreateLocalOwnerId, type LocalCommand } from '../application';
 import type { LocalFinancialState } from '../domain';
 import { createLocalFinancialStore } from '../persistence';
@@ -30,6 +30,7 @@ export function useLocalFinance() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const executing = useRef(false);
 
   const refresh = useCallback(async () => {
     const next = await local.store.readLocalState();
@@ -46,6 +47,8 @@ export function useLocalFinance() {
   }, [local]);
 
   const execute = useCallback(async (command: LocalCommand) => {
+    if (executing.current) throw new Error('Uma operação já está sendo salva. Aguarde.');
+    executing.current = true;
     setBusy(true);
     setError(undefined);
     try {
@@ -56,11 +59,12 @@ export function useLocalFinance() {
       setError(message);
       throw new Error(message, { cause: reason });
     } finally {
+      executing.current = false;
       setBusy(false);
     }
   }, [local, refresh]);
 
-  return { state, loading, busy, error, clearError: () => setError(undefined), execute, context: local.context, userId: local.userId };
+  return { state, loading, busy, error, clearError: () => setError(undefined), execute, readState: () => local.store.readLocalState(), context: local.context, userId: local.userId };
 }
 
 function messageFrom(reason: unknown): string {

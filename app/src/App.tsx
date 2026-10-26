@@ -29,7 +29,7 @@ import { useLocalFinance } from './ui/use-local-finance';
 type Modal =
   | { type: 'account' }
   | { type: 'category' }
-  | { type: 'transaction'; initial?: FinancialEvent }
+  | { type: 'transaction'; initial?: FinancialEvent; kind?: TransactionInput['kind'] }
   | { type: 'reverse'; event: FinancialEvent };
 
 const desktopNavigation = [
@@ -41,9 +41,10 @@ const desktopNavigation = [
 ];
 
 export function App() {
-  const { state, loading, busy, error, clearError, execute, context, userId } = useLocalFinance();
+  const { state, loading, busy, error, clearError, execute, readState, context, userId } = useLocalFinance();
   const [page, setPage] = useState<Page>('dashboard');
   const [modal, setModal] = useState<Modal>();
+  const [notice, setNotice] = useState('');
   const [dark, setDark] = useState(() => localStorage.getItem('atlas-financeiro:theme:v1') === 'dark');
   const today = context.today();
 
@@ -57,11 +58,13 @@ export function App() {
 
   async function saveAccount(input: CreateAccountInput) {
     await execute(createAccountCommand(input, context));
+    setNotice('Conta salva neste dispositivo.');
     setModal(undefined);
   }
 
   async function saveCategory(input: CreateCategoryInput) {
     await execute(createCategoryCommand(input, context));
+    setNotice('Categoria salva neste dispositivo.');
     setModal(undefined);
   }
 
@@ -71,13 +74,17 @@ export function App() {
     } else {
       await execute(createTransactionCommand(input, context));
     }
+    setNotice('Lançamento salvo neste dispositivo.');
     setModal(undefined);
   }
 
   async function confirmReverse() {
     if (modal?.type !== 'reverse') return;
-    await execute(reverseEventCommand(state, modal.event.id, context));
-    setModal(undefined);
+    try {
+      await execute(reverseEventCommand(state, modal.event.id, context));
+      setNotice('Estorno salvo. O histórico foi preservado.');
+      setModal(undefined);
+    } catch { /* Keep the confirmation open; execute reports persistence errors. */ }
   }
 
   const openTransaction = () => setModal({ type: 'transaction' });
@@ -93,14 +100,15 @@ export function App() {
       <section className="workspace">
         <header className="topbar"><div className="mobile-brand"><Brand /></div>{page === 'dashboard' ? null : <button className="button button--primary topbar-create" onClick={openTransaction} disabled={state.accounts.length === 0}><Plus size={17} />Novo lançamento</button>}<span className="device-status"><HardDrive size={16} />Salvo neste dispositivo</span><button className="icon-button" type="button" onClick={toggleTheme} aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'} aria-pressed={dark}>{dark ? <Sun size={19} /> : <Moon size={19} />}</button></header>
         {error === undefined ? null : <div className="error-banner" role="alert"><span>{error}</span><button onClick={clearError}>Fechar</button></div>}
+        <div className="sr-only" role="status">{notice}</div>
         {loading ? <div className="loading-state"><span className="spinner" />Carregando dados locais…</div> : (
           <>
             {page === 'dashboard' ? <Dashboard state={state} today={today} onAddAccount={() => setModal({ type: 'account' })} onAddTransaction={openTransaction} onNavigate={setPage} /> : null}
             {page === 'movements' ? <MovementsView state={state} onAdd={openTransaction} onEdit={(event) => setModal({ type: 'transaction', initial: event })} onReverse={(event) => setModal({ type: 'reverse', event })} /> : null}
-            {page === 'accounts' ? <AccountsView state={state} onAdd={() => setModal({ type: 'account' })} onTransfer={openTransaction} /> : null}
+            {page === 'accounts' ? <AccountsView state={state} onAdd={() => setModal({ type: 'account' })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
             {page === 'categories' || page === 'backup' ? <div className="mobile-settings-tabs"><button className={page === 'categories' ? 'is-active' : ''} onClick={() => setPage('categories')}>Categorias</button><button className={page === 'backup' ? 'is-active' : ''} onClick={() => setPage('backup')}>Backup</button></div> : null}
             {page === 'categories' ? <CategoriesView state={state} onAdd={() => setModal({ type: 'category' })} /> : null}
-            {page === 'backup' ? <BackupView state={state} userId={userId} today={today} /> : null}
+            {page === 'backup' ? <BackupView readState={readState} state={state} userId={userId} today={today} /> : null}
           </>
         )}
       </section>
@@ -115,7 +123,7 @@ export function App() {
 
       {modal?.type === 'account' ? <DialogFrame title="Nova conta" onClose={() => setModal(undefined)}><AccountForm today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveAccount} /></DialogFrame> : null}
       {modal?.type === 'category' ? <DialogFrame title="Nova categoria" onClose={() => setModal(undefined)}><CategoryForm categories={state.categories} busy={busy} onCancel={() => setModal(undefined)} onSave={saveCategory} /></DialogFrame> : null}
-      {modal?.type === 'transaction' ? <DialogFrame title={modal.initial === undefined ? 'Novo lançamento' : 'Corrigir lançamento'} onClose={() => setModal(undefined)} wide><TransactionForm accounts={state.accounts} categories={state.categories} {...(modal.initial === undefined ? {} : { initial: modal.initial })} today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveTransaction} /></DialogFrame> : null}
+      {modal?.type === 'transaction' ? <DialogFrame title={modal.initial === undefined ? 'Novo lançamento' : 'Corrigir lançamento'} onClose={() => setModal(undefined)} wide><TransactionForm defaultKind={modal.kind ?? 'expense'} accounts={state.accounts} categories={state.categories} {...(modal.initial === undefined ? {} : { initial: modal.initial })} today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveTransaction} /></DialogFrame> : null}
       {modal?.type === 'reverse' ? <DialogFrame title="Confirmar estorno" onClose={() => setModal(undefined)}><div className="confirm-dialog"><p>O lançamento <strong>{modal.event.description}</strong> não será apagado. Uma contrapartida inversa será adicionada para preservar o histórico.</p><div className="dialog-actions"><button className="button button--ghost" onClick={() => setModal(undefined)}>Cancelar</button><button className="button button--danger" disabled={busy} onClick={() => void confirmReverse()}>{busy ? 'Estornando…' : 'Estornar lançamento'}</button></div></div></DialogFrame> : null}
     </main>
   );

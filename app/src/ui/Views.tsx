@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   WalletCards,
 } from 'lucide-react';
+import { useState } from 'react';
 import {
   calculateAccountBalance,
   calculateAvailabilityBalances,
@@ -18,7 +19,7 @@ import {
   type LocalFinancialState,
 } from '../domain';
 import { backupFilename, serializeLocalBackup } from '../backup';
-import { activeEventIds, accountKindLabels, availabilityLabels, eventAmountSign, eventLabel, formatFinancialDate } from './financial-view';
+import { activeEventIds, accountKindLabels, availabilityLabels, eventAmountSign, eventLabel, formatFinancialDate, financialMonthPeriod } from './financial-view';
 
 type Page = 'dashboard' | 'movements' | 'accounts' | 'categories' | 'backup';
 
@@ -32,7 +33,7 @@ interface DashboardProps {
 
 export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavigate }: DashboardProps) {
   const balances = calculateAvailabilityBalances(state);
-  const period = { start: `${today.slice(0, 7)}-01`, end: `${today.slice(0, 7)}-31` };
+  const period = financialMonthPeriod(today);
   const cash = calculateCashTotals(state, period);
   const activeIds = activeEventIds(state);
   const recent = [...state.events]
@@ -43,6 +44,7 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
   return (
     <div className="page-content">
       <PageHeading title="Visão geral" action={<button className="button button--primary" onClick={onAddTransaction} disabled={state.accounts.length === 0}><Plus size={18} />Novo lançamento</button>} />
+      <p className="form-note">Dados somente neste navegador. {state.outbox.length} operações locais ainda sem envio remoto. Guarde uma cópia em Backup.</p>
       <section className="money-summary" aria-label="Resumo dos saldos">
         <MoneyStat label="Disponível" value={balances.freeCents} />
         <MoneyStat label="Reservado" value={balances.reservedCents} />
@@ -83,12 +85,12 @@ export function MovementsView({ state, onAdd, onEdit, onReverse }: MovementsProp
   return (
     <div className="page-content">
       <PageHeading title="Movimentações" subtitle="Histórico completo, incluindo correções e estornos." action={<button className="button button--primary" onClick={onAdd} disabled={state.accounts.length === 0}><Plus size={18} />Novo lançamento</button>} />
-      <div className="local-status"><span><ShieldCheck size={17} />{state.outbox.length} {state.outbox.length === 1 ? 'operação local pendente' : 'operações locais pendentes'}</span><small>A sincronização será implementada no Incremento 3.</small></div>
+      <div className="local-status"><span><ShieldCheck size={17} />{state.outbox.length} {state.outbox.length === 1 ? 'operação local pendente' : 'operações locais pendentes'}</span><small>Sincronização remota ainda não disponível.</small></div>
       {events.length === 0 ? <EmptyPanel icon={<ArrowLeftRight />} title="Ainda não há movimentações" description="Crie uma conta e registre sua primeira receita, despesa ou transferência." action="Novo lançamento" onAction={onAdd} disabled={state.accounts.length === 0} /> : (
         <div className="history-list">{events.map((event) => {
           const active = activeIds.has(event.id);
-          const editable = active && event.kind !== 'adjustment' && event.reversesEventId === undefined;
-          return <article className={`history-row${active ? '' : ' history-row--superseded'}`} key={event.id}><MovementRow event={event} state={state} detailed /><div className="history-actions">{editable ? <><button className="text-button" onClick={() => onEdit(event)}>Editar</button><button className="text-button text-button--danger" onClick={() => onReverse(event)}>Estornar</button></> : <span>{event.reversesEventId !== undefined ? 'Contrapartida preservada' : event.replacesEventId !== undefined ? 'Versão atual' : 'Histórico preservado'}</span>}</div></article>;
+          const editable = active && event.status !== 'cancelled' && event.kind !== 'adjustment' && event.reversesEventId === undefined;
+          return <article className={`history-row${active ? '' : ' history-row--superseded'}`} key={event.id}><MovementRow event={event} state={state} detailed /><div className="history-actions">{editable ? <><button className="text-button" onClick={() => onEdit(event)}>Editar</button><button className="text-button text-button--danger" onClick={() => onReverse(event)}>Estornar</button></> : <span>{event.reversesEventId !== undefined ? 'Contrapartida preservada' : event.status === 'cancelled' ? 'Cancelamento preservado' : event.replacesEventId !== undefined ? 'Versão atual' : 'Histórico preservado'}</span>}</div></article>;
         })}</div>
       )}
     </div>
@@ -98,7 +100,7 @@ export function MovementsView({ state, onAdd, onEdit, onReverse }: MovementsProp
 export function AccountsView({ state, onAdd, onTransfer }: { state: LocalFinancialState; onAdd: () => void; onTransfer: () => void }) {
   return (
     <div className="page-content">
-      <PageHeading title="Contas" subtitle="Saldos derivados das contrapartidas, sem valor paralelo editável." action={<button className="button button--primary" onClick={onAdd}><Plus size={18} />Nova conta</button>} />
+      <PageHeading title="Contas" subtitle="Organize o dinheiro disponível, reservado e restrito." action={<button className="button button--primary" onClick={onAdd}><Plus size={18} />Nova conta</button>} />
       {state.accounts.length === 0 ? <EmptyPanel icon={<WalletCards />} title="Crie sua primeira conta" description="Informe apenas os dados que você deseja manter neste dispositivo." action="Criar conta" onAction={onAdd} /> : <div className="account-grid">{state.accounts.map((account) => <article className="account-card" key={account.id}><div className="account-card__top"><span className="account-icon"><WalletCards size={20} /></span><span className={`availability availability--${account.availability}`}>{availabilityLabels[account.availability]}</span></div><h2>{account.name}</h2><p>{accountKindLabels[account.kind]}</p><strong>{formatBRL(calculateAccountBalance(state, account.id))}</strong></article>)}</div>}
       {state.accounts.length > 1 ? <button className="button button--secondary reserve-action" onClick={onTransfer}><ArrowLeftRight size={18} />Transferir ou separar reserva</button> : null}
     </div>
@@ -115,21 +117,34 @@ export function CategoriesView({ state, onAdd }: { state: LocalFinancialState; o
   );
 }
 
-export function BackupView({ state, userId, today }: { state: LocalFinancialState; userId: string; today: string }) {
-  function downloadBackup() {
-    const json = serializeLocalBackup(state, userId);
-    const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = backupFilename(today);
-    anchor.click();
-    URL.revokeObjectURL(url);
+export function BackupView({ state, userId, today, readState }: { state: LocalFinancialState; userId: string; today: string; readState: () => Promise<LocalFinancialState> }) {
+  const [notice, setNotice] = useState('');
+  const [failure, setFailure] = useState<string>();
+  async function downloadBackup() {
+    setFailure(undefined);
+    try {
+      const latest = await readState();
+      const json = serializeLocalBackup(latest, userId);
+      const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = backupFilename(today);
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setNotice('Exportação solicitada. Confira o arquivo nos downloads e guarde uma cópia fora deste aparelho.');
+    } catch (reason) {
+      setFailure(reason instanceof Error ? reason.message : 'Não foi possível exportar. Tente novamente.');
+    }
   }
   return (
     <div className="page-content">
       <PageHeading title="Backup local" subtitle="Uma cópia independente dos dados deste navegador." />
+      <p role="status">{notice}</p>
+      {failure === undefined ? null : <p className="form-error" role="alert">{failure}</p>}
       <section className="backup-panel"><span className="backup-icon"><Download size={24} /></span><div><h2>Exportar arquivo JSON</h2><p>Inclui contas, categorias, lançamentos, histórico, centavos exatos e {state.outbox.length} {state.outbox.length === 1 ? 'operação pendente' : 'operações pendentes'}.</p><p className="warning-copy">O arquivo contém dados financeiros sem criptografia própria. Guarde-o em local privado.</p><button className="button button--primary" onClick={downloadBackup}><Download size={18} />Baixar backup</button></div></section>
-      <section className="scope-panel"><RefreshCcw size={21} /><div><h2>Restauração ainda não disponível</h2><p>A validação, prévia e troca segura de gerações pertencem ao Incremento 4. Este botão exporta; não importa nem substitui dados.</p></div></section>
+      <section className="scope-panel"><RefreshCcw size={21} /><div><h2>Restauração ainda não disponível</h2><p>Esta versão permite exportar uma cópia. A restauração será disponibilizada em uma etapa futura.</p></div></section>
     </div>
   );
 }

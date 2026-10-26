@@ -1,11 +1,19 @@
 import { assertEntityId, type LocalFinancialState } from '../domain';
 import { serializeFinancialDataset } from '../serialization';
+import { assertPendingOperation } from '../persistence/local-financial-store';
 
 export const LOCAL_BACKUP_SCHEMA_VERSION = 1 as const;
 
 /** Export-only I2 backup. Full restore and generations remain scoped to I4. */
 export function serializeLocalBackup(state: LocalFinancialState, userId: string, exportedAt = new Date().toISOString()): string {
   assertEntityId(userId, 'Proprietário do backup');
+  if (!Number.isFinite(Date.parse(exportedAt))) throw new TypeError('Instante da exportação inválido.');
+  const operationIds = new Set<string>();
+  for (const operation of state.outbox) {
+    assertPendingOperation(operation, userId);
+    if (operationIds.has(operation.id)) throw new TypeError('Operação pendente duplicada no backup.');
+    operationIds.add(operation.id);
+  }
   const dataset = JSON.parse(serializeFinancialDataset(state, userId)) as Record<string, unknown>;
   const outbox = state.outbox.map((operation) => ({
     id: operation.id,

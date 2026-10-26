@@ -31,4 +31,9 @@ it('exports a versioned local backup with canonical money and pending operations
   expect(backup.data.events[0].amountCents).toBe('9007');
   expect(backup.outbox[0].payload.events[0].amountCents).toBe('9007');
   expect(JSON.stringify(backup)).not.toContain('undefined');
+  const invalidOwner = structuredClone(state);
+  invalidOwner.outbox[0]!.userId = '90000000-0000-4000-8000-000000000001';
+  expect(() => serializeLocalBackup(invalidOwner, userId)).toThrow(/outro usuário/);
+  expect(() => serializeLocalBackup({ ...state, outbox: [...state.outbox, ...state.outbox] }, userId)).toThrow(/duplicada/);
+  expect(() => serializeLocalBackup(state, userId, 'inválido')).toThrow(/Instante/);
 });

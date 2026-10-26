@@ -11,6 +11,7 @@ import {
   type Posting,
   type Settlement,
 } from '../domain';
+import { serializeOperationPayload } from '../serialization';
 
 const DATA_TABLE_NAMES = ['accounts', 'categories', 'events', 'settlements', 'postings'] as const;
 const ALL_TABLE_NAMES = [...DATA_TABLE_NAMES, 'outbox'] as const;
@@ -79,6 +80,9 @@ export class LocalFinancialStore {
     const input = copyAggregate(aggregate);
     const pending = structuredClone(operation);
     assertPendingOperation(pending, this.userId);
+    if (pending.payloadJson !== serializeOperationPayload(aggregate, this.userId)) {
+      throw new TypeError('A operação pendente não corresponde ao agregado financeiro.');
+    }
     await this.#db.transaction('rw', ALL_TABLE_NAMES, async () => {
       const current = await this.#readTables();
       assertFinancialDataset(mergeDataset(current, input), this.userId);
@@ -163,7 +167,7 @@ function mergeDataset(current: FinancialDataset, input: FinancialDataset): Finan
   };
 }
 
-function assertPendingOperation(operation: PendingOperation, userId: string): void {
+export function assertPendingOperation(operation: PendingOperation, userId: string): void {
   assertEntityId(operation.id, 'Operação pendente');
   assertEntityId(operation.userId, 'Proprietário da operação');
   if (operation.userId !== userId) throw new TypeError('A operação pendente pertence a outro usuário.');
@@ -172,6 +176,9 @@ function assertPendingOperation(operation: PendingOperation, userId: string): vo
   if (typeof operation.createdAt !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(operation.createdAt)) {
     throw new TypeError('Instante da operação pendente inválido.');
   }
+  const timestamp = Date.parse(operation.createdAt);
+  const canonical = operation.createdAt.includes('.') ? operation.createdAt : operation.createdAt.replace('Z', '.000Z');
+  if (!Number.isFinite(timestamp) || new Date(timestamp).toISOString() !== canonical) throw new TypeError('Instante da operação pendente inválido.');
   if (typeof operation.payloadJson !== 'string' || operation.payloadJson.length < 2 || operation.payloadJson.length > 1_000_000) {
     throw new TypeError('Payload da operação pendente inválido.');
   }

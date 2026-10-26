@@ -1,8 +1,9 @@
-const CACHE_NAME = 'atlas-shell-v1';
-const APP_SHELL = ['/', '/manifest.webmanifest', '/icon.svg'];
+const CACHE_NAME = 'atlas-shell-__BUILD_VERSION__';
+const APP_SHELL = [/* __PRECACHE__ */];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
+  // Wait for all existing tabs to close; never force a form reload.
 });
 
 self.addEventListener('activate', (event) => {
@@ -13,11 +14,9 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) return;
-  event.respondWith(fetch(event.request).then((response) => {
-    if (response.ok) {
-      const copy = response.clone();
-      event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)));
-    }
-    return response;
-  }).catch(() => caches.match(event.request).then((cached) => cached ?? caches.match('/'))));
+  event.respondWith(caches.open(CACHE_NAME).then(async (cache) => {
+    if (event.request.mode === 'navigate') return (await cache.match('/')) ?? fetch(event.request);
+    // Static assets are identical regardless of Origin (Vite preview sends Vary: Origin).
+    return (await cache.match(event.request, { ignoreVary: true })) ?? fetch(event.request);
+  }));
 });

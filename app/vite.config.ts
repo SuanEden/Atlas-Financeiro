@@ -1,5 +1,8 @@
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 
 const appRoot = fileURLToPath(new URL('.', import.meta.url));
@@ -33,9 +36,28 @@ function protectPrivateDocuments(): Plugin {
   };
 }
 
+function offlineShell(): Plugin {
+  return {
+    name: 'atlas-offline-shell',
+    apply: 'build',
+    writeBundle(options, bundle) {
+      const output = options.dir ?? join(appRoot, 'dist');
+      const manifest = JSON.parse(readFileSync(join(output, 'manifest.webmanifest'), 'utf8')) as { icons: { src: string }[] };
+      const files = [...new Set(['index.html', 'manifest.webmanifest', ...manifest.icons.map((icon) => icon.src.slice(1)), ...Object.keys(bundle)])];
+      const hash = createHash('sha256');
+      for (const file of files) hash.update(readFileSync(join(output, file)));
+      const template = readFileSync(join(appRoot, 'public/sw.js'), 'utf8');
+      const version = hash.update(template).digest('hex').slice(0, 16);
+      writeFileSync(join(output, 'sw.js'), template
+        .replace('__BUILD_VERSION__', version)
+        .replace('[/* __PRECACHE__ */]', JSON.stringify(['/', ...files.map((file) => `/${file}`)])));
+    },
+  };
+}
+
 export default defineConfig({
   root: appRoot,
-  plugins: [protectPrivateDocuments(), react()],
+  plugins: [protectPrivateDocuments(), react(), offlineShell()],
   publicDir: 'public',
   // Browser tests import the persistence harness lazily. Pre-bundle Dexie at
   // server startup so first use cannot trigger a Vite reload mid-evaluation.

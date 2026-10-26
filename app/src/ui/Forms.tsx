@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { parseBRL, type Account, type Category, type FinancialEvent } from '../domain';
 import type { CreateAccountInput, CreateCategoryInput, TransactionInput } from '../application';
 import { accountKindLabels, availabilityLabels } from './financial-view';
@@ -12,16 +12,36 @@ interface DialogFrameProps {
 }
 
 export function DialogFrame({ title, onClose, children, wide = false }: DialogFrameProps) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const previousFocus = document.activeElement;
+    const element = dialog.current!;
+    element.showModal();
+    element.querySelector<HTMLInputElement>('input')?.focus();
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      element.close();
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus instanceof HTMLElement) previousFocus.focus();
+    };
+  }, []);
   return (
-    <div className="dialog-backdrop" role="presentation">
-      <section className={`dialog-sheet${wide ? ' dialog-sheet--wide' : ''}`} role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+      <dialog ref={dialog} className={`dialog-sheet${wide ? ' dialog-sheet--wide' : ''}`} aria-modal="true" aria-labelledby="dialog-title" onCancel={(event) => { event.preventDefault(); onClose(); }} onKeyDown={(event) => {
+        if (event.key !== 'Tab') return;
+        const controls = [...event.currentTarget.querySelectorAll<HTMLElement>('button, input, select, summary, [tabindex]')]
+          .filter((element) => element.tabIndex >= 0 && !element.matches(':disabled') && element.getClientRects().length > 0);
+        const first = controls[0];
+        const last = controls.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }}>
         <header className="dialog-header">
           <h2 id="dialog-title">{title}</h2>
           <button className="icon-button" type="button" onClick={onClose} aria-label="Fechar"><X size={22} /></button>
         </header>
         {children}
-      </section>
-    </div>
+      </dialog>
   );
 }
 
@@ -30,6 +50,12 @@ interface AccountFormProps {
   busy: boolean;
   onCancel: () => void;
   onSave: (input: CreateAccountInput) => Promise<void>;
+}
+
+function FormError({ message }: { message: string | undefined }) {
+  const element = useRef<HTMLParagraphElement>(null);
+  useEffect(() => { element.current?.scrollIntoView({ block: 'center' }); }, [message]);
+  return message === undefined ? null : <p ref={element} className="form-error" role="alert">{message}</p>;
 }
 
 export function AccountForm({ today, busy, onCancel, onSave }: AccountFormProps) {
@@ -66,7 +92,7 @@ export function AccountForm({ today, busy, onCancel, onSave }: AccountFormProps)
       </div>
       <label>Saldo inicial <span className="field-hint">opcional, pode ser negativo</span><input inputMode="decimal" value={openingBalance} onChange={(event) => setOpeningBalance(event.target.value)} placeholder="R$ 0,00" /></label>
       <p className="form-note">O saldo inicial será registrado como ajuste, nunca como renda.</p>
-      {error === undefined ? null : <p className="form-error" role="alert">{error}</p>}
+      <FormError message={error} />
       <footer className="dialog-actions"><button className="button button--ghost" type="button" onClick={onCancel}>Cancelar</button><button className="button button--primary" disabled={busy} type="submit">{busy ? 'Salvando…' : 'Criar conta'}</button></footer>
     </form>
   );
@@ -103,7 +129,7 @@ export function CategoryForm({ categories, busy, onCancel, onSave }: CategoryFor
         <label>Natureza<select value={kind} onChange={(event) => setKind(event.target.value as Category['kind'])}><option value="expense">Despesa</option><option value="income">Receita</option><option value="both">Receita e despesa</option></select></label>
         <label>Categoria superior <span className="field-hint">opcional</span><select value={parentId} onChange={(event) => setParentId(event.target.value)}><option value="">Nenhuma</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
       </div>
-      {error === undefined ? null : <p className="form-error" role="alert">{error}</p>}
+      <FormError message={error} />
       <footer className="dialog-actions"><button className="button button--ghost" type="button" onClick={onCancel}>Cancelar</button><button className="button button--primary" disabled={busy} type="submit">{busy ? 'Salvando…' : 'Criar categoria'}</button></footer>
     </form>
   );
@@ -113,14 +139,15 @@ interface TransactionFormProps {
   accounts: Account[];
   categories: Category[];
   initial?: FinancialEvent;
+  defaultKind?: TransactionInput['kind'];
   today: string;
   busy: boolean;
   onCancel: () => void;
   onSave: (input: TransactionInput) => Promise<void>;
 }
 
-export function TransactionForm({ accounts, categories, initial, today, busy, onCancel, onSave }: TransactionFormProps) {
-  const initialKind = initial?.kind === 'income' || initial?.kind === 'transfer' ? initial.kind : 'expense';
+export function TransactionForm({ accounts, categories, initial, defaultKind = 'expense', today, busy, onCancel, onSave }: TransactionFormProps) {
+  const initialKind = initial?.kind === 'income' || initial?.kind === 'transfer' ? initial.kind : defaultKind;
   const [kind, setKind] = useState<TransactionInput['kind']>(initialKind);
   const [amount, setAmount] = useState(initial === undefined ? '' : centsForInput(initial.amountCents));
   const [accountId, setAccountId] = useState(initial?.accountId ?? accounts[0]?.id ?? '');
@@ -172,7 +199,7 @@ export function TransactionForm({ accounts, categories, initial, today, busy, on
       <label>Data<input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label>
       <details className="form-details"><summary>Mais detalhes</summary><div className="form-grid"><label>Status<select value={realized ? 'realized' : 'planned'} onChange={(event) => setRealized(event.target.value === 'realized')}><option value="realized">Realizado</option><option value="planned">Previsto</option></select></label>{realized ? null : <label>Certeza<select value={estimated ? 'estimated' : 'confirmed'} onChange={(event) => setEstimated(event.target.value === 'estimated')}><option value="confirmed">Confirmado</option><option value="estimated">Estimado</option></select></label>}</div></details>
       <p className="form-note">Salvo somente neste dispositivo. A sincronização remota ainda não está ativa.</p>
-      {error === undefined ? null : <p className="form-error" role="alert">{error}</p>}
+      <FormError message={error} />
       <footer className="dialog-actions dialog-actions--sticky"><button className="button button--ghost" type="button" onClick={onCancel}>Cancelar</button><button className="button button--primary" disabled={busy} type="submit">{busy ? 'Salvando…' : initial === undefined ? 'Salvar lançamento' : 'Salvar correção'}</button></footer>
     </form>
   );
