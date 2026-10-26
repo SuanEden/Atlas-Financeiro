@@ -8,6 +8,10 @@ Os **Incrementos 1 e 2** entregam uma aplicação financeira local verificável:
 
 O projeto de aplicação está em `app/`. Nesse diretório, executar `npm ci`, `npm run dev` e `npm run check`. Dependências e lockfile são locais ao projeto. Não são necessários Docker, serviços externos, conta ou chave de IA para o uso local.
 
+Requisitos: Node.js >= 22.12 e npm; os testes de navegador usam Microsoft Edge instalado. Desenvolvimento: `npm run dev`, em `http://127.0.0.1:5173`. Para testar a PWA, executar `npm run build` e `npm run preview`, em `http://127.0.0.1:4173`. Aguardar o primeiro carregamento online antes de testar offline. Esses dois endereços têm bases locais distintas; usar sempre o mesmo endereço para reencontrar seus dados.
+
+Em **Backup**, o botão **Baixar backup** exporta JSON com histórico e outbox. **Não há importação ou restauração em I2**; a recuperação completa está explicitamente prevista para I4. Guardar a cópia fora do navegador e do aparelho.
+
 ## Documentação
 
 - [Plano aprovado](docs/PLANO_APROVADO.md) e [roadmap completo](docs/ROADMAP.md).
@@ -15,6 +19,7 @@ O projeto de aplicação está em `app/`. Nesse diretório, executar `npm ci`, `
 - [Contrato de sincronização](docs/SINCRONIZACAO.md) e [backup e restauração](docs/BACKUP_E_RESTAURACAO.md).
 - [Segurança e RPC](docs/SEGURANCA_RPC.md), [custos e limites](docs/CUSTOS_E_LIMITES.md) e [referências](docs/REFERENCIAS_E_DECISOES.md).
 - [Estado atual](docs/ESTADO_ATUAL.md) e [validação realizada](docs/VALIDACAO.md) registram o que foi efetivamente implementado e testado.
+- [Diretrizes de interface](docs/DIRETRIZES_UI_UX.md) e [próxima etapa](docs/PROXIMA_ETAPA.md).
 
 `database/modelo_inicial.sql` é uma referência de desenho relacional. Não foi aplicado em PostgreSQL, não configura Supabase e não está pronto para implantação.
 

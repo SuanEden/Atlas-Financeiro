@@ -1,5 +1,7 @@
 # Continuidade do Atlas Financeiro
 
+- Ajustes de interface devem seguir [docs/DIRETRIZES_UI_UX.md](docs/DIRETRIZES_UI_UX.md), preservando a linguagem visual e o escopo de I2.
+
 - A VM de trabalho é descartável. Código e documentação técnica sanitizada só estão preservados depois de commit e push confirmados no GitHub.
 - Antes de editar, conferir branch, remoto, estado do worktree, `README.md`, `docs/ESTADO_ATUAL.md` e `docs/VALIDACAO.md`. Preservar alterações existentes; não usar reset destrutivo, limpeza ou force push.
 - Os Incrementos 1 e 2 estão concluídos nesta linha de trabalho. Não iniciar autenticação, envio remoto, aplicação de SQL, restauração completa, gerações ou o Incremento 3 sem nova autorização.

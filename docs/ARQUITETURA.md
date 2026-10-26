@@ -48,6 +48,10 @@ A identidade local é um UUID anônimo persistido no `localStorage` apenas para 
 
 O PWA registra service worker somente no build de produção. O cache contém o shell estático; os dados financeiros permanecem no IndexedDB. O backup exporta JSON versionado, mas I2 não importa nem restaura arquivos.
 
+O build gera `dist/sw.js` a partir do template `public/sw.js`, com a lista completa de HTML, JS, CSS, manifesto e ícones e um hash do conteúdo. O worker pré-cacheia essa versão e não mistura ativos de builds diferentes. Não há `skipWaiting`: uma atualização espera o fechamento de todas as abas/janelas controladas. O cache antigo é retirado na ativação seguinte; IndexedDB, identidade local e outbox não são apagados. O template em `public/` não deve ser servido como build pronto.
+
+`commitOperation` confere que o payload canônico representa exatamente o agregado antes da transação. Na interface, uma trava síncrona impede gravações concorrentes na mesma instância, além do estado visual ocupado. Reutilizar IDs ou aplicar correções concorrentes continua sujeito à validação transacional, sem sobrescrita silenciosa. Isso não implementa coordenação de sincronização entre abas, prevista para I3.
+
 Separar módulos de interface, aplicação, domínio, persistência, sincronização, autenticação e exportação. Não introduzir SSR, backend permanente, ORM de servidor ou serviços de IA para suprir funções do navegador ou do PostgreSQL. O acesso remoto futuro usará SDK Supabase e RPCs SQL; a organização de schemas e permissões está em [segurança](SEGURANCA_RPC.md).
 
 Telas futuras do MVP: acesso/conferência inicial, início, movimentações, contas, categorias e configurações de sincronização/backup. Navegação inferior no celular e lateral no desktop; ação de adicionar gasto sempre acessível; formulário básico de valor, conta, categoria e descrição, com detalhes opcionais. Modo claro/escuro e acessibilidade fazem parte de I2, não do scaffold I1.

@@ -4,6 +4,12 @@
 
 O exportador foi validado unitariamente e pelo download no navegador. Ele não cifra o arquivo, não copia automaticamente para outro dispositivo e não constitui restauração. O usuário precisa guardar a cópia em local privado fora do navegador e da VM.
 
+Formato atual: `atlas-financeiro-local-backup`, `schemaVersion: 1`, `manifest.financialSchemaVersion: 2`, proprietário UUID, instante de exportação, contagens das cinco coleções, total de pendências e `attachmentsIncluded: false`. `data` contém o dataset financeiro; `outbox` contém IDs, tipo, instante e payloads com centavos em strings. O exportador valida o dataset e os metadados das pendências e rejeita proprietário divergente, IDs de operação repetidos e instante inválido. O comando persistido exige payload idêntico ao agregado gravado.
+
+O teste de navegador lê o arquivo realmente baixado, verifica contagens e soma exata, incluindo originais, estornos, substituições e cancelamento. Não existe seletor de arquivo, parser de entrada nem alteração do banco por arquivo em I2. Rejeição de arquivos de restauração e recuperação em instalação limpa ainda não foram implementadas ou testadas; esses critérios pertencem a I4.
+
+Ao solicitar a exportação, a interface relê todas as coleções e a outbox em uma transação de leitura consistente. Não usa apenas o snapshot visual, que pode estar anterior a uma gravação de outra aba. O teste com duas abas confirmou a inclusão da conta recém-gravada na exportação da aba antiga. Falhas na leitura ou geração são apresentadas como erro, sem substituir os dados locais.
+
 ## Arquivo de backup
 
 O formato será versionado e conterá manifesto, versão de schema, proprietário de origem, instante de exportação e todas as entidades financeiras/histórico. Valores monetários usam strings canônicas; datas financeiras mantêm seu calendário. Nunca incluir senhas, tokens de sessão, Client Secret, chaves administrativas ou configuração de faturamento.
