@@ -2,11 +2,11 @@
 
 Aplicação pessoal de gestão financeira com prioridade para celular Android, interface em português brasileiro, valores em BRL e datas financeiras no fuso `America/Fortaleza`.
 
-O **Incremento 1** entrega uma fundação local verificável: projeto React/TypeScript/Vite mínimo, domínio financeiro puro, representação exata em centavos, serialização JSON de `bigint`, persistência Dexie e testes. As telas financeiras, PWA, autenticação, sincronização e restauração completa pertencem aos incrementos seguintes.
+Os **Incrementos 1 e 2** entregam uma aplicação financeira local verificável: domínio em centavos exatos, persistência Dexie, contas, categorias, receitas, despesas, transferências, reservas simples, edição/estorno imutáveis, dashboard, histórico, outbox, backup JSON e PWA offline. Autenticação, envio remoto e restauração completa pertencem aos incrementos seguintes.
 
 ## Desenvolvimento local
 
-O projeto de aplicação está em `app/`. Nesse diretório, executar `npm ci`, `npm run dev`, `npm run typecheck`, `npm test` e `npm run build`, conforme os scripts disponíveis em `package.json`. Dependências e lockfile são locais ao projeto. Não são necessários Docker, serviços externos ou chave de IA para esta fundação.
+O projeto de aplicação está em `app/`. Nesse diretório, executar `npm ci`, `npm run dev` e `npm run check`. Dependências e lockfile são locais ao projeto. Não são necessários Docker, serviços externos, conta ou chave de IA para o uso local.
 
 ## Documentação
 
@@ -18,4 +18,4 @@ O projeto de aplicação está em `app/`. Nesse diretório, executar `npm ci`, `
 
 `database/modelo_inicial.sql` é uma referência de desenho relacional. Não foi aplicado em PostgreSQL, não configura Supabase e não está pronto para implantação.
 
-As especificações privadas originais, dados reais, backups, comprovantes e segredos não devem integrar o histórico Git nem artefatos publicados. Este README e `docs/` descrevem somente decisões técnicas sanitizadas. Não há publicação ou configuração remota autorizada neste incremento.
+As especificações privadas originais, dados reais, arquivos de backup, comprovantes e segredos não devem integrar o histórico Git nem artefatos publicados. Este README e `docs/` descrevem somente decisões técnicas sanitizadas. Não há publicação ou configuração remota autorizada.

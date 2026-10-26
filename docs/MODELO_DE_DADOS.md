@@ -28,7 +28,9 @@ Saldo inicial será um ajuste explicitamente confirmado e liquidado na data de r
 
 ## Entidades posteriores
 
-- I2 acrescenta contratos de histórico/revisões, outbox e metadados de backup; edição e estorno devem manter rastreabilidade.
+- I2 acrescentou `reversesEventId` e `replacesEventId` opcionais ao evento local. Estornos são eventos confirmados do mesmo valor/natureza com contrapartidas inversas; substituições de eventos liquidados exigem o estorno no mesmo comando.
+- `PendingOperation` contém ID estável, proprietário, tipo, instante UTC e payload JSON explícito. A tabela `outbox` é isolada pelo mesmo proprietário e gravada atomicamente com o agregado. Em I2 todas permanecem pendentes; confirmação remota pertence a I3.
+- O backup I2 contém manifesto, dataset serializado e outbox. Não há tabela de saldo, arquivo importável, restauração ou geração ativa.
 - I3 acrescenta autorização administrativa por UUID, versões, tombstones, comprovantes de operação e mudanças incrementais do servidor. Relação com `auth.users` será criada apenas na integração autorizada.
 - I4 acrescenta manifesto de backup e controle de gerações para restauração segura.
 - Fase 2 acrescenta cartões, compras, parcelas, faturas e alocação de pagamentos; dívidas, ofertas e acordos versionados; recorrências, participantes/rateios/créditos; benefícios, reembolsos e anexos.

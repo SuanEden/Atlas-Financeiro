@@ -2,7 +2,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-async function navigate(page: Page, testInfo: TestInfo, destination: 'Início' | 'Movimentações' | 'Categorias' | 'Backup') {
+async function navigate(page: Page, testInfo: TestInfo, destination: 'Início' | 'Movimentações' | 'Contas' | 'Categorias' | 'Backup') {
   if (testInfo.project.name === 'mobile-edge' && destination === 'Movimentações') {
     await page.getByRole('button', { name: 'Movimentos', exact: true }).click();
     return;
@@ -67,4 +67,34 @@ test('conta, categoria, despesa, correção e backup sobrevivem à recarga', asy
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/^atlas-financeiro-backup-\d{4}-\d{2}-\d{2}\.json$/);
   expect(errors).toEqual([]);
+});
+
+test('transferência para reserva mantém o total entre contas', async ({ page }, testInfo) => {
+  test.setTimeout(60_000);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Criar minha primeira conta' }).click();
+  await page.getByLabel('Nome da conta').fill('Conta livre');
+  await page.getByPlaceholder('R$ 0,00').fill('50,00');
+  await page.getByRole('button', { name: 'Criar conta' }).click();
+
+  await navigate(page, testInfo, 'Contas');
+  await page.getByRole('button', { name: 'Nova conta' }).click();
+  const accountDialog = page.getByRole('dialog');
+  await accountDialog.getByLabel('Nome da conta').fill('Reserva de teste');
+  await accountDialog.getByRole('combobox').nth(1).selectOption('reserved');
+  await accountDialog.getByRole('button', { name: 'Criar conta' }).click();
+
+  await page.getByRole('button', { name: 'Transferir ou separar reserva' }).click();
+  const transactionDialog = page.getByRole('dialog');
+  await transactionDialog.getByRole('button', { name: 'Transferência' }).click();
+  await transactionDialog.getByLabel('Valor em reais').fill('10,00');
+  await expect(transactionDialog.getByRole('combobox').nth(0)).not.toHaveValue('');
+  await expect(transactionDialog.getByRole('combobox').nth(1)).not.toHaveValue('');
+  await transactionDialog.getByRole('button', { name: 'Salvar lançamento' }).click();
+
+  await navigate(page, testInfo, 'Início');
+  const summary = page.getByLabel('Resumo dos saldos');
+  await expect(summary).toContainText('R$ 40,00');
+  await expect(summary).toContainText('R$ 10,00');
+  await expect(summary).toContainText('R$ 50,00');
 });

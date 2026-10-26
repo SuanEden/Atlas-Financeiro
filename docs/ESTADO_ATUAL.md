@@ -2,9 +2,9 @@
 
 Atualizado em 26/10/2026. Este documento registra evidências recuperáveis do repositório e não depende do histórico do chat.
 
-## Situação do Incremento 1
+## Situação dos Incrementos 1 e 2
 
-O Incremento 1 — Fundação local está implementado no escopo técnico disponível e permanece separado dos incrementos seguintes. A aplicação em `app/` contém um scaffold mínimo React/TypeScript/Vite, domínio financeiro puro, persistência Dexie/IndexedDB, codec JSON explícito e testes. A interface só identifica a fundação; não é um dashboard e não aceita lançamentos pessoais.
+O Incremento 1 — Fundação local e o Incremento 2 — Uso financeiro local estão implementados e permanecem separados da integração remota. A aplicação em `app/` funciona como PWA local, inicia vazia e só armazena no navegador os dados informados pelo usuário.
 
 Componentes existentes:
 
@@ -15,6 +15,13 @@ Componentes existentes:
 - representação JSON versionada, com valores monetários em strings decimais canônicas;
 - armazenamento local isolado por proprietário, inserção de agregados em transação, rejeição de sobrescrita e leitura consistente após reabertura;
 - referência relacional em `database/modelo_inicial.sql`, deliberadamente não aplicada e não validada em PostgreSQL.
+- dashboard e histórico responsivos, com navegação lateral no desktop e inferior no celular;
+- criação de contas, categorias, receitas, despesas e transferências, com valores realizados ou previstos;
+- reserva simples por conta classificada como `reserved`, alimentada por transferência neutra no patrimônio;
+- edição de lançamento por estorno integral mais substituição, e estorno por novo evento de efeito inverso; nenhum registro liquidado é sobrescrito;
+- outbox persistente gravada na mesma transação Dexie que o agregado financeiro, ainda sem envio remoto;
+- backup JSON local versionado, incluindo histórico e operações pendentes; restauração continua fora do escopo;
+- manifest, ícone e service worker para instalação e reabertura offline sem apagar IndexedDB.
 
 ## Limitação dos documentos privados
 
@@ -24,11 +31,11 @@ Se esses documentos ainda existirem em armazenamento privado, precisam ser prese
 
 ## Fronteiras preservadas
 
-- Não há OAuth, Supabase configurado, RPC remota, outbox, PWA, backup completo, restauração ou gerações implementadas.
+- Não há OAuth, Supabase configurado, RPC remota, envio da outbox, restauração ou gerações implementadas.
 - `SECURITY INVOKER`, grants, RLS e autorização ativa são contratos futuros documentados, não resultados validados.
-- Nenhum serviço externo foi configurado, nenhum aplicativo foi publicado e nenhuma funcionalidade do Incremento 2 foi iniciada.
+- Nenhum serviço externo foi configurado e nenhum aplicativo foi publicado.
 - A autorização de 26/10/2026 permite commits e pushes desta continuação, mas não deploy.
 
 ## Próximo passo
 
-Revisar as evidências em `docs/VALIDACAO.md`. Somente após aprovação explícita, iniciar o Incremento 2 pelo fluxo financeiro local completo, preservando os contratos do domínio e sem antecipar autenticação ou sincronização remota.
+Revisar as evidências em `docs/VALIDACAO.md`. Somente após aprovação explícita, iniciar o Incremento 3 por Google OAuth restrito, autorização ativa, RPCs transacionais e sincronização incremental. A documentação não substitui testes reais em Supabase/PostgreSQL.

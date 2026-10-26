@@ -1,6 +1,8 @@
 # Backup e restauração
 
-**Contrato futuro.** I1 oferece codec de centavos para JSON e leitura consistente do armazenamento local. Esses componentes não constituem um exportador completo, arquivo de backup ou restaurador. Backup local entra em I2; restauração completa e controle de gerações, em I4.
+**Exportação local implementada em I2; restauração continua futura.** O aplicativo baixa um JSON versionado com manifesto, dataset completo e operações pendentes. Valores monetários permanecem strings canônicas. O arquivo não contém credenciais, sessão ou configuração remota.
+
+O exportador foi validado unitariamente e pelo download no navegador. Ele não cifra o arquivo, não copia automaticamente para outro dispositivo e não constitui restauração. O usuário precisa guardar a cópia em local privado fora do navegador e da VM.
 
 ## Arquivo de backup
 

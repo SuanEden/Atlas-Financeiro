@@ -1,6 +1,6 @@
 # Sincronização
 
-**Contrato futuro de I2–I3.** O I1 implementa persistência local mínima, sem outbox, credenciais, chamadas remotas ou engine de sincronização.
+**Outbox local implementada em I2; protocolo remoto continua futuro para I3.** Cada comando financeiro grava agregado e `PendingOperation` na mesma transação IndexedDB. Não existem credenciais, chamadas remotas, cursor ou engine de sincronização; por isso todas as operações aparecem como pendentes sem alegação de envio.
 
 ## Fluxo pretendido
 
