@@ -1,5 +1,9 @@
 # Estado atual
 
+## Retomada após encerramento da VM
+
+Em 26/10/2026 foi recuperado `34b6566`, posterior a `6a7c308`, na mesma branch I3. [Diagnóstico de recuperação](RECUPERACAO_I3.md): protocolo SQL e motor com 164 testes aprovados/1 ignorado; Auth/controlador incompletos, com 9 erros de compilação e sem ligação à interface. Os registros abaixo descrevem o checkpoint inicial e são históricos; não representam todo o código recuperado. Continuidade local em andamento, sem serviços externos ou dados pessoais.
+
 Atualizado em 26/10/2026. **I1 e I2 concluídos; I3 em implementação local e ainda incompleto.**
 
 Branch de trabalho: `codex/incremento-3-local-foundation`, criada a partir de `43355a50c14a8593c52212409e066d2ace1f0496` da branch `codex/incremento-2-local-finance`. Esse SHA de I2/plano foi confirmado no GitHub nesta retomada e não foi alterado. `main` não foi mesclada.

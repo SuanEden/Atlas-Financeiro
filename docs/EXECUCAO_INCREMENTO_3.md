@@ -1,5 +1,7 @@
 # Execução local do Incremento 3
 
+**Retomada em 26/10/2026:** recuperado o checkpoint `34b6566`, posterior ao registro inicial abaixo. Protocolo SQL/motor presentes e revalidados; Auth/controlador parciais e compilação quebrada. Ver [RECUPERACAO_I3.md](RECUPERACAO_I3.md). Os números e exclusões de implementação abaixo são históricos do primeiro checkpoint, não o inventário atual.
+
 Atualizado em 26/10/2026. **I3 iniciado localmente e incompleto.** Branch `codex/incremento-3-local-foundation`, derivada de `43355a50c14a8593c52212409e066d2ace1f0496` em `codex/incremento-2-local-finance`. A referência de I2 foi conferida no GitHub e preservada. Não houve merge com `main`.
 
 ## Autorizações e inventário

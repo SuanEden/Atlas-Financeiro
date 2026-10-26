@@ -1,5 +1,11 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Revalidação da recuperação — 26/10/2026
+
+Em `34b6566`, após `npm ci`, `npm run check` passou nos 164 testes/1 ignorado e falhou no typecheck (9 erros de Auth/controlador). Os 16 testes de protocolo SQL e 12 do motor recuperados passaram novamente nesta VM. Build e PWA não foram executados pelo fluxo interrompido. [Diagnóstico e limites](RECUPERACAO_I3.md). Os resultados seguintes pertencem aos checkpoints anteriores.
+
+`npm run test:browser` foi executado separadamente no código recuperado: **20 aprovados**, desktop/celular emulado no Edge. Isso verifica a interface local I2/recuperação mínima, que ainda não importa Auth/controlador. Browser indisponível entre as ferramentas desta sessão; usado o Playwright já versionado. Não comprova login ou proteção visual de logout.
+
 ## Checkpoint inicial de I3 — 26/10/2026
 
 Branch `codex/incremento-3-local-foundation`. Node 22.13.0/npm 10.9.2 no Windows. Após atualização do lockfile, `npm ci` concluiu com 62 pacotes auditados e zero vulnerabilidades conhecidas reportadas. `npm run check` concluiu integralmente:

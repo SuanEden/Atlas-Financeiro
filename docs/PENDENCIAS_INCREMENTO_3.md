@@ -1,5 +1,7 @@
 # Incremento 3 — decisões e ações do usuário
 
+Retomada da VM em 26/10/2026: [diagnóstico](RECUPERACAO_I3.md). Nenhuma participação/configuração externa é necessária para corrigir e testar o lote local de sessão/associação. O protocolo SQL e o motor já existem, com testes embarcados reexecutados; integração real e concorrência entre conexões continuam pendentes.
+
 Atualizado em 26/10/2026. [Plano aprovado com limites](PLANO_INCREMENTO_3.md) e [execução atual](EXECUCAO_INCREMENTO_3.md). **Implementação local autorizada; integração real ainda não autorizada nem comprovada.**
 
 ## Decisões já respondidas
