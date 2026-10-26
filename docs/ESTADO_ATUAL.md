@@ -2,7 +2,11 @@
 
 ## Retomada após encerramento da VM
 
-Em 26/10/2026 foi recuperado `34b6566`, posterior a `6a7c308`, na mesma branch I3. [Diagnóstico de recuperação](RECUPERACAO_I3.md): protocolo SQL e motor com 164 testes aprovados/1 ignorado; Auth/controlador incompletos, com 9 erros de compilação e sem ligação à interface. Os registros abaixo descrevem o checkpoint inicial e são históricos; não representam todo o código recuperado. Continuidade local em andamento, sem serviços externos ou dados pessoais.
+Em 26/10/2026 foi recuperado `34b6566`, posterior a `6a7c308`, na mesma branch I3. [Diagnóstico de recuperação](RECUPERACAO_I3.md), preservado em `3885cc4`. Os registros após esta seção descrevem o checkpoint inicial e são históricos.
+
+Lote local posterior: corrigidos os 9 erros de TypeScript do Auth/controlador; proveniência da associação persistida; conflito aceito mantém o comando original como evidência, sem reenvio/efeito nos saldos; invalidação de sessão e respostas atrasadas protegidas por geração. Expiração mantém a concessão offline após associação; logout bloqueia memória/recarga e eventos automáticos não a reabrem. Essas políticas estão testadas no controlador, **ainda sem ligação à interface** neste lote.
+
+`npm run check` aprovado: **189 testes/1 ignorado**, typecheck/build, **20 de navegador** e **3 de PWA**. Foram adicionados 25 testes de política, adaptador/callback e controlador com SQL embarcado. Sem Google real, JWT/PostgREST, conexões independentes, aparelhos físicos, configuração externa ou dados pessoais. Próximo lote: ligar runtime e controles de sessão/associação/situação às telas, exportando metadados I3 sem reduzi-los ao backup I2. I3 permanece incompleto.
 
 Atualizado em 26/10/2026. **I1 e I2 concluídos; I3 em implementação local e ainda incompleto.**
 

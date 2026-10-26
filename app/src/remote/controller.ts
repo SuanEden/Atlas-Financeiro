@@ -21,13 +21,21 @@ export class RemoteController {
   #initialize:Promise<void>|undefined;
   #verification:Promise<void>|undefined;
   #generation=0;
-  #lastBootstrap:BootstrapEnvelope|undefined;
   #syncing:Promise<SyncResult>|undefined;
+  #disposed=false;
   readonly #unsubscribeAuth:()=>void;
   constructor(readonly serverId:string,private readonly auth:AuthPort,private readonly transport:SyncTransport,storage:Storage,private readonly source:SourcePort,private readonly deviceNamespace='default',private readonly now=()=>Date.now()) {
     this.policy=new SessionPolicy(serverId,storage,now);
     this.#snapshot={session:this.policy.snapshot,loading:true,dataRevision:0,notice:'',syncing:false,store:undefined};
-    this.#unsubscribeAuth=auth.onChange(()=>{if(!this.policy.snapshot.message.startsWith('Entre com Google')||this.policy.snapshot.userId==='')void this.verify(false);});
+    this.#unsubscribeAuth=auth.onChange((userId)=>{
+      if(this.#disposed||this.policy.snapshot.blocked)return;
+      this.#generation++;
+      // SDK events invalidate transmission immediately; they never authenticate by themselves.
+      if(userId&&this.policy.snapshot.userId&&userId!==this.policy.snapshot.userId)this.policy.lock();
+      else this.policy.expire();
+      this.publish({});
+      if(!this.policy.snapshot.blocked)void this.verify(false);
+    });
   }
   getSnapshot=()=>this.#snapshot;
   subscribe=(listener:()=>void)=>{this.#listeners.add(listener);return()=>{this.#listeners.delete(listener);};};
@@ -44,17 +52,19 @@ export class RemoteController {
   }
   async login() {this.publish({notice:''});try {await this.auth.login();}catch{this.publish({notice:'Não foi possível abrir o Google. Confira a conexão e tente novamente.'});}}
   async verify(interactive=false):Promise<void> {
-    if(this.#verification&&!interactive) return this.#verification;
-    const generation=this.#generation;
+    const generation=++this.#generation;
+    this.policy.expire();this.publish({});
     const run=(async()=>{
       try {
         // A durable explicit logout cannot be undone by a cached SDK token/event.
-        if(!interactive&&this.policy.snapshot.userId&&!this.policy.snapshot.canView&&this.policy.snapshot.message.startsWith('Entre com Google')) return;
+        if(!interactive&&this.policy.snapshot.blocked) return;
         const identity=await this.auth.verify();
         if(generation!==this.#generation) return;
         this.policy.verify(identity.userId,identity.expiresAt,identity.writesEnabled,interactive);
         await this.openStore();
-        const state=await this.#store?.read();
+        const store=this.#store;
+        const state=await store?.read();
+        if(generation!==this.#generation||store!==this.#store)return;
         if(state?.meta.binding==='active') this.policy.markAssociated(identity.userId);
         this.publish({notice:identity.writesEnabled?'':'Login verificado. O envio remoto aguarda liberação.'});
       } catch(reason) {
@@ -67,15 +77,18 @@ export class RemoteController {
   }
   async logout() {
     this.#generation++;
-    try {this.policy.lock();}finally {this.publish({notice:'Acesso local bloqueado. As pendências foram preservadas.'});}
+    try {this.policy.lock();}catch { /* Policy fails closed even when persistence fails. */ }
+    this.publish({notice:'Acesso local bloqueado. As pendências foram preservadas.'});
     try {await this.auth.logout();}catch {this.publish({notice:'Acesso local bloqueado. A saída no servidor depende de conexão; suas pendências foram preservadas.'});}
   }
   storageChanged() {this.#generation++;this.policy.reloadFromStorage();this.publish({notice:'A sessão mudou em outra aba. Entre novamente para sincronizar.'});}
   expireIfNeeded() {if(!this.policy.snapshot.onlineVerified){this.policy.expire();this.publish({});}}
 
   async previewLocalSource() {
-    this.requireOnline();const source=await this.source.read();
-    return {ownerId:source.ownerId,accounts:source.state.accounts.length,events:source.state.events.length,pending:source.state.outbox.length,digest:await jsonDigest(JSON.parse(canonicalLocalState(source.state,source.ownerId)))};
+    this.requireOnline();const epoch=this.policy.snapshot.epoch;const source=await this.source.read();
+    const digest=await jsonDigest(JSON.parse(canonicalLocalState(source.state,source.ownerId)));
+    if(epoch!==this.policy.snapshot.epoch)throw new Error('A sessão mudou durante a conferência.');
+    return {ownerId:source.ownerId,accounts:source.state.accounts.length,events:source.state.events.length,pending:source.state.outbox.length,digest};
   }
   async associateEmpty() {
     this.requireOnline();
@@ -83,8 +96,9 @@ export class RemoteController {
     await this.prepareAndSend(state,ownerId,'empty');
   }
   async associateLocal(expectedDigest:string) {
-    this.requireOnline();const source=await this.source.read();
+    this.requireOnline();const epoch=this.policy.snapshot.epoch;const source=await this.source.read();
     if(await jsonDigest(JSON.parse(canonicalLocalState(source.state,source.ownerId)))!==expectedDigest) throw new Error('A base local mudou. Faça uma nova conferência antes de associar.');
+    if(epoch!==this.policy.snapshot.epoch)throw new Error('A sessão mudou durante a conferência.');
     await this.prepareAndSend(source.state,source.ownerId,'i2');
   }
   async joinExisting() {
@@ -101,7 +115,6 @@ export class RemoteController {
         if(this.policy.snapshot.epoch!==epoch||store!==this.#store)return 'login_required';
         const state=await store.read();
         if(state.meta.binding==='verifying_source') {
-          const pendingEnvelope=this.#lastBootstrap;
           const receipt=state.receipts.find((row)=>row.operationId===state.meta.associationId);
           if(!receipt) throw new Error('Confirmação da associação ausente.');
           // Source metadata is persisted; a reload may resume without any in-memory proposal.
@@ -109,11 +122,12 @@ export class RemoteController {
           let digest:string;
           if(state.meta.sourceMode==='empty'&&sourceOwner) digest=await jsonDigest(JSON.parse(canonicalLocalState({accounts:[],categories:[],events:[],settlements:[],postings:[],outbox:[]},sourceOwner)));
           else {const source=await this.source.read();if(source.ownerId!==sourceOwner) throw new Error('A origem ativa mudou.');digest=await jsonDigest(JSON.parse(canonicalLocalState(source.state,source.ownerId)));}
-          void pendingEnvelope;
           if(!this.policy.snapshot.onlineVerified||this.policy.snapshot.epoch!==epoch) return 'login_required';
           await store.activateAssociation(digest);
         }
-        if((await store.read()).meta.binding==='active'&&this.policy.snapshot.onlineVerified)this.policy.markAssociated(store.userId);
+        const active=(await store.read()).meta.binding==='active';
+        if(this.policy.snapshot.epoch!==epoch||store!==this.#store)return 'login_required';
+        if(active&&this.policy.snapshot.onlineVerified)this.policy.markAssociated(store.userId);
         if(result==='login_required')this.policy.expire();
         if(result==='access_denied')this.policy.deny();
         this.publish({dataRevision:this.#snapshot.dataRevision+1,notice:syncMessage(result,(await store.read()).meta.binding==='active')});
@@ -133,14 +147,14 @@ export class RemoteController {
     if(!this.policy.snapshot.canView||!this.#store)throw new Error('Entre novamente antes de revisar conflitos.');
     await this.#store.resolveConflict(id);this.publish({dataRevision:this.#snapshot.dataRevision+1});
   }
-  dispose() {this.#generation++;this.#unsubscribeAuth();this.#store?.close();this.#listeners.clear();}
+  dispose() {this.#disposed=true;this.#generation++;this.#unsubscribeAuth();this.#store?.close();this.#listeners.clear();}
 
   private requireOnline() {if(!this.policy.snapshot.onlineVerified||!this.policy.snapshot.canTransmit||!this.#store)throw new Error('Conclua o login e aguarde a liberação do envio antes de associar.');}
   private async prepareAndSend(state:LocalFinancialState,sourceOwner:string,mode:'empty'|'i2') {
     const store=this.#store!;const epoch=this.policy.snapshot.epoch;
     const envelope=await prepareBootstrap(state,sourceOwner,store.userId,crypto.randomUUID());
     if(epoch!==this.policy.snapshot.epoch) throw new Error('A sessão mudou durante a conferência.');
-    await store.prepareAssociation(envelope,mode);this.#lastBootstrap=envelope;
+    await store.prepareAssociation(envelope,mode);
     await this.sync();
   }
   private async openStore() {

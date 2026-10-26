@@ -1,5 +1,13 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Lote de sessão/controlador depois da recuperação — 26/10/2026
+
+`npm run check` concluído integralmente nesta VM: **189 aprovados/1 ignorado**, 16 arquivos Vitest, typecheck/build, **20 testes Edge** e **3 PWA**. Os 25 novos testes são 5 da política de sessão, 12 do adaptador/configuração/callback e 8 do controlador com PGlite/fake-indexeddb. O teste privado de manifesto continua ignorado pelo motivo histórico; nenhum teste obrigatório de Auth foi declarado como aprovado por essa omissão.
+
+Cobertos: associação explícita sem alterar a origem, retomada por mesmo identificador após commit/resposta perdida/recarga, origem alterada bloqueando ativação, expiração com leitura/gravação offline e envio bloqueado, logout offline persistido com pendência, evento/token e resposta de verificação atrasados sem desbloqueio, conta diferente sem herdar associação, readiness falso e acesso revogado. O SDK é simulado nos testes do adaptador, e as identidades/RLS do banco são simuladas como nos testes recuperados. Não comprova OAuth hospedado, gateway ou dois aparelhos. A interface de I2 ainda não usa esse controlador neste lote.
+
+Documentação oficial consultada: [PKCE](https://supabase.com/docs/guides/auth/sessions/pkce-flow), [getUser](https://supabase.com/docs/reference/javascript/auth-getuser), [signOut](https://supabase.com/docs/reference/javascript/auth-signout) e changelog em 26/10/2026. A mudança recente de TLS refere-se a clientes antigos; não muda a API usada aqui. Nenhum serviço/configuração real foi acessado.
+
 ## Revalidação da recuperação — 26/10/2026
 
 Em `34b6566`, após `npm ci`, `npm run check` passou nos 164 testes/1 ignorado e falhou no typecheck (9 erros de Auth/controlador). Os 16 testes de protocolo SQL e 12 do motor recuperados passaram novamente nesta VM. Build e PWA não foram executados pelo fluxo interrompido. [Diagnóstico e limites](RECUPERACAO_I3.md). Os resultados seguintes pertencem aos checkpoints anteriores.

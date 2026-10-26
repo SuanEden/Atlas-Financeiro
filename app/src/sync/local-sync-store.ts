@@ -6,9 +6,9 @@ import { assertEnvelope, assertFields, assertRevision, assertSize, DATA_TABLES, 
 
 export interface PendingDelivery {
   id: string; envelope: SyncEnvelope; digest: string; operationDigest?: string; ordinal: number;
-  status: 'pending' | 'acknowledged' | 'conflict' | 'blocked'; error?: string;
+  status: 'pending' | 'acknowledged' | 'conflict' | 'blocked' | 'resolved'; error?: string;
 }
-interface SyncMeta { id: 'context'; cursor: string; ordinal: number; binding: 'unbound' | 'bootstrap' | 'verifying_source' | 'join' | 'active'; associationId?: string; sourceDigest?: string }
+interface SyncMeta { id: 'context'; cursor: string; ordinal: number; binding: 'unbound' | 'bootstrap' | 'verifying_source' | 'join' | 'active'; associationId?: string; sourceDigest?: string; sourceOwnerId?:string; sourceMode?:'empty'|'i2' }
 interface ConfirmedRow { id: 'confirmed'; json: string }
 interface StoredReceipt extends Receipt { id: string }
 class SyncDatabase extends Dexie {
@@ -31,7 +31,7 @@ export class LocalSyncStore {
     this.#db=new SyncDatabase(this.name);
   }
 
-  async prepareAssociation(envelope: BootstrapEnvelope): Promise<void> {
+  async prepareAssociation(envelope: BootstrapEnvelope, sourceMode:'empty'|'i2'='i2'): Promise<void> {
     this.assertOwner(envelope);
     const delivery=await prepareDelivery(envelope);
     await this.#db.transaction('rw',ALL,async()=>{
@@ -44,7 +44,7 @@ export class LocalSyncStore {
       if((await this.#db.pending.count())>0||Object.values(await this.confirmed()).some((rows)=>rows.length>0)) throw new Error('Associação exige destino local vazio.');
       envelopeData(envelope); // Validate the full bootstrap before any writes.
       await this.#db.pending.add({...delivery,ordinal:1});
-      await this.#db.meta.put({...meta,binding:'bootstrap',associationId:envelope.operationId,sourceDigest:envelope.source.digest,ordinal:1});
+      await this.#db.meta.put({...meta,binding:'bootstrap',associationId:envelope.operationId,sourceDigest:envelope.source.digest,sourceOwnerId:envelope.source.ownerId,sourceMode,ordinal:1});
     });
   }
 
@@ -110,6 +110,15 @@ export class LocalSyncStore {
     });
   }
 
+  /** Keep the losing command as evidence; acceptance never deletes history or retries it. */
+  async resolveConflict(id:string):Promise<void> {
+    await this.#db.transaction('rw',this.#db.pending,async()=>{
+      const row=await this.#db.pending.get(id);
+      if(!row||row.status!=='conflict') throw new Error('O conflito precisa estar disponível para conferência.');
+      await this.#db.pending.put({...row,status:'resolved'});
+    });
+  }
+
   async applyPage(page: ChangePage): Promise<void> {
     const acknowledgements=await validatePage(page,this.userId);
     await this.#db.transaction('rw',ALL,async()=>{
@@ -161,7 +170,7 @@ async function prepareDelivery(envelope: SyncEnvelope): Promise<Omit<PendingDeli
 }
 
 function project(confirmed: FinancialDataset, input: PendingDelivery[], owner: string) {
-  let data=structuredClone(confirmed); const pending=structuredClone(input); let remaining=pending.filter((row)=>row.status!=='conflict');
+  let data=structuredClone(confirmed); const pending=structuredClone(input); let remaining=pending.filter((row)=>row.status!=='conflict'&&row.status!=='resolved');
   while(remaining.length) {
     let progressed=false; const next:PendingDelivery[]=[];
     for(const row of remaining) {

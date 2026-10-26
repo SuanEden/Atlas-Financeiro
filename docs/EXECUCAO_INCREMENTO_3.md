@@ -2,6 +2,8 @@
 
 **Retomada em 26/10/2026:** recuperado o checkpoint `34b6566`, posterior ao registro inicial abaixo. Protocolo SQL/motor presentes e revalidados; Auth/controlador parciais e compilação quebrada. Ver [RECUPERACAO_I3.md](RECUPERACAO_I3.md). Os números e exclusões de implementação abaixo são históricos do primeiro checkpoint, não o inventário atual.
 
+**Continuação local:** erros de compilação corrigidos, proveniência da associação persistida e sessão/controlador revalidados com 25 testes adicionais. `npm run check`: 189 aprovados/1 ignorado, 20 navegador e 3 PWA. A política ainda não está ligada à interface; próximo lote inclui essa ligação e cópia I3 com metadados. Estado detalhado em [ESTADO_ATUAL.md](ESTADO_ATUAL.md).
+
 Atualizado em 26/10/2026. **I3 iniciado localmente e incompleto.** Branch `codex/incremento-3-local-foundation`, derivada de `43355a50c14a8593c52212409e066d2ace1f0496` em `codex/incremento-2-local-finance`. A referência de I2 foi conferida no GitHub e preservada. Não houve merge com `main`.
 
 ## Autorizações e inventário

@@ -3,7 +3,7 @@ import type { TransmissionGrant } from '../sync/engine';
 
 interface SavedAccess { version:1; userId:string; associated:boolean; blocked:boolean }
 export interface SessionView extends TransmissionGrant {
-  canView:boolean; canWriteLocal:boolean; onlineVerified:boolean; expiresAt:number; message:string;
+  canView:boolean; canWriteLocal:boolean; onlineVerified:boolean; expiresAt:number; blocked:boolean; message:string;
 }
 
 /** UX lock for a personal profile, not encryption or protection against developer tools. No tokens here. */
@@ -33,7 +33,7 @@ export class SessionPolicy {
     const canView=!!saved&&!saved.blocked&&saved.associated;
     return {
       userId:saved?.userId??'',epoch:this.#epoch,onlineVerified,expiresAt:this.#expiresAt,
-      canView,canWriteLocal:canView,
+      canView,canWriteLocal:canView,blocked:saved?.blocked===true,
       canTransmit:onlineVerified&&!!saved&&!saved.blocked&&this.#writesEnabled,
       message:!saved||saved.blocked?'Entre com Google para acessar seus dados.':!saved.associated?'Confirme a associação inicial online.':!onlineVerified?'Dados locais preservados. Entre novamente antes de sincronizar.':!this.#writesEnabled?'Envio remoto desativado pelo responsável.':'Sessão verificada.',
     };
@@ -65,6 +65,8 @@ export class SessionPolicy {
       const raw=this.storage.getItem(this.storageKey);
       if(!raw) {this.#saved=undefined;return;}
       const saved=JSON.parse(raw) as SavedAccess;
+      assertEntityId(saved.userId);
+      if(saved.version!==1||typeof saved.associated!=='boolean'||typeof saved.blocked!=='boolean') throw new TypeError('Registro de acesso inválido.');
       if(saved.userId!==this.#saved?.userId) this.#saved=undefined;
       else if(saved.blocked) this.#saved={...this.#saved,blocked:true};
     } catch {this.#saved=undefined;}

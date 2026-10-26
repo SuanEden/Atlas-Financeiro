@@ -1,5 +1,11 @@
 # Próxima etapa — continuar I3 local
 
+## Prioridade após recuperação de 26/10/2026
+
+Foi recuperado `34b6566` e o diagnóstico está em `3885cc4`/`RECUPERACAO_I3.md`. SQL/motor já existem; não refazê-los como se só houvesse `6a7c308`. Lote seguinte corrigiu Auth/controlador e passou `npm run check` (189/1 ignorado, 20 navegador, 3 PWA).
+
+Continuar localmente: ligar o runtime às telas com barreira de visão, namespace por proprietário, controles de login/associação/envio/logout e retorno PKCE limpo; testar no navegador com Auth/transporte sintéticos separados do bundle. Preservar a aplicação I2 quando modo remoto estiver desabilitado. Exportação I3 deve incluir base confirmada, pendências, conflitos, recibos, cursor e proveniência sem tokens; não usar importador I2 para eliminar metadados. Não habilitar serviços externos nem indicador de escrita por consequência dos testes. O roteiro abaixo é histórico do checkpoint inicial; seguir primeiro esta prioridade.
+
 O usuário aprovou o plano e autorizou execução local, migrações versionadas, testes e checkpoints. O recorte mínimo de recuperação I2 também foi aprovado e implementado neste primeiro checkpoint. I3 ainda não está concluído. Estado verificável em [EXECUCAO_INCREMENTO_3.md](EXECUCAO_INCREMENTO_3.md) e [VALIDACAO.md](VALIDACAO.md).
 
 ## Retomada

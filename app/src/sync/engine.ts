@@ -63,7 +63,7 @@ export class SyncEngine {
           if(page.cursor===through) break;
           if(pageCount===99) return 'retry_later';
         }
-        return state.pending.some((row)=>['conflict','blocked'].includes(row.status))?'conflict':state.meta.binding!=='active'?'unassociated':state.pending.length?'retry_later':'synced';
+        return state.pending.some((row)=>['conflict','blocked'].includes(row.status))?'conflict':state.meta.binding!=='active'?'unassociated':state.pending.some((row)=>row.status!=='resolved')?'retry_later':'synced';
       } catch(reason) { return reason instanceof SyncFailure?reason.reason:'retry_later'; }
     };
     if(typeof navigator!=='undefined'&&navigator.locks) return navigator.locks.request(`atlas-financeiro:sync:${this.store.name}`,work);

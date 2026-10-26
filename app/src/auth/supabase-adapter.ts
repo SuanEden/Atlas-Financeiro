@@ -9,7 +9,7 @@ export interface AuthPort {
   login():Promise<void>;
   logout():Promise<void>;
   callback(code:string):Promise<void>;
-  onChange(callback:()=>void):()=>void;
+  onChange(callback:(userId?:string)=>void):()=>void;
 }
 export interface RemoteConfig { url:string; publishableKey:string; serverId:string }
 
@@ -37,7 +37,8 @@ export function createSupabaseAdapter(config:RemoteConfig,origin:string,storage:
   return adapterFromClient(client,origin,()=>{storage.removeItem(key);storage.removeItem(`${key}-code-verifier`);});
 }
 
-export function adapterFromClient(client:SupabaseClient,origin:string,clearLocalSession=()=>{}):{auth:AuthPort;transport:SyncTransport} {
+type ApiClient = SupabaseClient<any, 'public', 'api'>;
+export function adapterFromClient(client:ApiClient,origin:string,clearLocalSession=()=>{}):{auth:AuthPort;transport:SyncTransport} {
   const callbackUrl=new URL('/auth/callback',origin).href;
   const rpc=async<T>(name:string,args:Record<string,unknown>={})=>{
     const {data,error}=await client.schema('api').rpc(name,args);
@@ -63,13 +64,13 @@ export function adapterFromClient(client:SupabaseClient,origin:string,clearLocal
     },
     async callback(code) { const {error}=await client.auth.exchangeCodeForSession(code);if(error) throw mapRemoteError(error); },
     async logout() {try {const {error}=await client.auth.signOut({scope:'local'});if(error) throw mapRemoteError(error);}finally {clearLocalSession();}},
-    onChange(callback) {const {data}=client.auth.onAuthStateChange(()=>{queueMicrotask(callback);});return ()=>data.subscription.unsubscribe();},
+    onChange(callback) {const {data}=client.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>callback(session?.user.id),0);});return ()=>data.subscription.unsubscribe();},
   };
   return {auth,transport:{apply:(envelope:SyncEnvelope)=>rpc<Receipt>('i3_apply',{p_envelope:envelope}),pull:(after:string,through:string|null)=>rpc<ChangePage>('i3_pull',{p_after:after,p_through:through,p_limit:10})}};
 }
 
 /** Never expose raw PostgreSQL/Auth messages (which can contain submitted data or URLs). */
-export function mapRemoteError(error:{code?:string;status?:number;message?:string;name?:string}):SyncFailure {
+export function mapRemoteError(error:{code?:string|undefined;status?:number|undefined;message?:string|undefined;name?:string|undefined}):SyncFailure {
   const code=error.code??'';const status=error.status??0;
   if(status===401||error.name==='AuthSessionMissingError'||['PGRST301','PGRST302','bad_jwt','session_not_found','refresh_token_not_found','refresh_token_already_used'].includes(code)) return new SyncFailure('login_required','AUTHENTICATE_AGAIN');
   if(status===403||code==='42501') return new SyncFailure('access_denied','REMOTE_ACCESS_BLOCKED');
