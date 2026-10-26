@@ -1,56 +1,48 @@
 # Incremento 3 — decisões e ações do usuário
 
-Atualizado em 26/10/2026. Plano detalhado em [PLANO_INCREMENTO_3.md](PLANO_INCREMENTO_3.md). **Nada desta lista foi configurado ou provisionado nesta tarefa.**
+Atualizado em 26/10/2026. [Plano aprovado com limites](PLANO_INCREMENTO_3.md) e [execução atual](EXECUCAO_INCREMENTO_3.md). **Implementação local autorizada; integração real ainda não autorizada nem comprovada.**
 
-## Decisões antes de autorizar implementação
+## Decisões já respondidas
 
-| ID | Decisão necessária | Recomendação e consequência |
-|---|---|---|
-| D1 | Aprovar contratos e etapas do plano. | Manter I2; Google com usuário pré-provisionado, cadastro fechado e autorização por UUID. Se o primeiro login falhar, interromper em vez de abrir cadastro. |
-| D2 | Onde já existem dados: aparelho, navegador/perfil e endereço exato? | Escolher uma origem inaugural. Inventariar separadamente `127.0.0.1`, `localhost`, portas e perfis; não limpar nenhuma base. Informar apenas localização e se contém dados, sem enviar saldos/lançamentos ao Git. |
-| D3 | Há dados independentes no celular e computador? | Se sim, revisar a reconciliação antes de enviar a segunda origem. Mesmo nome/valor não prova duplicidade. Não aceitar dois saldos iniciais para a mesma conta por dedução automática. |
-| D4 | Como executar o futuro código I3 na origem que contém a base? | Preferir o mesmo endereço/perfil e associar ali antes de mudar para HTTPS. Se só restou um arquivo de backup ou a origem não pode ser retomada, aprovar recuperação específica ou aguardar I4. |
-| D5 | Aprovar o recorte de proteção de recuperação? | Preservar origem, conferir cópia externa, associação retomável e ensaio operacional isolado antes do piloto. Importação genérica e gerações continuam em I4. Se recuperação por arquivo em outro aparelho for obrigatória já em I3, antecipá-la em escopo separado ou adiar dados reais. |
-| D6 | Política de sessão expirada e saída. | Permitir trabalho local do último UUID verificado após expiração offline; impedir envio até reautenticar. Saída explícita bloqueia visão local e preserva pendências; usar logout `local` por padrão. Revogação offline imediata e criptografia local não são garantidas. |
-| D7 | Conta Google autorizada e eventual conta de teste negativo. | Escolher conta de que o usuário controla acesso e recuperação. Inserir identidade privadamente na configuração administrativa; não registrar email pessoal neste repositório. Uma segunda conta de teste não será autorizada em produção. |
-| D8 | Infraestrutura de teste e serviços. | Confirmar se há Docker/CLI/PostgreSQL local disponíveis e projetos/organizações existentes. Criar recursos remotos somente com autorização explícita, após confirmar Free e ausência de faturamento exigido. Não abrir contas para contornar cotas. |
-| D9 | Endereço HTTPS estável para os dois aparelhos. | Cloudflare Pages estático conforme direção aprovada; publicação é uma autorização separada. Sem URL acessível nos dois aparelhos, não declarar concluído o teste físico de sincronização/PWA. |
-| D10 | Região, exposição dos dados e piloto real. | Escolher região disponível e aceitar armazenamento no provedor e limites gratuitos; autorizar dados reais somente após todos os critérios de integridade, acesso e recuperação. Não pressupor que o GitHub contém o banco do navegador. |
-
-Não são perguntas de senha ou pedidos para colar tokens. Respostas técnicas podem ser registradas de forma sanitizada; identidade pessoal, cópias e configurações sensíveis permanecem fora do Git. As recomendações ainda não foram aprovadas apenas por este documento existir.
-
-## Sequência futura de ações do usuário
-
-1. **Revisar e aprovar o plano e as decisões D1–D10.** Indicar o que está autorizado: implementação local, criação/configuração de serviços, migrações remotas, publicação e piloto real são permissões distintas. Neste momento somente planejamento/documentação estão autorizados.
-2. **Localizar e preservar os dados atuais.** Exportar em cada origem que contém dados, salvar fora da VM/aparelho e manter o navegador/base original. Confirmar onde ficará a base inaugural e se há outra base a reconciliar. Não anexar esses arquivos ao repositório público.
-3. **Preparar as contas de administração, quando essa etapa for autorizada.** Acessar Supabase e Google com as próprias contas. Confirmar organizações/projetos existentes e o plano Free nas telas reais. Não aceitar trial, cartão, upgrade, recursos pagos ou cobrança por consumo para prosseguir. Se aparecer exigência, interromper e revisar o plano.
-4. **Confirmar o ambiente de testes.** Disponibilizar ambiente local de PostgreSQL/Auth adequado e, para a prova Google, projeto hospedado aprovado com dados sintéticos. O teste local usa dois usuários sintéticos; o projeto pessoal autoriza apenas o dono.
-5. **Cadastrar a identidade autorizada privadamente.** Em procedimento administrativo, pré-provisionar usuário confirmado, guardar UUID esperado, ativar `app_access` somente para ele e desabilitar cadastros/provedores extras. Essa ação deverá seguir as migrações/configuração então revisadas, não comandos improvisados no projeto pessoal.
-6. **Preparar Google Auth Platform e Supabase Google, após autorização.** Cliente Web, escopos básicos, audiência apropriada à conta e retornos exatos definidos pelo ambiente. O usuário insere o Client Secret diretamente no painel seguro do Supabase; ele nunca entra em `VITE_*`, Git, logs ou chat. Não pedir acesso a Gmail/Drive ou domínio pago.
-7. **Participar do teste do primeiro login.** Escolher a conta correta, concluir consentimento/2FA na interface Google e confirmar a identidade pré-provisionada. Fazer também o teste negativo da outra conta quando disponível. Falha nessa prova impede a migração financeira.
-8. **Autorizar separadamente o endereço HTTPS e sua publicação, quando necessário.** Antes de conectar Git à hospedagem, definir controles para que branches de trabalho e documentação não publiquem automaticamente. Não adicionar dados, backups ou segredos aos ativos do site.
-9. **Revisar a prévia de associação.** Conferir origem e destino, contagens e cópia externa. Aprovar o lote; não permitir fusão automática de duas bases distintas. Manter a origem enquanto se comparam recibos, saldos e histórico nos aparelhos.
-10. **Executar o teste físico e aprovar o piloto.** Celular Android e computador: login, offline, lançamento, reconexão, correção concorrente, estorno, saída/reentrada e exportação. Conferir recuperação do recorte acordado e cotas. Só depois liberar dados reais e encerrar I3 mediante evidências.
-
-## Dados/configurações por local de armazenamento
-
-| Informação | Destino correto |
+| Tema | Decisão vigente |
 |---|---|
-| Senha Google, 2FA e recuperação | Somente interfaces oficiais controladas pelo usuário. |
-| Email autorizado/UUID operacional | Registro administrativo privado; no Git apenas placeholders e testes sintéticos. |
-| OAuth Client Secret, chave secret/service role e senha de banco | Painéis seguros/ambiente administrativo local protegido. Nunca frontend, chat ou Git. |
-| URL e chave publicável Supabase | Configuração do frontend na etapa autorizada; sua exposição não concede acesso sem RLS. |
-| Backups, dumps, comprovantes e saldos | Armazenamento privado externo à VM/aparelho, sem versionamento. |
-| Código, plano, migrações sanitizadas e evidências sem dados reais | Branch de trabalho no GitHub, após revisão dos arquivos preparados. |
+| Plano e execução | Aprovados: branch própria, código, migrações versionadas, testes locais e checkpoints GitHub. Preservar I2. |
+| Recuperação | Antecipar somente exportar I2 e recuperar em nova origem/dispositivo, preservando IDs/centavos/histórico/outbox, validação antes de escrever e sem gravações parciais/duplicação. Comprovar com sintéticos antes de dados reais. Sem restauração completa de I4. |
+| Offline/expiração | Após associação inicial online, consultar e gravar offline. Expiração preserva pendências e exige autenticar para transmitir. |
+| Logout/troca | Logout explícito bloqueia visão até nova autenticação, preservando pendências; documentar proteção local limitada. Não prometer sync com app fechado. |
+| Originais privados | Os quatro arquivos foram encontrados e lidos no Drive. Nada a reenviar agora; manifesto antigo de hashes continua ausente. |
+| Bases existentes | O usuário nunca usou nem cadastrou dados financeiros. Só testes sintéticos na VM. Não escolher esses testes como inaugural nem mesclar. Ver inventário. |
+| Serviços/segredos | Criação/configuração externa, OAuth, SQL remoto e publicação exigem autorização específica. Não ativar pagamento/trial/faturamento. Nunca solicitar senhas ou tokens no chat. |
+| Entrega/piloto | Separar local, simulado e real. Não concluir I3 sem login restrito, isolamento e dois dispositivos reais. Piloto real e I4 exigem autorização. |
 
-## Bloqueios objetivos antes do piloto
+## O que ainda depende do usuário
 
-- Conta autorizada, primeira vinculação e restrição de cadastro ainda não foram provadas em serviço real.
-- Origens com dados e necessidade de reconciliação não foram inventariadas nesta tarefa.
-- Estado Free, cotas, faturamento e disponibilidade das contas reais não foram inspecionados.
-- Ambiente de testes, URL HTTPS e autorizações futuras precisam ser definidos pelo usuário.
-- Proteção da associação, recuperação operacional e política offline/saída precisam de aprovação e teste.
-- Restauração completa continua ausente até I4 ou novo recorte explicitamente aprovado.
-- Os requisitos pessoais originais citados no histórico estão ausentes da VM; conferir privadamente eventuais restrições adicionais antes de implementar.
+Neste checkpoint **não é necessário cadastrar dados, escolher uma base de teste como pessoal ou configurar qualquer serviço**. O próximo lote de contratos/RPCs/testes locais continua autorizado e independe dessas configurações.
 
-Não há início automático de I3, OAuth, banco remoto ou deploy quando este plano for salvo no GitHub.
+Quando a etapa de integração estiver preparada e revisada, apresentar a ação concreta para aprovação, nesta ordem:
+
+1. **Inventariar contas e ambiente do provedor.** Informar se já possui organização/projeto Supabase e conta Google sob seu controle. Conferir plano Free, cotas compartilhadas, região disponível, pausa e ausência de exigência de cartão/trial/pagamento nas telas atuais. Não criar recursos para contornar limites. A condição real das contas ainda não foi verificada.
+2. **Autorizar um projeto de integração sintética.** Identificar projeto/ambiente/região aprovados antes de qualquer criação/configuração ou aplicação de migração. Os arquivos desta branch ainda são fundação parcial e não devem ser aplicados como backend pronto. Testes de concorrência precisam de PostgreSQL com conexões independentes; PGlite não os substitui.
+3. **Definir identidade privadamente.** Escolher a conta Google autorizada e, se disponível, outra conta controlada para teste negativo. Registrar email/UUID operacional só no procedimento administrativo privado. Não inferir identidade pelo GitHub; não cadastrar a conta negativa como autorizada em produção.
+4. **Aprovar e executar configuração de Auth.** Após procedimento revisado, pré-provisionar um único usuário com email confirmado, guardar UUID esperado, ativar autorização por UUID; desativar cadastro público, login anônimo, email/senha/OTP e provedores extras. Não abrir cadastro se o primeiro vínculo falhar.
+5. **Configurar Google somente após autorização específica.** Cliente Web com escopos básicos e callbacks exatos Google → Supabase e Supabase → app. Inserir Client Secret diretamente no painel seguro Supabase. Nunca em `VITE_*`, Git, logs ou chat. Não pedir acesso a Gmail/Drive/contatos. URL/chave publicável do frontend só serão usadas na etapa autorizada, sem chave administrativa no cliente.
+6. **Concluir pessoalmente o primeiro login.** Conta correta, consentimento/2FA nas interfaces oficiais, mesmo UUID pré-provisionado e nenhuma conta duplicada; repetir login/logout e testar conta negada/revogação/callback inválido. São provas obrigatórias antes de associar finanças.
+7. **Definir endereço estável para celular e PC.** Publicação HTTPS depende de autorização separada e revisão que impeça deploy automático de branches de trabalho. Push de código não autoriza deploy. Duas abas/perfis no mesmo PC não cumprem o teste físico.
+8. **Seguir a orientação de primeiro uso, ainda com sintéticos.** Definir aparelho, navegador/perfil e endereço, conferir base vazia e confirmar associação explicitamente. Se surgirem dados antigos, atualizar inventário e preservar cópia/origem; não unir automaticamente.
+9. **Executar provas nos dois aparelhos.** Offline/reconexão, lançamentos, estorno/correção concorrente, queda após commit, logout/expiração, cópia/recuperação e verificação de centavos/histórico. Conferir cotas e riscos remanescentes.
+10. **Autorizar separadamente o piloto pessoal.** Só após critérios obrigatórios aprovados, orientar cadastro real passo a passo. Não iniciar I4 nem tratar o piloto como já autorizado.
+
+## Onde cada informação fica
+
+| Informação | Local correto |
+|---|---|
+| Senha Google/2FA/recuperação | Interfaces oficiais sob controle do usuário. |
+| Email autorizado/UUID operacional | Registro administrativo privado; somente placeholders no Git. |
+| OAuth Client Secret, chave secret/service role, senha de banco | Painéis/ambiente administrativo protegido. Nunca frontend/chat/Git. |
+| URL e chave publicável Supabase | Configuração de frontend futura revisada; RLS e autorização continuam obrigatórias. |
+| Bases, cópias, comprovantes, dumps e exportações | Armazenamento privado externo à VM/aparelho. |
+| Código, migrações e documentação sanitizada | Branch própria no GitHub, após revisão dos arquivos preparados. |
+
+## Bloqueios antes de dados reais
+
+Login Google restrito com cadastro fechado, isolamento por JWT/API, RPCs transacionais e idempotentes, associação retomável, feed/cursor, conflitos, sessão/logout e sincronização física continuam pendentes. Recuperação local I2 passou com dados sintéticos; não comprova recuperação de uma futura base sincronizada nem ensaio administrativo remoto. Não há gratuidade permanente garantida; limites oficiais em [CUSTOS_E_LIMITES.md](CUSTOS_E_LIMITES.md) precisam ser conferidos de novo antes de provisionar.

@@ -179,6 +179,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .warning-copy { border-left: 3px solid #c98f26; padding-left: 12px; }
 .scope-panel { max-width: 760px; margin-top: 16px; background: var(--subtle); }
 .scope-panel svg { flex: 0 0 auto; color: var(--muted); }
+.recovery-panel { display: block; }
+.recovery-file, .recovery-preview { display: grid; gap: 12px; margin-block: 16px; }
+.recovery-file input { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
+.recovery-confirm { display: flex; align-items: flex-start; gap: 10px; font-size: .9rem; line-height: 1.5; }
+.recovery-confirm input { flex: 0 0 auto; width: 22px; height: 22px; accent-color: var(--accent); }
 
 .dialog-sheet::backdrop { background: rgba(3, 18, 13, .48); }
 .dialog-sheet { width: min(560px, calc(100% - 48px)); max-height: calc(100dvh - 48px); margin: auto; padding: 0; color: var(--ink); overflow-y: auto; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: 0 26px 80px rgba(2, 24, 16, .24); }

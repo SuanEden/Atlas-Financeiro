@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createDefaultCommandContext, getOrCreateLocalOwnerId, type LocalCommand } from '../application';
 import type { LocalFinancialState } from '../domain';
 import { createLocalFinancialStore } from '../persistence';
+import { recoverIntoEmptyOrigin, withLocalWriteLock } from '../application/recover-local-backup';
+import { LOCAL_OWNER_KEY } from '../application/local-identity';
 
 const EMPTY_STATE: LocalFinancialState = {
   accounts: [], categories: [], events: [], settlements: [], postings: [], outbox: [],
@@ -52,7 +54,10 @@ export function useLocalFinance() {
     setBusy(true);
     setError(undefined);
     try {
-      await local.store.commitOperation(command.aggregate, command.operation);
+      await withLocalWriteLock(async () => {
+        if (localStorage.getItem(LOCAL_OWNER_KEY) !== local.userId) throw new Error('A base ativa mudou em outra aba. Recarregue antes de salvar.');
+        await local.store.commitOperation(command.aggregate, command.operation);
+      });
       await refresh();
     } catch (reason) {
       const message = messageFrom(reason);
@@ -64,7 +69,21 @@ export function useLocalFinance() {
     }
   }, [local, refresh]);
 
-  return { state, loading, busy, error, clearError: () => setError(undefined), execute, readState: () => local.store.readLocalState(), context: local.context, userId: local.userId };
+  const recover = async (json: string) => {
+    if (executing.current) throw new Error('Aguarde a operação em andamento.');
+    executing.current = true;
+    setBusy(true);
+    try {
+      await recoverIntoEmptyOrigin(json, local.userId, localStorage);
+      window.location.reload();
+    } catch (reason) {
+      executing.current = false;
+      setBusy(false);
+      throw reason;
+    }
+  };
+
+  return { state, loading, busy, error, clearError: () => setError(undefined), execute, recover, readState: () => local.store.readLocalState(), context: local.context, userId: local.userId };
 }
 
 function messageFrom(reason: unknown): string {

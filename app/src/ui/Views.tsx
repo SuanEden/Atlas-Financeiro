@@ -10,6 +10,7 @@ import {
   WalletCards,
 } from 'lucide-react';
 import { useState } from 'react';
+import { RecoveryPanel } from './RecoveryPanel';
 import {
   calculateAccountBalance,
   calculateAvailabilityBalances,
@@ -117,7 +118,7 @@ export function CategoriesView({ state, onAdd }: { state: LocalFinancialState; o
   );
 }
 
-export function BackupView({ state, userId, today, readState }: { state: LocalFinancialState; userId: string; today: string; readState: () => Promise<LocalFinancialState> }) {
+export function BackupView({ state, userId, today, readState, onRecover, busy }: { state: LocalFinancialState; userId: string; today: string; readState: () => Promise<LocalFinancialState>; onRecover: (json: string) => Promise<void>; busy: boolean }) {
   const [notice, setNotice] = useState('');
   const [failure, setFailure] = useState<string>();
   async function downloadBackup() {
@@ -144,7 +145,8 @@ export function BackupView({ state, userId, today, readState }: { state: LocalFi
       <p role="status">{notice}</p>
       {failure === undefined ? null : <p className="form-error" role="alert">{failure}</p>}
       <section className="backup-panel"><span className="backup-icon"><Download size={24} /></span><div><h2>Exportar arquivo JSON</h2><p>Inclui contas, categorias, lançamentos, histórico, centavos exatos e {state.outbox.length} {state.outbox.length === 1 ? 'operação pendente' : 'operações pendentes'}.</p><p className="warning-copy">O arquivo contém dados financeiros sem criptografia própria. Guarde-o em local privado.</p><button className="button button--primary" onClick={downloadBackup}><Download size={18} />Baixar backup</button></div></section>
-      <section className="scope-panel"><RefreshCcw size={21} /><div><h2>Restauração ainda não disponível</h2><p>Esta versão permite exportar uma cópia. A restauração será disponibilizada em uma etapa futura.</p></div></section>
+      <RecoveryPanel onRecover={onRecover} busy={busy} />
+      <section className="scope-panel"><RefreshCcw size={21} /><div><h2>Restauração completa ainda não disponível</h2><p>A recuperação mínima acima aceita apenas exportações de I2 em destino vazio ou idêntico. A substituição de bases e as gerações continuam previstas para I4.</p></div></section>
     </div>
   );
 }

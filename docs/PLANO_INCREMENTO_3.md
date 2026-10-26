@@ -1,6 +1,19 @@
-# Incremento 3 — plano detalhado proposto
+# Incremento 3 — plano aprovado com limites
 
-Data: 26/10/2026. **Planejamento para aprovação; implementação, provisionamento e publicação não autorizados por este documento.**
+Data: 26/10/2026. **Plano aprovado posteriormente pelo usuário para implementação local, migrações versionadas, testes e checkpoints. Provisionamento, OAuth, SQL remoto, publicação, faturamento/trials, piloto real e I4 continuam sem autorização.**
+
+## Aprovação posterior e leitura deste plano
+
+O texto abaixo da seção 1 preserva o planejamento original e seus critérios. Afirmações de “nesta tarefa”, “ausência dos originais” e “aguardar aprovação” descrevem a etapa de planejamento, não o estado atual. A evidência atual está em [EXECUCAO_INCREMENTO_3.md](EXECUCAO_INCREMENTO_3.md), [ESTADO_ATUAL.md](ESTADO_ATUAL.md) e [VALIDACAO.md](VALIDACAO.md).
+
+Limites e decisões efetivamente aprovados:
+
+- Recuperação mínima de uma exportação I2 em origem/dispositivo novo, preservando IDs, centavos, histórico e pendências, validada antes de gravar e sem alterações parciais ou duplicação. Não implementar restauração completa de I4. Comprovar com dados sintéticos antes de piloto real. Esta autorização substitui a exclusão de importação mínima descrita nas seções 4 e 8; substituição/gerações continuam excluídas.
+- Após autenticação e associação inicial online, consulta e registro offline. Expiração preserva dados e pendências, bloqueando transmissão até nova autenticação. Logout explícito bloqueia visão local até reautenticar e preserva pendências. Sem promessa de sincronização com app fechado ou criptografia local.
+- Localizar os originais privados nas fontes autorizadas antes de regras dependentes. Os quatro foram encontrados e lidos no Drive; cópias ficam ignoradas, nunca no Git. Igualdade com o antigo manifesto de hashes continua não verificada.
+- Inventário informado pelo usuário: nenhum uso pessoal ou dado financeiro próprio; somente testes sintéticos da VM. Não promover teste a base inaugural nem associar/mesclar automaticamente. Orientação de primeiro uso será passo a passo.
+- Implementação local de I3 em branch própria e checkpoints GitHub autorizados. Qualquer criação/configuração remota, OAuth, aplicação remota, publicação e piloto exigem autorização específica; nunca habilitar pagamento/trial.
+- Separar implementação local, simulações e integração real. I3 só termina após Google restrito, isolamento e sincronização comprovados nos dois aparelhos. I4 não inicia automaticamente.
 
 ## 1. Base conferida e limites desta entrega
 

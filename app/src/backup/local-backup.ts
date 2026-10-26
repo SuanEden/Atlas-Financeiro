@@ -1,10 +1,10 @@
 import { assertEntityId, type LocalFinancialState } from '../domain';
 import { serializeFinancialDataset } from '../serialization';
-import { assertPendingOperation } from '../persistence/local-financial-store';
+import { assertPendingOperation } from '../serialization/pending-operation';
 
 export const LOCAL_BACKUP_SCHEMA_VERSION = 1 as const;
 
-/** Export-only I2 backup. Full restore and generations remain scoped to I4. */
+/** I2-compatible export. Limited empty-origin recovery is separate; full restore remains I4. */
 export function serializeLocalBackup(state: LocalFinancialState, userId: string, exportedAt = new Date().toISOString()): string {
   assertEntityId(userId, 'Proprietário do backup');
   if (!Number.isFinite(Date.parse(exportedAt))) throw new TypeError('Instante da exportação inválido.');

@@ -1,63 +1,44 @@
 # Estado atual
 
-Atualizado em 26/10/2026. Este documento registra evidências recuperáveis do repositório e não depende do histórico do chat.
+Atualizado em 26/10/2026. **I1 e I2 concluídos; I3 em implementação local e ainda incompleto.**
 
-## Situação dos Incrementos 1 e 2
+Branch de trabalho: `codex/incremento-3-local-foundation`, criada a partir de `43355a50c14a8593c52212409e066d2ace1f0496` da branch `codex/incremento-2-local-finance`. Esse SHA de I2/plano foi confirmado no GitHub nesta retomada e não foi alterado. `main` não foi mesclada.
 
-O Incremento 1 — Fundação local e o Incremento 2 — Uso financeiro local estão implementados e permanecem separados da integração remota. A aplicação em `app/` funciona como PWA local, inicia vazia e só armazena no navegador os dados informados pelo usuário.
+## Autorização vigente
 
-Componentes existentes:
+O usuário aprovou o plano de I3 e implementação local, migrações versionadas, testes e checkpoints no GitHub. Antecipou recuperação mínima de exportação I2 em origem/dispositivo novo, preservando IDs, valores, histórico e pendências, com validação integral e atomicidade. Não autoriza restauração completa/gerações de I4, serviços externos, OAuth, SQL remoto, publicação, pagamento/trial ou piloto real.
 
-- dinheiro em `bigint` e centavos inteiros, sem `parseFloat` e sem alteração global de `BigInt.prototype`;
-- parsing e formatação BRL, limites por lançamento, somas exatas, percentuais em pontos-base e distribuição determinística de centavos;
-- contas, categorias, eventos, liquidações e contrapartidas com validação de proprietário, UUID, datas, referências, sinais e integridade de transferências;
-- cálculos de saldo, disponibilidade, caixa e competência, mantendo previsão fora do caixa, saldo inicial fora de renda e transferência neutra no patrimônio total;
-- representação JSON versionada, com valores monetários em strings decimais canônicas;
-- armazenamento local isolado por proprietário, inserção de agregados em transação, rejeição de sobrescrita e leitura consistente após reabertura;
-- referência relacional em `database/modelo_inicial.sql`, deliberadamente não aplicada e não validada em PostgreSQL.
-- dashboard e histórico responsivos, com navegação lateral no desktop e inferior no celular;
-- criação de contas, categorias, receitas, despesas e transferências, com valores realizados ou previstos;
-- reserva simples por conta classificada como `reserved`, alimentada por transferência neutra no patrimônio;
-- edição de lançamento por estorno integral mais substituição, e estorno por novo evento de efeito inverso; nenhum registro liquidado é sobrescrito;
-- outbox persistente gravada na mesma transação Dexie que o agregado financeiro, ainda sem envio remoto;
-- backup JSON local versionado, incluindo histórico e operações pendentes; restauração continua fora do escopo;
-- manifest, ícone e service worker para instalação e reabertura offline sem apagar IndexedDB.
+Política aprovada para o futuro modo autenticado: consulta/escrita offline após primeira associação online; expiração preserva registros e exige nova autenticação para transmitir; logout explícito bloqueia visualização e preserva pendências. Essas funções de sessão ainda não estão disponíveis no aplicativo atual. Não prometer sincronização com aplicativo fechado nem criptografia local.
 
-Revisão final de I2: período mensal válido também em fevereiro/meses de 30 dias; diálogos com foco no valor, Tab/Escape e retorno de foco; ação inferior acessível no celular; erro visível sem perder preenchimento; dígitos tabulares, foco e contraste nos dois temas; trava síncrona de gravação; payload da outbox conferido contra o agregado; metadados de exportação validados. O shell completo é pré-cacheado por versão de conteúdo, com PNGs de 192/512 e atualização que espera fechar as abas.
+## Inventário e documentos privados
 
-Validação final registrada: 115 testes unitários aprovados e 1 ignorado por manifesto privado ausente; typecheck/build aprovados; 14 testes de navegador e 2 de PWA de produção aprovados. A inspeção visual incluiu desktop, celular e viewport reduzido; instalação física no Android permanece não verificada. Detalhes e falhas intermediárias corrigidas estão em [VALIDACAO.md](VALIDACAO.md).
+O usuário nunca usou o Atlas nem cadastrou dados financeiros pessoais. Só existem testes sintéticos conhecidos na VM. Não promover essas bases a inaugural, criar seeds pessoais ou associar/mesclar automaticamente. O primeiro uso será orientado passo a passo. Ver [INVENTARIO_BASES.md](INVENTARIO_BASES.md).
 
-## Limitação dos documentos privados
+Os quatro originais privados foram encontrados no Drive conectado e lidos integralmente após busca local sem resultado. Cópias de texto ficam ignoradas em `.private/originais/2026-10-26-recuperados/`. A fonte privada deve continuar fora da VM. Não há arquivo adicional a solicitar neste momento. O manifesto inicial de 24/10 continua ausente; o teste de igualdade dos bytes antigos permanece ignorado, sem substituir o manifesto por hashes da leitura atual. Nenhum conteúdo pessoal foi incluído em código, fixtures ou documentação pública.
 
-Os quatro documentos pessoais originais citados no plano (`00_COMECE_AQUI.md`, `PROMPT_CODEX.md`, `REQUISITOS_ATLAS.md` e a versão privada de `REFERENCIAS_E_DECISOES.md`) e o manifesto privado de hashes não estão presentes nesta VM. Seu conteúdo não foi reconstruído nem inferido. As exclusões do Git e as barreiras do servidor de desenvolvimento continuam testadas, mas a igualdade com hashes originais permanece sem verificação nesta execução.
+## Implementação preservada de I2
 
-Se esses documentos ainda existirem em armazenamento privado, precisam ser preservados fora da VM descartável. Eles não devem ser enviados ao repositório público. A ausência local não autoriza criar substitutos com dados inventados.
+A aplicação local em `app/` inicia vazia: dinheiro `bigint`, JSON com centavos em strings, contas, categorias, previstos/realizados, transferências com duas contrapartidas, reservas simples, edição por estorno/substituição, histórico, dashboard, outbox atômica, exportação consistente e PWA offline. Os testes de I2 continuam no fluxo completo; a expectativa textual do aviso foi atualizada para distinguir restauração completa da recuperação mínima agora autorizada. `database/modelo_inicial.sql` permanece referência intocada.
 
-## Fronteiras preservadas
+## Novo checkpoint local de I3
 
-- Não há OAuth, Supabase configurado, RPC remota, envio da outbox, restauração ou gerações implementadas.
-- `SECURITY INVOKER`, grants, RLS e autorização ativa são contratos futuros documentados, não resultados validados.
-- Nenhum serviço externo foi configurado e nenhum aplicativo foi publicado.
-- A autorização de 26/10/2026 permite commits e pushes desta continuação, mas não deploy.
+- Recuperação mínima em Backup: prévia sem gravação, validação completa de formato/grafo/outbox, destino vazio ou exatamente igual, commit único Dexie e ativação posterior. Preserva IDs/proprietário/histórico/pendências, não une nem substitui bases.
+- Limites: exportações I2 conhecidas, 10 MiB e 50 mil registros financeiros; arquivos futuros são recusados. Web Locks obrigatório para ativação segura entre proprietários nesta versão. Fechar abas antigas.
+- Migração local `supabase/migrations/20261026164923_i3_private_foundation.sql`: entidades, checks/FKs, autorização ativa, RLS de leitura e ledger imutável. Sem grants de escrita financeira ao cliente. `api.i3_readiness()` retorna escrita desabilitada.
+- Testes sintéticos de recuperação e SQL, incluindo outro perfil, repetição, arquivo inválido, destino ocupado, falha final e reabertura offline.
 
-## Próximo passo
+Evidência observada após `npm ci` e `npm run check`: **136 aprovados/1 ignorado** (129 unitários e 7 SQL), **20 testes de navegador**, **3 de PWA**, typecheck/build aprovados. O SQL foi executado em PostgreSQL embarcado PGlite com identidade/papéis simulados; não houve Supabase/Auth/PostgREST, advisors ou concorrência entre conexões. Detalhes em [VALIDACAO.md](VALIDACAO.md) e [EXECUCAO_INCREMENTO_3.md](EXECUCAO_INCREMENTO_3.md).
 
-**Planejamento de I3 preparado em 26/10/2026, aguardando aprovação.** O usuário autorizou leitura, pesquisa, plano e documentação com commit/push; não autorizou implementar, criar/configurar serviços, aplicar migrações, publicar ou iniciar I4. Ver [PLANO_INCREMENTO_3.md](PLANO_INCREMENTO_3.md), [PENDENCIAS_INCREMENTO_3.md](PENDENCIAS_INCREMENTO_3.md) e [REFERENCIAS_INCREMENTO_3.md](REFERENCIAS_INCREMENTO_3.md).
+## Ainda não entregue
 
-Na abertura desta tarefa, `git fetch`/`git ls-remote` confirmaram a entrega final de I2 em `86bcdffebedaa09698a613c8f24e4bd7fa6ede6d`, igual ao HEAD local e com worktree limpo. O plano foi preparado na mesma branch existente, sem alteração de `app/`, dependências ou SQL. As evidências de 115 testes unitários, 14 de navegador e 2 de PWA pertencem à validação de I2; nenhum teste de I3 foi executado ou declarado aprovado.
+Google OAuth restrito, associação de conta, política de sessão no runtime, RPC de escrita/carga inicial, envio idempotente da outbox, pull/cursor, conflitos e sincronização entre aparelhos. Tabelas reservadas para recibos/revisão não são uma engine de sincronização. Nenhum teste real de Auth/isolamento remoto/dois aparelhos foi realizado; **não declarar I3 concluído**. Instalação/teclado/ciclo de vida Android físico continuam pendentes.
 
-Riscos/decisões centrais: primeiro vínculo Google com cadastro fechado ainda precisa de teste; UUID local não é usuário Auth; cada origem/perfil conserva sua própria base; dados existentes em dois dispositivos exigem reconciliação explícita. Propõe-se preservar origem e proteger associação/recuperação operacional antes do piloto, mantendo restauração completa em I4. A política de sessão expirada offline e esse recorte precisam de aprovação.
+Nenhum serviço foi criado/configurado e nenhum deploy, SQL remoto ou piloto real foi realizado. Nenhum teste autoriza automaticamente essas ações.
 
-Checkpoint de código desta revisão: `cc7a92d` (`Conclui revisao funcional e visual do Incremento 2`), na branch `codex/incremento-2-local-finance`. A documentação final fica no commit imediatamente seguinte. Os checkpoints anteriores `62cb433`, `6fe3003` e `35e6a4e` continuam no histórico. A branch `main` não foi alterada nem mesclada.
+## Retomar após perda da VM
 
-Entrega remota confirmada em 26/10/2026, após o usuário concluir a autenticação do GitHub nesta VM. `git push origin HEAD:refs/heads/codex/incremento-2-local-finance` retornou `Everything up-to-date`; `git ls-remote` e `git rev-parse HEAD` coincidiram em `214c3f97e9c641119c0f664a80602c25c0e87221`, confirmando os checkpoints `cc7a92d`, `e6ae530` e `214c3f9` no GitHub. O bloqueio inicial por credencial, registrado no histórico, está resolvido. Este registro documental é o checkpoint seguinte da mesma branch.
+Clonar o GitHub e selecionar `codex/incremento-3-local-foundation`. Ler AGENTS, README, este estado, validação, execução I3 e pendências. Conferir branch/remoto/worktree antes de editar; preservar alterações e não usar reset destrutivo/force push. Código e documentação públicos estarão no último checkpoint remoto confirmado; bancos, arquivos exportados e originais privados não vêm com o clone.
 
-Um bundle Git alternativo está em `.private/entrega/atlas-i2-checkpoints.bundle`, ignorado pelo Git e sem banco ou exportação financeira. A verificação do pacote e a clonagem em diretório temporário foram bem-sucedidas. Essa cópia local é opcional: a retomada deve usar a branch preservada no GitHub. Nenhum arquivo temporário é necessário para continuar o desenvolvimento.
+Com Node >=22.12 e Edge instalado, entrar em `app/`, executar `npm ci` e `npm run check`. Desenvolvimento: `npm run dev` em `http://127.0.0.1:5173`. Produção local: `npm run build`, depois `npm run preview` em `http://127.0.0.1:4173`. As origens/perfis têm bases distintas. Para conferir a recuperação, usar somente arquivo sintético em perfil vazio; não apagar perfis pessoais.
 
-Para recuperar somente pelo GitHub, clonar o repositório, selecionar `codex/incremento-2-local-finance`, entrar em `app/`, executar `npm ci` e `npm run check` com Node >=22.12 e Edge instalado. Desenvolvimento abre em `http://127.0.0.1:5173` (`npm run dev`); PWA de produção em `http://127.0.0.1:4173` (`npm run build`, depois `npm run preview`). As bases são por origem/perfil, não são transferidas ao trocar endereço ou navegador. Nenhum banco, dado financeiro ou arquivo exportado integra o GitHub.
-
-A exportação JSON está disponível, inclui histórico e outbox, e não restaura dados. Reservas simples usam contas reservadas; alocações parciais com metas não foram incluídas. A limitação antiga do modelo que prometia reservas parciais em I2 foi alinhada ao contrato efetivamente adotado em `REGRAS_FINANCEIRAS.md`.
-
-Ver [PROXIMA_ETAPA.md](PROXIMA_ETAPA.md) para a retomada e os limites de autorização.
-
-Revisar as evidências em `docs/VALIDACAO.md`. Somente após aprovação explícita, iniciar o Incremento 3 por Google OAuth restrito, autorização ativa, RPCs transacionais e sincronização incremental. A documentação não substitui testes reais em Supabase/PostgreSQL.
+Próximo lote autorizado: completar contratos/RPCs/protocolo e testes locais antes de abrir escrita, seguindo [PROXIMA_ETAPA.md](PROXIMA_ETAPA.md). Próximas ações do usuário e limites estão em [PENDENCIAS_INCREMENTO_3.md](PENDENCIAS_INCREMENTO_3.md). I4 continua sem início automático.

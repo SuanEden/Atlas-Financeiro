@@ -1,4 +1,33 @@
-# Validação dos Incrementos 1 e 2
+# Validação — I3 local e histórico de I1/I2
+
+## Checkpoint inicial de I3 — 26/10/2026
+
+Branch `codex/incremento-3-local-foundation`. Node 22.13.0/npm 10.9.2 no Windows. Após atualização do lockfile, `npm ci` concluiu com 62 pacotes auditados e zero vulnerabilidades conhecidas reportadas. `npm run check` concluiu integralmente:
+
+| Verificação | Resultado observado |
+|---|---|
+| Unitários e persistência local | 129 aprovados. Incluem os 115 de I2 e 14 novos de recuperação mínima. |
+| SQL embarcado | 7 aprovados em PGlite 0.5.12; migração executada de arquivo, papéis/identidade simulados. |
+| Total Vitest | 11 arquivos; 136 aprovados e 1 ignorado. |
+| Typecheck/build | Aprovados. CLI/PGlite/fixtures não entram no bundle da aplicação. |
+| Navegador | 20 aprovados no Edge: 14 de I2 e 6 novos, desktop 1280×900/celular emulado 390×844. |
+| PWA de produção | 3 aprovados: offline/outbox I2, recuperação mínima offline seguida de nova operação/exportação, atualização de worker preservando dados. |
+
+Recuperação: arquivo sintético com saldo inicial de centavos não redondos, previstos/realizados, edição por estorno/substituição, transferência/estorno e cancelamento. Exportação realmente baixada → perfil novo → prévia sem gravação → confirmação → reabertura → nova exportação. Conteúdo financeiro/outbox exato, origem intacta, IDs preservados e repetição sem novas inserções. Foram recusados versão desconhecida, contagem, proprietário, dinheiro numérico, referência, ID duplicado, payload divergente, tipo incorreto, meia transferência, campo desconhecido e destino divergente. Falha final da outbox provocou rollback, tanto em fake-indexeddb quanto no IndexedDB nativo. Falha no ponteiro ativo e repetição segura foram testadas unitariamente.
+
+SQL: dois proprietários sintéticos com mesmos IDs financeiros leem somente suas próprias linhas; sem acesso ativo/revogado e papel anônimo não obtêm dados; cliente não pode ativar a si próprio, escrever finanças/cursor/recibo nem invocar helpers internos. Transferência incompleta reverte a carga inteira; ledger não permite update/delete; FK de proprietário é recusada; soma de centavos permanece exata. `api.i3_readiness()` informa escrita desabilitada. **Não há RPC financeira implementada.**
+
+Browser plugin not available; usados Playwright e Edge já instalados. Identidade/título da página, conteúdo não vazio, ausência de overlay, console e ações de seleção/recuperação/reabertura foram conferidos. Capturas desktop/celular foram salvas no diretório temporário do sistema e inspecionadas, fora do Git. Não houve teste Android físico, leitor de tela, Safari ou Firefox.
+
+Falhas intermediárias corrigidas: seletores Playwright de `status` ambíguos foram limitados ao painel de recuperação; tipagem do UUID sintético e opcional `baseURL` corrigidas antes do fluxo final completo. Nenhuma falha financeira foi ocultada com retry ou skip.
+
+Limites desta evidência: PGlite é PostgreSQL embarcado de conexão única, com `auth.users`/`auth.uid()`/papéis simulados. Não prova JWT, PostgREST, configuração dos schemas expostos, advisors, Supabase completo ou concorrência entre conexões. A CLI 2.122.0 apenas gerou arquivo de migração local. Nenhum serviço, OAuth, SQL remoto, deploy ou piloto foi executado. Login/associação/sessão autenticada/sync real continuam pendentes, e I3 não foi concluído.
+
+Os quatro originais privados foram localizados e lidos no Drive. O manifesto inicial de 24/10 permanece ausente: o teste de igualdade dos bytes históricos continua ignorado, sem substituição por hashes novos. As demais barreiras de Git/servidor continuam aprovadas.
+
+## Histórico de validação de I1/I2
+
+O restante deste documento preserva a evidência da entrega anterior; afirmações de ausência de importador/SQL executado/originais na VM referem-se àquela revisão de I2, não substituem o checkpoint de I3 acima.
 
 Validação executada em 26/10/2026, no Windows, com Node.js 22.13.0 e npm 10.9.2. As dependências foram instaladas a partir de `app/package-lock.json` por `npm ci`; a auditoria do npm informou zero vulnerabilidades conhecidas naquele momento.
 

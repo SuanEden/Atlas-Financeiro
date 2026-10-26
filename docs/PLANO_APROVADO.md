@@ -4,9 +4,9 @@
 
 Construir uma base própria pequena com React, TypeScript e Vite; Dexie/IndexedDB para trabalho local; Supabase PostgreSQL/Auth/Storage para persistência remota futura; frontend estático no Cloudflare Pages Free. Prioridade para Android, acesso secundário no computador, `pt-BR`, BRL e `America/Fortaleza`.
 
-Preservar os treze módulos do produto, entregando-os em quatro fases. O MVP corresponde à primeira fase e é dividido em quatro incrementos técnicos. Os Incrementos 1 e 2 foram autorizados e executados; os Incrementos 3 e 4 dependem de nova autorização.
+Preservar os treze módulos do produto, entregando-os em quatro fases. O MVP corresponde à primeira fase e é dividido em quatro incrementos técnicos. Os Incrementos 1 e 2 foram autorizados e executados; I3 recebeu autorização local em 26/10/2026; I4 permanece sem autorização.
 
-Em 26/10/2026 foi autorizado **somente o planejamento detalhado de I3**. A proposta está em [PLANO_INCREMENTO_3.md](PLANO_INCREMENTO_3.md), com decisões em [PENDENCIAS_INCREMENTO_3.md](PENDENCIAS_INCREMENTO_3.md). Esses documentos não estão aprovados para implementação; o recorte de proteção de recuperação é uma proposta explícita, sem transferência automática de escopo de I4.
+Após o planejamento de 26/10/2026, o usuário **aprovou o plano de I3 e sua implementação local**, incluindo migrações versionadas, testes e checkpoints. Autorizou antecipar somente recuperação mínima de I2 em origem/dispositivo novo, com arquivo validado integralmente, atomicidade e IDs/outbox preservados. Não autorizou criar/configurar serviços, OAuth, migrações remotas, publicação, recursos pagos/trials, piloto real ou I4. Contratos de offline, expiração e logout foram aprovados. Ver [execução atual](EXECUCAO_INCREMENTO_3.md), [plano](PLANO_INCREMENTO_3.md) e [pendências](PENDENCIAS_INCREMENTO_3.md).
 
 ## Incrementos do MVP
 

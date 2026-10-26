@@ -1,6 +1,20 @@
 # Backup e restauração
 
-**Exportação local implementada em I2; restauração continua futura.** O aplicativo baixa um JSON versionado com manifesto, dataset completo e operações pendentes. Valores monetários permanecem strings canônicas. O arquivo não contém credenciais, sessão ou configuração remota.
+**Exportação implementada em I2; recuperação mínima antecipada e autorizada em I3. Restauração completa continua em I4.** O aplicativo baixa um JSON versionado com manifesto, dataset completo e operações pendentes. Valores monetários permanecem strings canônicas. O arquivo não contém credenciais, sessão ou configuração remota.
+
+## Recuperação mínima de I2 — implementação local
+
+Em Backup, selecionar **Arquivo JSON de I2** e conferir a prévia. A seleção valida sem gravar. O botão exige confirmação explícita. Aceitam-se até 10 MiB e 50 mil registros financeiros, formato/versão conhecidos, contagens corretas, dinheiro canônico em strings, UUIDs, datas, referências, histórico e outbox coerentes. Tipos e payloads das operações são comparados com as entidades exatas; IDs de operação repetidos, cobertura dupla e transferência parcial são recusados.
+
+O destino deve estar vazio ou conter exatamente a mesma base e outbox. Não se unem bases nem se substituem registros. Os IDs e o proprietário anônimo original são mantidos; isso não é login/associação Google. Todos os registros financeiros e pendências entram na mesma transação Dexie. Falha final reverte tudo. Depois do commit completo ativa-se o namespace; se essa ativação falhar, a base anterior permanece ativa e repetir o arquivo reconhece a cópia completa. Não há uma transação única entre IndexedDB e localStorage.
+
+Fechar abas antigas antes de recuperar. A versão atual coordena gravação/ativação com Web Locks; navegador sem esse recurso recusa recuperação, preservando dados. Abas antigas de I2 não conhecem essa trava. Guardar a exportação fora do aparelho/VM e manter a origem. Arquivos não têm criptografia própria nem assinatura de autenticidade.
+
+Foi comprovado com sintéticos: exportação real no navegador → outro perfil vazio → prévia/recuperação → reabertura → comparação de IDs, centavos, histórico e pendências. Repetição exata não insere de novo; inválidos/destino ocupado/falha final são recusados sem mudança parcial. Também passou recuperação offline no build PWA, seguida de nova gravação e exportação. Isso não comprova dois aparelhos físicos nem idempotência de um futuro envio remoto.
+
+Não aceita futuras exportações sincronizadas com recibos/cursor/conflitos. Não importa sessão, substitui base ativa ou gerencia gerações. Essa limitação impede usar um arquivo I2 para descartar metadados remotos; quando o formato evoluir, o importador terá de reconhecer e validar todos eles. A origem sintética da VM não será escolhida como base pessoal.
+
+## Histórico da exportação de I2
 
 O exportador foi validado unitariamente e pelo download no navegador. Ele não cifra o arquivo, não copia automaticamente para outro dispositivo e não constitui restauração. O usuário precisa guardar a cópia em local privado fora do navegador e da VM.
 

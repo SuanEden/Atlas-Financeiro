@@ -41,7 +41,7 @@ const desktopNavigation = [
 ];
 
 export function App() {
-  const { state, loading, busy, error, clearError, execute, readState, context, userId } = useLocalFinance();
+  const { state, loading, busy, error, clearError, execute, recover, readState, context, userId } = useLocalFinance();
   const [page, setPage] = useState<Page>('dashboard');
   const [modal, setModal] = useState<Modal>();
   const [notice, setNotice] = useState('');
@@ -108,7 +108,7 @@ export function App() {
             {page === 'accounts' ? <AccountsView state={state} onAdd={() => setModal({ type: 'account' })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
             {page === 'categories' || page === 'backup' ? <div className="mobile-settings-tabs"><button className={page === 'categories' ? 'is-active' : ''} onClick={() => setPage('categories')}>Categorias</button><button className={page === 'backup' ? 'is-active' : ''} onClick={() => setPage('backup')}>Backup</button></div> : null}
             {page === 'categories' ? <CategoriesView state={state} onAdd={() => setModal({ type: 'category' })} /> : null}
-            {page === 'backup' ? <BackupView readState={readState} state={state} userId={userId} today={today} /> : null}
+            {page === 'backup' ? <BackupView onRecover={recover} busy={busy} readState={readState} state={state} userId={userId} today={today} /> : null}
           </>
         )}
       </section>

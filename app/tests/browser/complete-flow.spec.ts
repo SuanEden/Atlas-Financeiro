@@ -90,7 +90,7 @@ test('receitas, previsões, realização, estorno, exportação e reabertura pre
   await expect(page.locator('.flow-band')).toContainText('R$ 0,00');
   await expect(page.locator('.flow-band')).toContainText('R$ 13,00');
   await navigate(page, 'Backup');
-  await expect(page.getByText('Restauração ainda não disponível', { exact: true })).toBeVisible();
+  await expect(page.getByText('Restauração completa ainda não disponível', { exact: true })).toBeVisible();
   const downloaded = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Baixar backup' }).click();
   const file = await (await downloaded).path();

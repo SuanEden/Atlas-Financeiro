@@ -12,6 +12,9 @@ import {
   type Settlement,
 } from '../domain';
 import { serializeOperationPayload } from '../serialization';
+import { assertPendingOperation } from '../serialization/pending-operation';
+import { canonicalLocalState, validateI2Backup } from '../backup/validate-i2-backup';
+export { assertPendingOperation } from '../serialization/pending-operation';
 
 const DATA_TABLE_NAMES = ['accounts', 'categories', 'events', 'settlements', 'postings'] as const;
 const ALL_TABLE_NAMES = [...DATA_TABLE_NAMES, 'outbox'] as const;
@@ -99,6 +102,22 @@ export class LocalFinancialStore {
     });
   }
 
+  /** Minimal recovery: only an empty namespace or an exact existing copy, never replace/merge. */
+  async recoverI2Backup(json: string): Promise<'recovered' | 'already_present'> {
+    const backup = validateI2Backup(json);
+    if (backup.userId !== this.userId) throw new TypeError('A recuperação deve preservar o proprietário original.');
+    return this.#db.transaction('rw', ALL_TABLE_NAMES, async () => {
+      const current: LocalFinancialState = { ...await this.#readTables(), outbox: await this.#db.outbox.toArray() };
+      if (ALL_TABLE_NAMES.some((table) => current[table].length > 0)) {
+        if (canonicalLocalState(current, this.userId) === canonicalLocalState(backup.state, this.userId)) return 'already_present';
+        throw new TypeError('O destino contém dados diferentes. A recuperação não une nem substitui bases.');
+      }
+      await this.#insertAggregate(backup.state);
+      await this.#db.outbox.bulkAdd(backup.state.outbox);
+      return 'recovered';
+    });
+  }
+
   async readLocalState(): Promise<LocalFinancialState> {
     return this.#db.transaction('r', ALL_TABLE_NAMES, async () => {
       const dataset = await this.#readTables();
@@ -165,29 +184,6 @@ function mergeDataset(current: FinancialDataset, input: FinancialDataset): Finan
     settlements: [...current.settlements, ...input.settlements],
     postings: [...current.postings, ...input.postings],
   };
-}
-
-export function assertPendingOperation(operation: PendingOperation, userId: string): void {
-  assertEntityId(operation.id, 'Operação pendente');
-  assertEntityId(operation.userId, 'Proprietário da operação');
-  if (operation.userId !== userId) throw new TypeError('A operação pendente pertence a outro usuário.');
-  const kinds = ['create_account', 'create_category', 'record_event', 'reverse_event', 'replace_event'];
-  if (!kinds.includes(operation.kind)) throw new TypeError('Tipo de operação pendente inválido.');
-  if (typeof operation.createdAt !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(operation.createdAt)) {
-    throw new TypeError('Instante da operação pendente inválido.');
-  }
-  const timestamp = Date.parse(operation.createdAt);
-  const canonical = operation.createdAt.includes('.') ? operation.createdAt : operation.createdAt.replace('Z', '.000Z');
-  if (!Number.isFinite(timestamp) || new Date(timestamp).toISOString() !== canonical) throw new TypeError('Instante da operação pendente inválido.');
-  if (typeof operation.payloadJson !== 'string' || operation.payloadJson.length < 2 || operation.payloadJson.length > 1_000_000) {
-    throw new TypeError('Payload da operação pendente inválido.');
-  }
-  const payload = JSON.parse(operation.payloadJson) as unknown;
-  if (typeof payload !== 'object' || payload === null || Array.isArray(payload)
-    || (payload as Record<string, unknown>).userId !== userId
-    || (payload as Record<string, unknown>).schemaVersion !== 1) {
-    throw new TypeError('Payload da operação pendente não corresponde ao proprietário ou schema esperado.');
-  }
 }
 
 export function createLocalFinancialStore(userId: string): LocalFinancialStore {

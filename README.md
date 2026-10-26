@@ -10,7 +10,9 @@ O projeto de aplicação está em `app/`. Nesse diretório, executar `npm ci`, `
 
 Requisitos: Node.js >= 22.12 e npm; os testes de navegador usam Microsoft Edge instalado. Desenvolvimento: `npm run dev`, em `http://127.0.0.1:5173`. Para testar a PWA, executar `npm run build` e `npm run preview`, em `http://127.0.0.1:4173`. Aguardar o primeiro carregamento online antes de testar offline. Esses dois endereços têm bases locais distintas; usar sempre o mesmo endereço para reencontrar seus dados.
 
-Em **Backup**, o botão **Baixar backup** exporta JSON com histórico e outbox. **Não há importação ou restauração em I2**; a recuperação completa está explicitamente prevista para I4. Guardar a cópia fora do navegador e do aparelho.
+Em **Backup**, o botão **Baixar backup** exporta JSON com histórico e outbox. Nesta branch de I3, a recuperação mínima autorizada aceita uma exportação I2 em origem/perfil vazio ou exatamente idêntico, sem unir/substituir bases. O arquivo inteiro é validado antes da gravação; IDs e pendências são preservados. Restauração completa e gerações permanecem em I4. Guardar a cópia fora do navegador e do aparelho.
+
+**I3 em implementação local, ainda incompleto.** Recuperação mínima e fundação SQL com leitura isolada foram testadas localmente. Não há login Google, associação de conta ou envio remoto funcionando. `npm run check` também executa a migração em PostgreSQL embarcado PGlite com identidade simulada; isso não comprova Auth/API hospedados nem concorrência entre conexões. [Execução e limites](docs/EXECUCAO_INCREMENTO_3.md), [inventário](docs/INVENTARIO_BASES.md).
 
 ## Documentação
 
@@ -20,7 +22,7 @@ Em **Backup**, o botão **Baixar backup** exporta JSON com histórico e outbox. 
 - [Segurança e RPC](docs/SEGURANCA_RPC.md), [custos e limites](docs/CUSTOS_E_LIMITES.md) e [referências](docs/REFERENCIAS_E_DECISOES.md).
 - [Estado atual](docs/ESTADO_ATUAL.md) e [validação realizada](docs/VALIDACAO.md) registram o que foi efetivamente implementado e testado.
 - [Diretrizes de interface](docs/DIRETRIZES_UI_UX.md) e [próxima etapa](docs/PROXIMA_ETAPA.md).
-- [Plano proposto de I3](docs/PLANO_INCREMENTO_3.md), [decisões pendentes](docs/PENDENCIAS_INCREMENTO_3.md) e [fontes oficiais](docs/REFERENCIAS_INCREMENTO_3.md). Planejamento registrado; implementação e serviços ainda não autorizados.
+- [Plano de I3 aprovado com limites](docs/PLANO_INCREMENTO_3.md), [decisões e ações](docs/PENDENCIAS_INCREMENTO_3.md) e [fontes oficiais](docs/REFERENCIAS_INCREMENTO_3.md). Implementação local autorizada; serviços remotos, OAuth, publicação e dados reais exigem autorizações específicas.
 
 `database/modelo_inicial.sql` é uma referência de desenho relacional. Não foi aplicado em PostgreSQL, não configura Supabase e não está pronto para implantação.
 

@@ -1,4 +1,4 @@
-const LOCAL_OWNER_KEY = 'atlas-financeiro:local-owner:v1';
+export const LOCAL_OWNER_KEY = 'atlas-financeiro:local-owner:v1';
 
 /** Local owner IDs isolate browser data; they are not authentication. */
 export function getOrCreateLocalOwnerId(storage: Pick<Storage, 'getItem' | 'setItem'> = localStorage): string {
