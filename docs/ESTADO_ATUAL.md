@@ -4,6 +4,8 @@ Atualizado em 26/10/2026. **I1 e I2 concluídos; I3 em implementação local e a
 
 Branch de trabalho: `codex/incremento-3-local-foundation`, criada a partir de `43355a50c14a8593c52212409e066d2ace1f0496` da branch `codex/incremento-2-local-finance`. Esse SHA de I2/plano foi confirmado no GitHub nesta retomada e não foi alterado. `main` não foi mesclada.
 
+Checkpoint de código `9f6be3776b001510949b89374656297c85e752b8` enviado e confirmado por igualdade entre HEAD e `git ls-remote` em 26/10/2026. Este registro e a exclusão do cache temporário da CLI são o checkpoint documental subsequente. Nenhum deploy foi acionado pelo agente; o commit usa marcadores de skip e não foi conectado provedor de publicação.
+
 ## Autorização vigente
 
 O usuário aprovou o plano de I3 e implementação local, migrações versionadas, testes e checkpoints no GitHub. Antecipou recuperação mínima de exportação I2 em origem/dispositivo novo, preservando IDs, valores, histórico e pendências, com validação integral e atomicidade. Não autoriza restauração completa/gerações de I4, serviços externos, OAuth, SQL remoto, publicação, pagamento/trial ou piloto real.
