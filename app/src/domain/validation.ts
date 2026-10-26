@@ -150,6 +150,25 @@ export function assertFinancialDataset(dataset: FinancialDataset, expectedUserId
     if (settled > event.amountCents) fail('Liquidações não podem ultrapassar o valor do evento.');
     settledByEvent.set(event.id, settled);
   }
+  for (const originalId of reversed) {
+    const original = events.get(originalId);
+    const reversal = [...events.values()].find((event) => event.reversesEventId === originalId);
+    if (!original || !reversal || settledByEvent.get(originalId) !== original.amountCents || settledByEvent.get(reversal.id) !== reversal.amountCents) {
+      fail('Estorno exige liquidação integral do evento original e da contrapartida inversa.');
+    }
+  }
+  for (const event of events.values()) {
+    if (event.replacesEventId !== undefined && settledByEvent.has(event.replacesEventId) && !reversed.has(event.replacesEventId)) {
+      fail('Substituir evento liquidado exige estorno atômico do original.');
+    }
+    const chain = new Set([event.id]);
+    let previousId = event.replacesEventId;
+    while (previousId !== undefined) {
+      if (chain.has(previousId)) fail('Substituições de eventos não podem formar ciclos.');
+      chain.add(previousId);
+      previousId = events.get(previousId)?.replacesEventId;
+    }
+  }
 
   const postingsBySettlement = new Map<string, typeof dataset.postings>();
   for (const posting of dataset.postings) {

@@ -1,0 +1,19 @@
+{
+  "name": "Atlas Financeiro",
+  "short_name": "Atlas",
+  "description": "Gestão financeira pessoal local e offline.",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#087a50",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

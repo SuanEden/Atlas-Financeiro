@@ -36,7 +36,7 @@ function protectPrivateDocuments(): Plugin {
 export default defineConfig({
   root: appRoot,
   plugins: [protectPrivateDocuments(), react()],
-  publicDir: false,
+  publicDir: 'public',
   // Browser tests import the persistence harness lazily. Pre-bundle Dexie at
   // server startup so first use cannot trigger a Vite reload mid-evaluation.
   optimizeDeps: { include: ['dexie'] },

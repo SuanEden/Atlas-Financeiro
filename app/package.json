@@ -12,9 +12,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:browser": "playwright test",
+    "test:pwa": "npm run build && playwright test --config playwright.preview.config.ts",
     "build": "npm run typecheck && vite build",
     "preview": "vite preview",
-    "check": "npm run test && npm run build && npm run test:browser"
+    "check": "npm run test && npm run build && npm run test:browser && npm run test:pwa"
   },
   "dependencies": {
     "dexie": "4.4.7",
