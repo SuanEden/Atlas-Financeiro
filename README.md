@@ -20,6 +20,7 @@ Em **Backup**, o botão **Baixar backup** exporta JSON com histórico e outbox. 
 - [Segurança e RPC](docs/SEGURANCA_RPC.md), [custos e limites](docs/CUSTOS_E_LIMITES.md) e [referências](docs/REFERENCIAS_E_DECISOES.md).
 - [Estado atual](docs/ESTADO_ATUAL.md) e [validação realizada](docs/VALIDACAO.md) registram o que foi efetivamente implementado e testado.
 - [Diretrizes de interface](docs/DIRETRIZES_UI_UX.md) e [próxima etapa](docs/PROXIMA_ETAPA.md).
+- [Plano proposto de I3](docs/PLANO_INCREMENTO_3.md), [decisões pendentes](docs/PENDENCIAS_INCREMENTO_3.md) e [fontes oficiais](docs/REFERENCIAS_INCREMENTO_3.md). Planejamento registrado; implementação e serviços ainda não autorizados.
 
 `database/modelo_inicial.sql` é uma referência de desenho relacional. Não foi aplicado em PostgreSQL, não configura Supabase e não está pronto para implantação.
 

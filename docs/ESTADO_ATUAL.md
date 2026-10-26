@@ -42,6 +42,12 @@ Se esses documentos ainda existirem em armazenamento privado, precisam ser prese
 
 ## Próximo passo
 
+**Planejamento de I3 preparado em 26/10/2026, aguardando aprovação.** O usuário autorizou leitura, pesquisa, plano e documentação com commit/push; não autorizou implementar, criar/configurar serviços, aplicar migrações, publicar ou iniciar I4. Ver [PLANO_INCREMENTO_3.md](PLANO_INCREMENTO_3.md), [PENDENCIAS_INCREMENTO_3.md](PENDENCIAS_INCREMENTO_3.md) e [REFERENCIAS_INCREMENTO_3.md](REFERENCIAS_INCREMENTO_3.md).
+
+Na abertura desta tarefa, `git fetch`/`git ls-remote` confirmaram a entrega final de I2 em `86bcdffebedaa09698a613c8f24e4bd7fa6ede6d`, igual ao HEAD local e com worktree limpo. O plano foi preparado na mesma branch existente, sem alteração de `app/`, dependências ou SQL. As evidências de 115 testes unitários, 14 de navegador e 2 de PWA pertencem à validação de I2; nenhum teste de I3 foi executado ou declarado aprovado.
+
+Riscos/decisões centrais: primeiro vínculo Google com cadastro fechado ainda precisa de teste; UUID local não é usuário Auth; cada origem/perfil conserva sua própria base; dados existentes em dois dispositivos exigem reconciliação explícita. Propõe-se preservar origem e proteger associação/recuperação operacional antes do piloto, mantendo restauração completa em I4. A política de sessão expirada offline e esse recorte precisam de aprovação.
+
 Checkpoint de código desta revisão: `cc7a92d` (`Conclui revisao funcional e visual do Incremento 2`), na branch `codex/incremento-2-local-finance`. A documentação final fica no commit imediatamente seguinte. Os checkpoints anteriores `62cb433`, `6fe3003` e `35e6a4e` continuam no histórico. A branch `main` não foi alterada nem mesclada.
 
 Entrega remota confirmada em 26/10/2026, após o usuário concluir a autenticação do GitHub nesta VM. `git push origin HEAD:refs/heads/codex/incremento-2-local-finance` retornou `Everything up-to-date`; `git ls-remote` e `git rev-parse HEAD` coincidiram em `214c3f97e9c641119c0f664a80602c25c0e87221`, confirmando os checkpoints `cc7a92d`, `e6ae530` e `214c3f9` no GitHub. O bloqueio inicial por credencial, registrado no histórico, está resolvido. Este registro documental é o checkpoint seguinte da mesma branch.

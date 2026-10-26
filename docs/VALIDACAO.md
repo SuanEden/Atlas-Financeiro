@@ -82,3 +82,14 @@ Revisão dos arquivos preparados: somente código, testes, ícones próprios e d
 Entrega remota: as primeiras tentativas de push aguardaram credencial ou falharam explicitamente por falta de autenticação. Depois do login concluído pelo usuário, o push retornou `Everything up-to-date`; `git ls-remote origin refs/heads/codex/incremento-2-local-finance` e `git rev-parse HEAD` retornaram o mesmo SHA `214c3f97e9c641119c0f664a80602c25c0e87221`. Isso confirmou os três checkpoints no GitHub e resolveu o bloqueio. O registro documental final segue em commit posterior na mesma branch, sem alteração do código testado.
 
 O pacote alternativo foi verificado com `git bundle verify .private/entrega/atlas-i2-checkpoints.bundle` e clonado com sucesso em diretório temporário, com HEAD `214c3f9` e worktree limpo. Para recuperar um pacote: `git clone -b codex/incremento-2-local-finance <caminho-do-bundle> Atlas-Financeiro-recuperado`. Ao usar esse caminho alternativo, configurar `origin` para o GitHub antes de enviar. O repositório remoto é o ponto de continuidade da entrega concluída.
+
+## Validação documental do planejamento de I3 — 26/10/2026
+
+- Leitura integral de `AGENTS.md`, README e documentação técnica existente; inspeção dos contratos de identidade, persistência, outbox e referência SQL. Os requisitos pessoais originais e seu manifesto seguem ausentes; essa leitura não foi alegada como realizada.
+- `git fetch origin`, `git ls-remote origin refs/heads/codex/incremento-2-local-finance`, `git rev-parse HEAD` e `git status --porcelain`: base final de I2 confirmada no SHA `86bcdffebedaa09698a613c8f24e4bd7fa6ede6d`, com diretório inicialmente limpo.
+- Pesquisa somente de leitura em documentação oficial Supabase, Google, PostgreSQL e Cloudflare. A busca documental Supabase funcionou; não foram usados comandos de projetos, credenciais, SQL ou configuração. Referências e datas em `REFERENCIAS_INCREMENTO_3.md`.
+- Revisão do plano contra os dez tópicos solicitados, proteção de recuperação, limites de autorização e continuidade por GitHub. A proposta não foi marcada como aprovada no plano existente.
+- `git diff --check`, conferência de links relativos, arquivos preparados e ausência de alterações em `app/`/`database/`. Somente Markdown sanitizado será versionado.
+- Typecheck, unitários, build e navegador não foram reexecutados nesta tarefa documental; seus resultados acima pertencem a I2. Nenhum teste de OAuth, RLS, RPC, associação ou sincronização de I3 foi executado. A matriz A01–B02 é critério futuro de aprovação, não evidência de implementação.
+
+Não houve criação/configuração de serviços, OAuth, migração remota, instalação de dependência, publicação ou início de implementação de I3/I4. O checkpoint documental usará prefixos de omissão de CI/Pages para não solicitar builds automáticos; nenhuma configuração de hospedagem foi alterada. A conferência do commit remoto será feita após o push na mesma branch existente.

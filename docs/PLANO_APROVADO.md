@@ -6,6 +6,8 @@ Construir uma base própria pequena com React, TypeScript e Vite; Dexie/IndexedD
 
 Preservar os treze módulos do produto, entregando-os em quatro fases. O MVP corresponde à primeira fase e é dividido em quatro incrementos técnicos. Os Incrementos 1 e 2 foram autorizados e executados; os Incrementos 3 e 4 dependem de nova autorização.
 
+Em 26/10/2026 foi autorizado **somente o planejamento detalhado de I3**. A proposta está em [PLANO_INCREMENTO_3.md](PLANO_INCREMENTO_3.md), com decisões em [PENDENCIAS_INCREMENTO_3.md](PENDENCIAS_INCREMENTO_3.md). Esses documentos não estão aprovados para implementação; o recorte de proteção de recuperação é uma proposta explícita, sem transferência automática de escopo de I4.
+
 ## Incrementos do MVP
 
 | Incremento | Entrega e critério de passagem |

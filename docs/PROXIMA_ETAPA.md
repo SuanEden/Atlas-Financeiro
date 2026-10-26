@@ -2,6 +2,10 @@
 
 Incremento 2 concluído nesta branch. As evidências e limitações estão em [VALIDACAO.md](VALIDACAO.md); o inventário e a recuperação do ambiente estão em [ESTADO_ATUAL.md](ESTADO_ATUAL.md).
 
+**Próxima ação: o usuário revisar e aprovar o plano proposto de I3**, em [PLANO_INCREMENTO_3.md](PLANO_INCREMENTO_3.md), e resolver [PENDENCIAS_INCREMENTO_3.md](PENDENCIAS_INCREMENTO_3.md). O planejamento foi solicitado e documentado; a implementação não foi iniciada. Não interpretar aprovação documental, existência dos arquivos ou push como autorização para provisionamento, configuração OAuth, migrações remotas, publicação ou dados reais.
+
+A sequência proposta é: inventário/cópias → contratos/testes locais → banco/RLS/RPC em isolamento → primeiro Google login restrito → associação retomável → envio idempotente → pull/conflitos → sessão/offline e dois aparelhos → recuperação/piloto → evidências e checkpoints. Cada etapa tem critérios e dependências explícitos no plano. Antes de dados reais, decidir o recorte de recuperação e tratar qualquer segunda base anônima; não adiar silenciosamente a continuidade desses dados.
+
 Entrega remota confirmada: a autenticação foi concluída e os checkpoints até `214c3f9` foram conferidos no GitHub por igualdade entre o hash remoto e o local. Este registro final segue na mesma branch `codex/incremento-2-local-finance`. Não há pendência de credencial desta entrega; nenhuma publicação ou implantação foi realizada.
 
 Não iniciar I3 automaticamente. A próxima execução deve conferir branch, `git status`, commits e documentos, preservar alterações existentes e aguardar autorização explícita para identidade Google restrita, autorização ativa, RLS, RPC transacional e sincronização incremental.

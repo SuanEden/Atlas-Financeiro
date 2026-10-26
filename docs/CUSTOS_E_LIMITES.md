@@ -1,12 +1,24 @@
 # Custos e limites
 
-Pesquisa técnica em fontes oficiais consultadas em **24/10/2026**. Nenhuma conta real, organização, método de pagamento ou configuração de faturamento foi inspecionada. As condições precisam ser reconfirmadas antes de provisionar ou publicar.
+Quadro principal pesquisado em 24/10/2026 e **reconsultado para o planejamento de I3 em 26/10/2026**. Nenhuma conta real, organização, método de pagamento ou configuração de faturamento foi inspecionada. As condições precisam ser reconfirmadas antes de provisionar ou publicar. A consulta não é garantia de gratuidade permanente, capacidade disponível ou elegibilidade da conta.
+
+## Aplicação ao plano proposto de I3
+
+Necessários futuramente: Supabase Auth/PostgreSQL/Data API, cliente Google OAuth Web e, após autorização separada de publicação, frontend HTTPS estático no Cloudflare Pages. Realtime, Storage, Edge Functions, SMTP, SMS e SAML não são necessários a I3. Infraestrutura local de teste deve ser confirmada antes de iniciar; ausência de Docker/CLI não autoriza criar serviço pago.
+
+- O plano Free é da organização Supabase; cotas e disponibilidade de projetos precisam ser conferidas considerando seus membros e recursos existentes. Os dois projetos ativos gratuitos não são uma autorização para criar ambos. Preferir testes locais e apenas o projeto hospedado indispensável. [Billing FAQ](https://supabase.com/docs/guides/platform/billing-faq).
+- O tráfego financeiro de RPC/pull não deve ser orçado como se 5 GB cached e 5 GB não cached fossem um único saldo intercambiável. Sincronizar incrementalmente, paginar, limitar payloads e suspender consultas quando a PWA estiver em segundo plano. Não usar polling rápido, logs com payloads ou tráfego artificial para evitar pausa. [Egress](https://supabase.com/docs/guides/platform/manage-your-usage/egress).
+- Conferir Free e ausência de exigência de cartão/trial/faturamento no fluxo real antes de criar qualquer recurso. Não ativar Pro, paid branching, PITR, domínio de Auth, IPv4 dedicado, Log Drains, Workers/Functions, R2 ou outro adicional. Não presumir que o spend cap de plano pago torna o serviço gratuito ou cobre toda cobrança. [Pricing](https://supabase.com/pricing).
+- Usar somente identidade Google básica. O codelab oficial descreve conta/projeto gratuitos, mas não demonstra as telas da conta do usuário; parar se for exigido faturamento, em vez de habilitar trial ou Identity Platform pago. Não contratar Google Workspace para obter audiência Internal. [Google](https://codelabs.developers.google.com/codelabs/sign-in-with-google-button).
+- Antes de conectar Git à hospedagem, restringir branches e deploys automáticos. Push documental não autoriza publicação. Para I3, preparar apenas essa decisão; não conectar ou alterar serviços nesta tarefa. [Controles de branch Pages](https://developers.cloudflare.com/pages/configuration/branch-build-controls/).
+
+A ausência de backups automáticos no Free exige proteção da associação e ensaio operacional antes de dados reais; o exportador I2 não promete restauração. Esse recorte está no [plano de I3](PLANO_INCREMENTO_3.md#8-recuperação-antes-de-dados-reais-recorte-proposto) e depende de aprovação. Fontes e mudanças recentes estão em [REFERENCIAS_INCREMENTO_3.md](REFERENCIAS_INCREMENTO_3.md).
 
 ## Serviços previstos
 
 | Serviço | Condição verificada | Consequência operacional |
 |---|---|---|
-| Supabase Free | US$ 0; banco de 500 MB; Storage de 1 GB; 50 mil usuários ativos mensais; 5 GB de egress e 5 GB de cached egress com cotas separadas; até dois projetos ativos. | Começar com um projeto e poucos anexos, sincronização incremental e exportação independente. [Preços](https://supabase.com/pricing) |
+| Supabase Free | US$ 0; banco de 500 MB; Storage de 1 GB; 50 mil usuários ativos mensais; 5 GB de egress e 5 GB de cached egress com cotas separadas; até dois projetos ativos. | Usar somente o projeto necessário, sincronização incremental e exportação independente; Storage/anexos ficam fora de I3. [Preços](https://supabase.com/pricing) |
 | Supabase: inatividade | Pouca atividade em sete dias pode causar pausa; documentação atual informa janela de restauração de um ano. | Mostrar indisponibilidade e preservar fila local; retomada pelo proprietário no painel. Não gerar tráfego artificial. [Pausa](https://supabase.com/docs/guides/platform/free-project-pausing) |
 | Supabase: excedentes | Uso continuado acima das cotas pode provocar restrições, pausa ou respostas HTTP 402. | Reduzir uso ou aguardar recomposição da cota, sem upgrade automático. [Faturamento](https://supabase.com/docs/guides/platform/billing-faq) |
 | Supabase: backup | Backups diários gerenciados não integram o Free. | Exportações próprias com cópia fora do aparelho/provedor. [Backups](https://supabase.com/docs/guides/platform/backups) |
@@ -24,4 +36,4 @@ A quota de 500 MB do banco é diferente do disco físico. A documentação atual
 - Mostrar erros de quota como indisponibilidade, sem apagar pendências. Não afirmar cota global disponível a partir de um contador local de arquivos; métricas administrativas ficam fora do frontend.
 - Custos do ambiente de desenvolvimento e do Codex são separados do custo de hospedagem do aplicativo. Gratuidade permanente e disponibilidade contínua de terceiros não são garantidas.
 
-Autenticação futura usa Google e recuperação da conta Google. O SMTP padrão Supabase não é dependência: ele é restrito a endereços da equipe, atualmente limitado a duas mensagens/hora e sem SLA. [SMTP](https://supabase.com/docs/guides/auth/auth-smtp)
+Autenticação futura usa Google e recuperação da conta Google. SMTP não é dependência e não será provisionado. A pesquisa anterior registrou restrições do SMTP padrão; seus limites não foram revalidados nesta revisão por não integrarem I3. Não usar esse serviço como solução improvisada para o primeiro login. [SMTP](https://supabase.com/docs/guides/auth/auth-smtp)
