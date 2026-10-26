@@ -1,5 +1,9 @@
 # Estado atual
 
+## Início da configuração externa — 26/10/2026
+
+O usuário criou pessoalmente `atlas-financeiro-i3`. Consulta somente de leitura confirmou projeto ativo em São Paulo e organização Free. [Registro e limites](CONFIGURACAO_EXTERNA_I3.md). Auth/API ainda não foram inspecionados/configurados pelo agente; nenhuma migração, Google real, publicação ou dado pessoal foi enviado. O modo remoto do aplicativo continua desabilitado. As afirmações seguintes de ausência de serviço referem-se ao checkpoint local anterior.
+
 ## Estado vigente após ligação da interface — 26/10/2026
 
 O resumo atual está em [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). Runtime/controlador estão ligados às telas, com bloqueio visual de logout/troca de conta, acesso offline após associação e envio condicionado à sessão verificada. A cópia I3 preserva metadados e não é aceita pelo importador I2. O modo remoto permanece desabilitado por padrão, sem configuração real. I3 incompleto; pendências locais e externas explicitadas no resumo. As seções seguintes preservam os lotes anteriores e não substituem este estado.

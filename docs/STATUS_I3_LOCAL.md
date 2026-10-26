@@ -1,5 +1,7 @@
 # I3 local — continuidade após a recuperação
 
+**Marco externo posterior:** o usuário criou o projeto de integração sintética e o agente confirmou, por consultas de leitura, estado ativo, São Paulo e plano Free. Ver [CONFIGURACAO_EXTERNA_I3.md](CONFIGURACAO_EXTERNA_I3.md). Isso atualiza o inventário de serviços, sem alterar código, habilitar integração ou comprovar Auth/SQL/publicação. As referências abaixo a nenhum serviço criado descrevem a entrega local anterior.
+
 Atualizado em 26/10/2026. Este documento é o resumo vigente de implementação. Registros dos primeiros checkpoints foram preservados como histórico em estado/execução/validação.
 
 ## Base e checkpoints

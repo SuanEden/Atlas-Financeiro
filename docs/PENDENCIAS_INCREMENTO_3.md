@@ -1,5 +1,7 @@
 # Incremento 3 — decisões e ações do usuário
 
+**Inventário externo iniciado:** usuário criou pessoalmente projeto separado de I3; ativo em São Paulo, organização Free confirmada por consulta. [Registro vigente](CONFIGURACAO_EXTERNA_I3.md). Próxima configuração guiada: fechar cadastro público e métodos de entrada indevidos. Auth ainda não foi verificado; criação não autoriza automaticamente SQL, Google, publicação ou piloto. O roteiro abaixo preserva as condições, mas inventário/criação já não são etapas inteiramente futuras.
+
 **Estado vigente:** [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md) separa o que já funciona em teste local das provas pendentes. Controles de sessão/associação/envio já estão ligados às telas com identidades sintéticas; não se exige participação do usuário para executar esses testes. O roteiro de ações externas abaixo continua condicionado às autorizações específicas. Nenhuma base sintética será associada como pessoal.
 
 Retomada da VM em 26/10/2026: [diagnóstico](RECUPERACAO_I3.md). Nenhuma participação/configuração externa é necessária para corrigir e testar o lote local de sessão/associação. O protocolo SQL e o motor já existem, com testes embarcados reexecutados; integração real e concorrência entre conexões continuam pendentes.

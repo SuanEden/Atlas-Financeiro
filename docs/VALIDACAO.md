@@ -1,5 +1,9 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Inventário externo confirmado — 26/10/2026
+
+Após criação pessoal pelo usuário, `list_projects` confirmou `atlas-financeiro-i3`, região `sa-east-1`, estado `ACTIVE_HEALTHY`; `get_organization` confirmou `plan: free` e `tier: tier_free`. Somente leitura; não foram inspecionados métodos de pagamento, Auth, usuários ou schema nem aplicadas migrações/configurações. Não é teste de integração. Código inalterado; a suíte não foi reexecutada para este checkpoint documental. Dados operacionais privados/segredos não integram o registro. Detalhes em [CONFIGURACAO_EXTERNA_I3.md](CONFIGURACAO_EXTERNA_I3.md).
+
 ## Resultado vigente — interface de sessão e cópia I3 — 26/10/2026
 
 Após a ligação da interface e correção das falhas de armazenamento no bloqueio, `npm run check` concluiu integralmente nesta VM: **191 aprovados/1 ignorado**, em 16 arquivos Vitest, **typecheck/build aprovados**, **24 testes de navegador** e **3 PWA**. Os totais seguintes são históricos. Os 27 testes adicionados depois da recuperação são 5 de política, 12 do adaptador e 10 do controlador; os testes de motor foram ampliados para guardar conflito resolvido e exportar sua evidência.
