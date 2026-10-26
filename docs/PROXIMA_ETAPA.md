@@ -2,7 +2,7 @@
 
 Incremento 2 concluído nesta branch. As evidências e limitações estão em [VALIDACAO.md](VALIDACAO.md); o inventário e a recuperação do ambiente estão em [ESTADO_ATUAL.md](ESTADO_ATUAL.md).
 
-Primeira pendência operacional desta VM: autenticar o GitHub e enviar os checkpoints locais na branch existente. O último remoto conferido ainda era `35e6a4e`; não perder a VM antes do push confirmado ou do download do bundle descrito no estado atual. Essa pendência não autoriza deploy ou I3.
+Entrega remota confirmada: a autenticação foi concluída e os checkpoints até `214c3f9` foram conferidos no GitHub por igualdade entre o hash remoto e o local. Este registro final segue na mesma branch `codex/incremento-2-local-finance`. Não há pendência de credencial desta entrega; nenhuma publicação ou implantação foi realizada.
 
 Não iniciar I3 automaticamente. A próxima execução deve conferir branch, `git status`, commits e documentos, preservar alterações existentes e aguardar autorização explícita para identidade Google restrita, autorização ativa, RLS, RPC transacional e sincronização incremental.
 
