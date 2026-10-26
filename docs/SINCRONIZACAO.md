@@ -1,5 +1,7 @@
 # Sincronização
 
+**Atualização de I3 em 26/10/2026:** [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md) descreve protocolo SQL, motor, cursor, recibos, sessão e interface já implementados/testados localmente com identidades sintéticas. A descrição de ausência de engine abaixo pertence à base de I2; contratos planejados ainda não equivalem a integração real aprovada. O modo remoto permanece desabilitado por padrão.
+
 **Outbox local implementada em I2; protocolo remoto continua futuro para I3.** Cada comando financeiro grava agregado e `PendingOperation` na mesma transação IndexedDB. Não existem credenciais, chamadas remotas, cursor ou engine de sincronização; por isso todas as operações aparecem como pendentes sem alegação de envio.
 
 ## Fluxo pretendido

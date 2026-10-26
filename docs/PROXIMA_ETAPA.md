@@ -1,5 +1,9 @@
 # Próxima etapa — continuar I3 local
 
+## Prioridade vigente depois da ligação da interface
+
+Ler [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md): a ligação de Auth/controlador às telas e cópia I3 já foi implementada. Não repetir o lote descrito nas prioridades históricas abaixo. Conferir o HEAD remoto da branch para o checkpoint mais recente. Continuar pelas pendências locais do resumo (ambiente de concorrência, associação interrompida/legada, conflitos/dependências, tombstones e proteção operacional da cópia); integração externa e piloto continuam aguardando autorização específica, com orientação uma etapa por vez. Não iniciar I4.
+
 ## Prioridade após recuperação de 26/10/2026
 
 Foi recuperado `34b6566` e o diagnóstico está em `3885cc4`/`RECUPERACAO_I3.md`. SQL/motor já existem; não refazê-los como se só houvesse `6a7c308`. Lote seguinte corrigiu Auth/controlador e passou `npm run check` (189/1 ignorado, 20 navegador, 3 PWA).

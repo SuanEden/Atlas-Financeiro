@@ -1,5 +1,7 @@
 # Incremento 3 — decisões e ações do usuário
 
+**Estado vigente:** [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md) separa o que já funciona em teste local das provas pendentes. Controles de sessão/associação/envio já estão ligados às telas com identidades sintéticas; não se exige participação do usuário para executar esses testes. O roteiro de ações externas abaixo continua condicionado às autorizações específicas. Nenhuma base sintética será associada como pessoal.
+
 Retomada da VM em 26/10/2026: [diagnóstico](RECUPERACAO_I3.md). Nenhuma participação/configuração externa é necessária para corrigir e testar o lote local de sessão/associação. O protocolo SQL e o motor já existem, com testes embarcados reexecutados; integração real e concorrência entre conexões continuam pendentes.
 
 Atualizado em 26/10/2026. [Plano aprovado com limites](PLANO_INCREMENTO_3.md) e [execução atual](EXECUCAO_INCREMENTO_3.md). **Implementação local autorizada; integração real ainda não autorizada nem comprovada.**

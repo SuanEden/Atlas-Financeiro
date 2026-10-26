@@ -1,5 +1,7 @@
 # Segurança, permissões e RPC
 
+**Atualização de I3 em 26/10/2026:** implementação/testes locais e pendências vigentes em [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As afirmações de ausência de Auth/SQL abaixo descrevem a fundação de I1/I2. Não há Supabase/Google real configurado ou aprovado, e a matriz de isolamento hospedado permanece pendente.
+
 **Desenho para I3; não implementado nem validado contra Supabase/PostgreSQL no I1.** A persistência atual é local, sem autenticação. O SQL de referência não configura os grants/policies abaixo e não deve ser publicado como backend pronto.
 
 ## Identidade e autorização

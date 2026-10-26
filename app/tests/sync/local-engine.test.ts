@@ -8,6 +8,8 @@ import { SyncEngine, SyncFailure, type SyncTransport, type TransmissionGrant } f
 import { commandEnvelope, jsonDigest, prepareBootstrap, type ChangePage } from '../../src/sync/protocol';
 import { createTransactionCommand, replaceEventCommand, type CommandContext } from '../../src/application';
 import { calculateAvailabilityBalances } from '../../src/domain';
+import { exportSyncBackup } from '../../src/sync/export-backup';
+import { validateI2Backup } from '../../src/backup/validate-i2-backup';
 
 let server:Awaited<ReturnType<typeof sqlTestServer>>;
 const stores:LocalSyncStore[]=[];
@@ -128,5 +130,16 @@ describe('sync local + PostgreSQL embarcado, dois clientes simulados',()=>{
     const lost=await second.read();expect(lost.pending).toHaveLength(1);expect(lost.pending[0]!.id).toBe(commandB.operation.id);expect(lost.pending[0]!.status).toBe('conflict');
     expect(lost.confirmed).toEqual((await first.read()).confirmed);expect(lost.projection).toEqual(lost.confirmed);
     expect(calculateAvailabilityBalances(lost.confirmed).totalCents).toBe(110802n);
+    const backup=JSON.parse(await exportSyncBackup(second,'synthetic-test'));
+    expect(backup).toMatchObject({format:'atlas-financeiro-sync-backup',meta:{binding:'active',cursor:'2'}});
+    expect(backup.pending[0].envelope.operationId).toBe(commandB.operation.id);
+    expect(backup.pending[0].status).toBe('conflict');expect(backup.receipts).toHaveLength(2);
+    expect(()=>validateI2Backup(JSON.stringify(backup))).toThrow();
+    await second.resolveConflict(commandB.operation.id);
+    expect(await engineB.run()).toBe('synced');
+    const resolved=await second.read();
+    expect(resolved.pending[0]!.status).toBe('resolved');expect(resolved.pending[0]!.envelope).toEqual(lost.pending[0]!.envelope);
+    expect(resolved.projection).toEqual(lost.confirmed);
+    expect(JSON.parse(await exportSyncBackup(second,'synthetic-test')).pending[0].status).toBe('resolved');
   });
 });

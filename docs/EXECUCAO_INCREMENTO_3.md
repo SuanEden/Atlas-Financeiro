@@ -1,5 +1,7 @@
 # Execução local do Incremento 3
 
+**Estado vigente:** runtime/controlador ligados à interface e exportação I3 distinta, com testes sintéticos de navegador. Ver [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md) e o resultado final em [VALIDACAO.md](VALIDACAO.md). As exclusões e totais nos registros seguintes são históricos, não o inventário atual.
+
 **Retomada em 26/10/2026:** recuperado o checkpoint `34b6566`, posterior ao registro inicial abaixo. Protocolo SQL/motor presentes e revalidados; Auth/controlador parciais e compilação quebrada. Ver [RECUPERACAO_I3.md](RECUPERACAO_I3.md). Os números e exclusões de implementação abaixo são históricos do primeiro checkpoint, não o inventário atual.
 
 **Continuação local:** erros de compilação corrigidos, proveniência da associação persistida e sessão/controlador revalidados com 25 testes adicionais. `npm run check`: 189 aprovados/1 ignorado, 20 navegador e 3 PWA. A política ainda não está ligada à interface; próximo lote inclui essa ligação e cópia I3 com metadados. Estado detalhado em [ESTADO_ATUAL.md](ESTADO_ATUAL.md).

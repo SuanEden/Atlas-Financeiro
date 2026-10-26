@@ -31,8 +31,10 @@ export class RemoteController {
       if(this.#disposed||this.policy.snapshot.blocked)return;
       this.#generation++;
       // SDK events invalidate transmission immediately; they never authenticate by themselves.
-      if(userId&&this.policy.snapshot.userId&&userId!==this.policy.snapshot.userId)this.policy.lock();
-      else this.policy.expire();
+      try {
+        if(userId&&this.policy.snapshot.userId&&userId!==this.policy.snapshot.userId)this.policy.lock();
+        else this.policy.expire();
+      } catch { /* Persistence errors still leave the in-memory policy locked. */ }
       this.publish({});
       if(!this.policy.snapshot.blocked)void this.verify(false);
     });
@@ -69,7 +71,7 @@ export class RemoteController {
         this.publish({notice:identity.writesEnabled?'':'Login verificado. O envio remoto aguarda liberação.'});
       } catch(reason) {
         if(generation!==this.#generation) return;
-        if(reason instanceof SyncFailure&&reason.reason==='access_denied') this.policy.deny();else this.policy.expire();
+        if(reason instanceof SyncFailure&&reason.reason==='access_denied') {try {this.policy.deny();}catch { /* Publish the closed policy even if storage fails. */ }}else this.policy.expire();
         this.publish({notice:reason instanceof SyncFailure&&reason.reason==='access_denied'?'Esta conta não tem acesso liberado.':'Entre novamente para sincronizar. Os dados locais continuam preservados.'});
       }
     })();
@@ -82,7 +84,7 @@ export class RemoteController {
     try {await this.auth.logout();}catch {this.publish({notice:'Acesso local bloqueado. A saída no servidor depende de conexão; suas pendências foram preservadas.'});}
   }
   storageChanged() {this.#generation++;this.policy.reloadFromStorage();this.publish({notice:'A sessão mudou em outra aba. Entre novamente para sincronizar.'});}
-  expireIfNeeded() {if(!this.policy.snapshot.onlineVerified){this.policy.expire();this.publish({});}}
+  expireIfNeeded() {if(this.policy.snapshot.expiresAt>0&&!this.policy.snapshot.onlineVerified){this.policy.expire();this.publish({});}}
 
   async previewLocalSource() {
     this.requireOnline();const epoch=this.policy.snapshot.epoch;const source=await this.source.read();

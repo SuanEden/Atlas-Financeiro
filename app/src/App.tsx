@@ -10,7 +10,7 @@ import {
   Tags,
   WalletCards,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   createAccountCommand,
   createCategoryCommand,
@@ -41,7 +41,11 @@ const desktopNavigation = [
 ];
 
 export function App() {
-  const { state, loading, busy, error, clearError, execute, recover, readState, context, userId } = useLocalFinance();
+  return <FinancialWorkspace finance={useLocalFinance()} />;
+}
+
+export function FinancialWorkspace({finance,sessionControls,integration=false,exportJson}:{finance:ReturnType<typeof useLocalFinance>;sessionControls?:ReactNode;integration?:boolean;exportJson?:()=>Promise<string>}) {
+  const { state, loading, busy, error, clearError, execute, recover, readState, context, userId } = finance;
   const [page, setPage] = useState<Page>('dashboard');
   const [modal, setModal] = useState<Modal>();
   const [notice, setNotice] = useState('');
@@ -99,16 +103,17 @@ export function App() {
 
       <section className="workspace">
         <header className="topbar"><div className="mobile-brand"><Brand /></div>{page === 'dashboard' ? null : <button className="button button--primary topbar-create" onClick={openTransaction} disabled={state.accounts.length === 0}><Plus size={17} />Novo lançamento</button>}<span className="device-status"><HardDrive size={16} />Salvo neste dispositivo</span><button className="icon-button" type="button" onClick={toggleTheme} aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'} aria-pressed={dark}>{dark ? <Sun size={19} /> : <Moon size={19} />}</button></header>
+        {sessionControls}
         {error === undefined ? null : <div className="error-banner" role="alert"><span>{error}</span><button onClick={clearError}>Fechar</button></div>}
         <div className="sr-only" role="status">{notice}</div>
         {loading ? <div className="loading-state"><span className="spinner" />Carregando dados locais…</div> : (
           <>
-            {page === 'dashboard' ? <Dashboard state={state} today={today} onAddAccount={() => setModal({ type: 'account' })} onAddTransaction={openTransaction} onNavigate={setPage} /> : null}
-            {page === 'movements' ? <MovementsView state={state} onAdd={openTransaction} onEdit={(event) => setModal({ type: 'transaction', initial: event })} onReverse={(event) => setModal({ type: 'reverse', event })} /> : null}
+            {page === 'dashboard' ? <Dashboard integration={integration} state={state} today={today} onAddAccount={() => setModal({ type: 'account' })} onAddTransaction={openTransaction} onNavigate={setPage} /> : null}
+            {page === 'movements' ? <MovementsView integration={integration} state={state} onAdd={openTransaction} onEdit={(event) => setModal({ type: 'transaction', initial: event })} onReverse={(event) => setModal({ type: 'reverse', event })} /> : null}
             {page === 'accounts' ? <AccountsView state={state} onAdd={() => setModal({ type: 'account' })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
             {page === 'categories' || page === 'backup' ? <div className="mobile-settings-tabs"><button className={page === 'categories' ? 'is-active' : ''} onClick={() => setPage('categories')}>Categorias</button><button className={page === 'backup' ? 'is-active' : ''} onClick={() => setPage('backup')}>Backup</button></div> : null}
             {page === 'categories' ? <CategoriesView state={state} onAdd={() => setModal({ type: 'category' })} /> : null}
-            {page === 'backup' ? <BackupView onRecover={recover} busy={busy} readState={readState} state={state} userId={userId} today={today} /> : null}
+            {page === 'backup' ? <BackupView integration={integration} {...(exportJson?{exportJson}:{})} onRecover={recover} busy={busy} readState={readState} state={state} userId={userId} today={today} /> : null}
           </>
         )}
       </section>

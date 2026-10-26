@@ -97,4 +97,12 @@ describe('controlador local de sessão com SQL e identidades simuladas',()=>{
     f.fail(new SyncFailure('access_denied','SYNTHETIC_DENIED'));await f.controller.verify();
     expect(f.controller.getSnapshot().session.canView).toBe(false);expect((await store.read()).confirmed.accounts).toHaveLength(2);
   });
+  it.each(['account-event','revoked'])('falha de armazenamento durante bloqueio %s também remove a visão publicada',async(mode)=>{
+    const f=await setup();await associate(f);
+    vi.spyOn(f.saved,'setItem').mockImplementation(()=>{throw new Error('Synthetic storage failure');});
+    if(mode==='account-event')expect(()=>f.notify(crypto.randomUUID())).not.toThrow();
+    else {f.fail(new SyncFailure('access_denied','SYNTHETIC_DENIED'));await f.controller.verify();}
+    expect(f.controller.getSnapshot().session).toMatchObject({canView:false,canWriteLocal:false,canTransmit:false});
+    expect((await f.controller.getSnapshot().store!.read()).confirmed.accounts).toHaveLength(2);
+  });
 });

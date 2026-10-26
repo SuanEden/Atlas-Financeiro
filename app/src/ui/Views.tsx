@@ -25,6 +25,7 @@ import { activeEventIds, accountKindLabels, availabilityLabels, eventAmountSign,
 type Page = 'dashboard' | 'movements' | 'accounts' | 'categories' | 'backup';
 
 interface DashboardProps {
+  integration?:boolean;
   state: LocalFinancialState;
   today: string;
   onAddAccount: () => void;
@@ -32,7 +33,7 @@ interface DashboardProps {
   onNavigate: (page: Page) => void;
 }
 
-export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavigate }: DashboardProps) {
+export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavigate, integration=false }: DashboardProps) {
   const balances = calculateAvailabilityBalances(state);
   const period = financialMonthPeriod(today);
   const cash = calculateCashTotals(state, period);
@@ -45,7 +46,7 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
   return (
     <div className="page-content">
       <PageHeading title="Visão geral" action={<button className="button button--primary" onClick={onAddTransaction} disabled={state.accounts.length === 0}><Plus size={18} />Novo lançamento</button>} />
-      <p className="form-note">Dados somente neste navegador. {state.outbox.length} operações locais ainda sem envio remoto. Guarde uma cópia em Backup.</p>
+      <p className="form-note">{integration?`Cópia neste navegador. ${state.outbox.length} operações aguardando confirmação ou conferência. Consulte o painel de sincronização e guarde uma cópia em Backup.`:`Dados somente neste navegador. ${state.outbox.length} operações locais ainda sem envio remoto. Guarde uma cópia em Backup.`}</p>
       <section className="money-summary" aria-label="Resumo dos saldos">
         <MoneyStat label="Disponível" value={balances.freeCents} />
         <MoneyStat label="Reservado" value={balances.reservedCents} />
@@ -74,19 +75,20 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
 }
 
 interface MovementsProps {
+  integration?:boolean;
   state: LocalFinancialState;
   onAdd: () => void;
   onEdit: (event: FinancialEvent) => void;
   onReverse: (event: FinancialEvent) => void;
 }
 
-export function MovementsView({ state, onAdd, onEdit, onReverse }: MovementsProps) {
+export function MovementsView({ state, onAdd, onEdit, onReverse, integration=false }: MovementsProps) {
   const activeIds = activeEventIds(state);
   const events = [...state.events].sort((left, right) => right.competenceDate.localeCompare(left.competenceDate));
   return (
     <div className="page-content">
       <PageHeading title="Movimentações" subtitle="Histórico completo, incluindo correções e estornos." action={<button className="button button--primary" onClick={onAdd} disabled={state.accounts.length === 0}><Plus size={18} />Novo lançamento</button>} />
-      <div className="local-status"><span><ShieldCheck size={17} />{state.outbox.length} {state.outbox.length === 1 ? 'operação local pendente' : 'operações locais pendentes'}</span><small>Sincronização remota ainda não disponível.</small></div>
+      <div className="local-status"><span><ShieldCheck size={17} />{state.outbox.length} {state.outbox.length === 1 ? 'operação local pendente' : 'operações locais pendentes'}</span><small>{integration?'Confira o envio e eventuais conflitos no painel de sincronização.':'Sincronização remota ainda não disponível.'}</small></div>
       {events.length === 0 ? <EmptyPanel icon={<ArrowLeftRight />} title="Ainda não há movimentações" description="Crie uma conta e registre sua primeira receita, despesa ou transferência." action="Novo lançamento" onAction={onAdd} disabled={state.accounts.length === 0} /> : (
         <div className="history-list">{events.map((event) => {
           const active = activeIds.has(event.id);
@@ -118,14 +120,13 @@ export function CategoriesView({ state, onAdd }: { state: LocalFinancialState; o
   );
 }
 
-export function BackupView({ state, userId, today, readState, onRecover, busy }: { state: LocalFinancialState; userId: string; today: string; readState: () => Promise<LocalFinancialState>; onRecover: (json: string) => Promise<void>; busy: boolean }) {
+export function BackupView({ state, userId, today, readState, onRecover, busy, integration=false, exportJson }: { state: LocalFinancialState; userId: string; today: string; readState: () => Promise<LocalFinancialState>; onRecover: (json: string) => Promise<void>; busy: boolean; integration?:boolean; exportJson?:()=>Promise<string> }) {
   const [notice, setNotice] = useState('');
   const [failure, setFailure] = useState<string>();
   async function downloadBackup() {
     setFailure(undefined);
     try {
-      const latest = await readState();
-      const json = serializeLocalBackup(latest, userId);
+      const json = exportJson?await exportJson():serializeLocalBackup(await readState(), userId);
       const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
       const anchor = document.createElement('a');
       anchor.href = url;
@@ -145,7 +146,7 @@ export function BackupView({ state, userId, today, readState, onRecover, busy }:
       <p role="status">{notice}</p>
       {failure === undefined ? null : <p className="form-error" role="alert">{failure}</p>}
       <section className="backup-panel"><span className="backup-icon"><Download size={24} /></span><div><h2>Exportar arquivo JSON</h2><p>Inclui contas, categorias, lançamentos, histórico, centavos exatos e {state.outbox.length} {state.outbox.length === 1 ? 'operação pendente' : 'operações pendentes'}.</p><p className="warning-copy">O arquivo contém dados financeiros sem criptografia própria. Guarde-o em local privado.</p><button className="button button--primary" onClick={downloadBackup}><Download size={18} />Baixar backup</button></div></section>
-      <RecoveryPanel onRecover={onRecover} busy={busy} />
+      {integration?<section className="scope-panel"><RefreshCcw size={21} /><div><h2>Cópia de sincronização I3</h2><p>A exportação inclui base confirmada, pendências, conflitos, recibos, cursor e origem da associação. Não contém sessão. O importador I2 não aceita este formato; a recuperação dessa cópia ainda exige um procedimento próprio validado.</p></div></section>:<RecoveryPanel onRecover={onRecover} busy={busy} />}
       <section className="scope-panel"><RefreshCcw size={21} /><div><h2>Restauração completa ainda não disponível</h2><p>A recuperação mínima acima aceita apenas exportações de I2 em destino vazio ou idêntico. A substituição de bases e as gerações continuam previstas para I4.</p></div></section>
     </div>
   );

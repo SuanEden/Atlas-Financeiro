@@ -1,5 +1,9 @@
 # Estado atual
 
+## Estado vigente após ligação da interface — 26/10/2026
+
+O resumo atual está em [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). Runtime/controlador estão ligados às telas, com bloqueio visual de logout/troca de conta, acesso offline após associação e envio condicionado à sessão verificada. A cópia I3 preserva metadados e não é aceita pelo importador I2. O modo remoto permanece desabilitado por padrão, sem configuração real. I3 incompleto; pendências locais e externas explicitadas no resumo. As seções seguintes preservam os lotes anteriores e não substituem este estado.
+
 ## Retomada após encerramento da VM
 
 Em 26/10/2026 foi recuperado `34b6566`, posterior a `6a7c308`, na mesma branch I3. [Diagnóstico de recuperação](RECUPERACAO_I3.md), preservado em `3885cc4`. Os registros após esta seção descrevem o checkpoint inicial e são históricos.

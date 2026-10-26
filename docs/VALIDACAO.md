@@ -1,5 +1,25 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Resultado vigente — interface de sessão e cópia I3 — 26/10/2026
+
+Após a ligação da interface e correção das falhas de armazenamento no bloqueio, `npm run check` concluiu integralmente nesta VM: **191 aprovados/1 ignorado**, em 16 arquivos Vitest, **typecheck/build aprovados**, **24 testes de navegador** e **3 PWA**. Os totais seguintes são históricos. Os 27 testes adicionados depois da recuperação são 5 de política, 12 do adaptador e 10 do controlador; os testes de motor foram ampliados para guardar conflito resolvido e exportar sua evidência.
+
+| Fronteira/caso | Evidência observada |
+|---|---|
+| Aplicação recuperada | `34b6566`: 164/1 ignorado, com falha de compilação real identificada; diagnóstico em `3885cc4`. Não foi tratado como entrega funcional. |
+| Sessão/controlador + banco | PGlite/fake-indexeddb com identidade simulada: associação, origem preservada, retomada após commit perdido, namespace por conta, expiração/offline, readiness falso, revogação e bloqueio mesmo com falha de armazenamento. |
+| UI de acesso | Playwright/Edge: título/URL, conteúdo não vazio, ausência de overlay, console sem erros relevantes; associação exige confirmação. Snapshot financeiro desaparece ao sair, inclusive por segunda aba, e permanece bloqueado após recarga. |
+| Pendência e reentrada | Conta sintética criada na UI; Auth desconectado/expirado; recarga mantém projeção e pendência; logout não apaga; reentrada permite confirmação pelo transporte sintético, sem efeito duplicado. |
+| Cópia I3 | JSON baixado pelo navegador com cursor, proveniência, base confirmada, projeção, recibos e pendência; sem tokens. Teste SQL/motor inclui conflito e tentativa resolvida preservados. Importador I2 recusa o formato. Não houve teste de restauração I3. |
+| Regressão I1/I2 | 20 cenários de navegador anteriores preservados. PWA de produção local: offline/outbox, recuperação mínima I2 e atualização após fechar abas, sem perder dados. |
+| Bundle | Busca por identificadores de `auth-browser-entry`, fixture de sessão, fake-indexeddb e PGlite sem correspondências em `app/dist`; testes não integram a aplicação. Modo de integração desabilitado por padrão. |
+
+Ambiente: `http://127.0.0.1:5173` no desenvolvimento e `http://127.0.0.1:4173` para PWA; Edge 1280×900 e 390×844. Browser plugin indisponível, usado Playwright versionado. Capturas de sessão/bloqueio desktop/celular salvas e inspecionadas em `%TEMP%`, fora do Git. Para futuras sessões de revisão interativa, o Browser plugin é opcional; não é necessário para executar esta suíte.
+
+Falhas intermediárias: dois seletores do novo teste usavam nomes diferentes dos botões reais; foram corrigidos sem retries ou skips. A inspeção visual mostrou botão Google sem contraste por variáveis CSS fora do shell; a tela passou a herdar o tema e as capturas seguintes mostraram texto/ação legíveis. A revisão de erros também encontrou bloqueio em memória que podia não ser publicado se `localStorage` falhasse durante troca/revogação; corrigido e comprovado com dois testes de falha injetada. O fluxo completo foi reexecutado depois dessas mudanças.
+
+Os testes de Auth no navegador substituem a entrada por um módulo exclusivo de teste com identidade/transporte sintéticos. **Não são Google real, JWT/PostgREST, concorrência entre conexões, PWA autenticada real ou dois aparelhos.** O `psql` e Docker não foram encontrados nesta VM. Limites/pendências em [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). Nenhum serviço externo, OAuth real, SQL remoto, deploy, pagamento/trial, piloto ou dado financeiro pessoal foi usado. I3 permanece incompleto.
+
 ## Lote de sessão/controlador depois da recuperação — 26/10/2026
 
 `npm run check` concluído integralmente nesta VM: **189 aprovados/1 ignorado**, 16 arquivos Vitest, typecheck/build, **20 testes Edge** e **3 PWA**. Os 25 novos testes são 5 da política de sessão, 12 do adaptador/configuração/callback e 8 do controlador com PGlite/fake-indexeddb. O teste privado de manifesto continua ignorado pelo motivo histórico; nenhum teste obrigatório de Auth foi declarado como aprovado por essa omissão.

@@ -12,7 +12,9 @@ Requisitos: Node.js >= 22.12 e npm; os testes de navegador usam Microsoft Edge i
 
 Em **Backup**, o botão **Baixar backup** exporta JSON com histórico e outbox. Nesta branch de I3, a recuperação mínima autorizada aceita uma exportação I2 em origem/perfil vazio ou exatamente idêntico, sem unir/substituir bases. O arquivo inteiro é validado antes da gravação; IDs e pendências são preservados. Restauração completa e gerações permanecem em I4. Guardar a cópia fora do navegador e do aparelho.
 
-**I3 em implementação local, ainda incompleto.** Recuperação mínima e fundação SQL com leitura isolada foram testadas localmente. Não há login Google, associação de conta ou envio remoto funcionando. `npm run check` também executa a migração em PostgreSQL embarcado PGlite com identidade simulada; isso não comprova Auth/API hospedados nem concorrência entre conexões. [Execução e limites](docs/EXECUCAO_INCREMENTO_3.md), [inventário](docs/INVENTARIO_BASES.md).
+**I3 em implementação local, ainda incompleto.** O checkpoint `34b6566`, posterior a `6a7c308`, foi recuperado do GitHub e revalidado. Protocolo SQL, motor, sessão/associação e controles de acesso estão implementados e testados localmente com identidades sintéticas. O modo remoto permanece **desabilitado por padrão**, sem configuração real. A expiração preserva trabalho offline após associação; logout explícito bloqueia a visão e preserva pendências. Login Google real, JWT/API hospedados, concorrência entre conexões e dois aparelhos ainda não foram comprovados. [Resumo vigente e limites](docs/STATUS_I3_LOCAL.md), [recuperação](docs/RECUPERACAO_I3.md), [inventário](docs/INVENTARIO_BASES.md).
+
+No futuro modo de integração, a exportação I3 usa um formato separado para preservar recibos, cursor, conflitos e proveniência, sem sessão. O importador mínimo I2 não aceita essa cópia. Exportação não é prova de restauração; I4 permanece fora do escopo.
 
 ## Documentação
 

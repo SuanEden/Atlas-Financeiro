@@ -1,5 +1,7 @@
 # Continuidade do Atlas Financeiro
 
+- Para I3, o resumo vigente após recuperação da VM está em `docs/STATUS_I3_LOCAL.md`. Conferir o HEAD remoto mais recente; `6a7c308`, `34b6566` e números antigos nas seções históricas não são pontos para retroceder. Estado/execução/validação preservam histórico; ler primeiro suas seções atuais.
+
 - Ajustes de interface devem seguir [docs/DIRETRIZES_UI_UX.md](docs/DIRETRIZES_UI_UX.md), preservando a linguagem visual e o escopo de I2.
 
 - A VM de trabalho é descartável. Código e documentação técnica sanitizada só estão preservados depois de commit e push confirmados no GitHub.
