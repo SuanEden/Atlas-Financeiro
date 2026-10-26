@@ -43,9 +43,11 @@ IndexedDB não recebe criptografia própria neste incremento. Isolamento por pro
 
 ## Testes obrigatórios de I3
 
+- Primeiro acesso da conta Google autorizada e previamente cadastrada, com novos cadastros desativados, deve vincular a identidade esperada sem criar uma segunda conta.
+- Outra conta Google deve ser recusada. Um usuário autenticado, mas sem autorização ativa em `app_access`, também deve ser recusado em todas as superfícies financeiras.
 - Usuário autorizado lê/escreve apenas seus dados; usuário autenticado sem autorização não acessa RPC, tabela, exportação ou arquivo. Revogação em `app_access` bloqueia novos acessos mesmo com JWT ainda válido.
 - Tentar contornar a interface pela Data API, trocar schema, chamar GraphQL, usar RPC de outro usuário, alterar `user_id` ou montar FK cruzada: tudo deve ser recusado.
 - Tentar DML direto por superfícies expostas, função genérica, view ou grant herdado; verificar que nenhuma delas reabre as tabelas privadas.
-- Tentar liquidação excessiva, transferência de uma só contrapartida, contrapartida incompatível, receipt forjado, ID idempotente reutilizado com conteúdo diferente e edição/exclusão concorrente.
+- Tentar liquidação excessiva, transferência de uma só contrapartida, contrapartida incompatível, receipt forjado, ID idempotente reutilizado com conteúdo diferente e chamadas/edições/exclusões concorrentes. Escrita direta e operação composta incompleta devem sofrer rollback integral.
 - Tentar escrever auditoria diretamente, executar helper interno, alterar acesso próprio ou introduzir SQL/HTML em descrições. Fazer rollback integral em cada falha.
 - Testar primeiro Google OAuth com usuário pré-criado/cadastro desligado, conta Google diferente, sessão expirada, callback indevido e chamadas anônimas. Não registrar esse conjunto como validado antes da integração real.
