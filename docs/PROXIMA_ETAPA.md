@@ -1,5 +1,9 @@
 # Próxima etapa — continuar I3 local
 
+## Prioridade — conferir rotas com sessão pessoal, 27/10/2026
+
+Recarga após protocolo foi relatada. [Página manual preparada e validada](CONFERENCIA_AUTENTICADA_I3.md), usando cliente existente e chamadas sem mutação financeira. Orientar um clique em Conferir conexão no mesmo perfil do Atlas; obter somente texto dos resultados e conferir depois o inventário remoto por leitura. Essa etapa dispensa coleta de JWT/credenciais, não associa base e não abre escrita. Provas unitárias/UI sintética não equivalem à sessão real; não marcar esta conferência como concluída antes do relato.
+
 ## Prioridade após instalação do protocolo — 27/10/2026
 
 [Protocolo/índice aplicados e verificados](RESULTADO_PROTOCOLO_REMOTO_I3.md), gate false preservado. Não repetir pedido de aprovação/aplicação. Vinte e quatro checks de acesso SQL hospedado, dez testes de concorrência nativa e check completo aprovados. Próxima conferência pessoal: recarregar a tela local e confirmar mensagem de sessão verificada/envio bloqueado após a nova readiness. Não associar, abrir escrita ou publicar; continuar pelos casos autenticados/operacionais pendentes com evidência distinta de simulação.

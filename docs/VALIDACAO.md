@@ -1,5 +1,15 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Recarga relatada e página de conferência autenticada — 27/10/2026
+
+Usuário transcreveu mensagem de login verificado/envio bloqueado após recarga do protocolo; isso não comprova todos os controles ou captura independente de JWT/tráfego. SELECTs preservaram usuário/UUID/autorização únicos, gate false e nove tabelas privadas vazias. Nenhuma mudança remota nesta etapa.
+
+Página manual de desenvolvimento adicionada em app/tests, sem import na entrada de produção, exigindo DEV/loopback. Usa portas/SDK existente, exige sessão válida e gate false, verifica pull vazio do mesmo dono e tenta somente `{protocolVersion:0}`, inválido mesmo em mudança concorrente do gate. Recusa de acesso exigida; sessão/rede falha e sucesso inesperado não passam. Sem store, associação, token exportado, valor privado renderizado ou comando financeiro válido. Dez unitários novos e typecheck aprovados.
+
+Playwright/Edge isolado, Browser plugin ausente, 1280×900/390×844: título/URL/conteúdo, sem overlay/overflow, clique e resultados aprovados com sessão/respostas sintéticas interceptadas. Sem erros inesperados; 403 previsto da negativa classificado separadamente. Capturas inspecionadas fora do Git. Locator inicial afetado por codificação do pipe PowerShell corrigido; classificação do 403 refinada; nenhuma falha de app nesses dois ajustes da QA. Build não contém a página/diretório tests. [Evidência, limites e execução pessoal ainda pendente](CONFERENCIA_AUTENTICADA_I3.md).
+
+Check completo reexecutado com ATLAS_BROWSER_TEST_PORT=5174 e modo disabled: **211 aprovados/1 ignorado, typecheck/build, 24 navegador, 3 PWA**. O ignorado depende do manifesto privado original ausente. Porta pessoal 5173 preservada. Não há nova migração/dependência ou alteração remota; teste assinado do usuário ainda pendente.
+
 ## Protocolo remoto com gate false, índice e regressão completa — 27/10/2026
 
 Autorizado prosseguimento pelo usuário; preflight projeto ativo/Free, fundação única, mesmo UUID/autorização, cadastro fechado/Google exclusivo, API somente api e tabelas vazias. Aplicado protocolo original inalterado (remoto `20261027163903`). Advisor apontou FK sem índice em incorporated_operations; migração local gerada pela CLI, validada nativamente e aplicada como `20261027164301`, sem alterar gate/dados/grants. Histórico e checksums em [RESULTADO_PROTOCOLO_REMOTO_I3.md](RESULTADO_PROTOCOLO_REMOTO_I3.md).

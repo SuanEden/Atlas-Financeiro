@@ -1,5 +1,7 @@
 # I3 — protocolo remoto instalado, escrita bloqueada
 
+**Avanço posterior:** usuário informou a recarga com mensagem de login verificado/envio bloqueado. Preparada [conferência local das três rotas com sua sessão](CONFERENCIA_AUTENTICADA_I3.md), sem token exportado ou comando financeiro válido. A execução pessoal ainda está pendente; não repetir o pedido de recarga nem tratar fixtures sintéticas como resultado real.
+
 Executado em 27/10/2026 após o usuário pedir prosseguimento e todas as ações necessárias, em resposta à proposta específica da segunda migração com escrita bloqueada. Base anterior: `780b7524e40f42df1db612212923dabec7585893`, branch `codex/incremento-3-local-foundation`.
 
 Autorização interpretada como confirmação dessa aplicação, validação e correções técnicas de apoio no mesmo projeto. Limites anteriores preservados: cadastro fechado, zero contratação/serviço novo, sem publicação, associação ou abertura financeira. Não pedir novamente aprovação para migrações aqui já executadas.

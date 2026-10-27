@@ -1,5 +1,9 @@
 # Estado atual
 
+## Recarga após protocolo relatada; conferência autenticada preparada — 27/10/2026
+
+Usuário informou novamente login verificado/envio aguardando liberação após recarga. Relato de tela, sem captura de tráfego ou comprovação de todos os controles. Leitura confirmou mesmo usuário/autorização, gate false e nove tabelas privadas vazias. [Tela local de conferência](CONFERENCIA_AUTENTICADA_I3.md) preparada para testar readiness/pull/recusa de apply usando o SDK e a sessão pessoal, sem extrair tokens ou construir comando válido. Dez unitários e QA Edge desktop/celular com respostas sintéticas aprovados; execução pessoal ainda pendente. Nenhuma nova alteração remota ou abertura financeira.
+
 ## Protocolo remoto instalado e verificado, sem abertura financeira — 27/10/2026
 
 Usuário autorizou prosseguir e executar o necessário em resposta à segunda migração. Protocolo aplicado (versão remota `20261027163903`), seguido de índice de apoio da FK (`20261027164301`); sem nova conta, serviço, pagamento ou publicação. Onze tabelas com RLS, três RPCs invoker, gate false e nove tabelas privadas vazias; mesmo usuário/Google/autorização. **24 verificações SQL hospedadas aprovadas**, com papéis reais/identidades simuladas, negativas HTTP e advisors conferidos. **10 testes nativos e check completo 201/1 ignorado +24 navegador/+3 PWA aprovados**. [Resultado, mapeamento e limites](RESULTADO_PROTOCOLO_REMOTO_I3.md). Não reaplicar migrações ou pedir aprovação repetida; associação/escrita continuam bloqueadas. Próxima conferência pessoal: recarregar a tela local, mantendo login verificado/envio aguardando liberação. I3 incompleto.
