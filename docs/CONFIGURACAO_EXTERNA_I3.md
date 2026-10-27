@@ -2,6 +2,12 @@
 
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
+## Inventário de usuários inconclusivo na captura — 27/10/2026
+
+Captura enviada pelo usuário mostra o projeto correto em Authentication → Users, campo de busca aparentemente vazio, nenhuma linha e mensagem `No users in your project`. Entretanto, o rodapé mostra `Total: 10 users (estimated)`. Essa estimativa não comprova dez usuários e a mensagem central, diante da divergência, não foi tratada como comprovação definitiva de lista vazia. Causa não determinada; não atribuir a cache, filtro, erro do painel ou registros reais sem evidência adicional.
+
+**Próxima etapa guiada:** clicar no botão de atualizar a lista, ao lado de Add user, e conferir novamente a mensagem central e o total estimado. Se a divergência persistir, investigar por leitura antes de orientar criação. Nenhum usuário foi criado/convidado/excluído; nenhum SQL remoto ou acesso administrativo por segredo foi executado. Não copiar a captura nem dados da conta administrativa para o Git; este registro contém somente a observação técnica sanitizada.
+
 ## Vinculação manual confirmada pelo usuário — 27/10/2026
 
 À pergunta explícita se `Allow manual linking` estava desligado, o usuário respondeu afirmativamente. Registrar como **confirmação do usuário no painel**, sem captura ou verificação administrativa independente. A última consulta pública, preservada abaixo, confirmou cadastro fechado e Email, entrada anônima, telefone e Google desabilitados. Nenhuma nova consulta ou alteração remota foi executada nesta confirmação.

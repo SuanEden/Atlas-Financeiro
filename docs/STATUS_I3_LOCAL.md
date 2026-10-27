@@ -1,5 +1,7 @@
 # I3 local — continuidade após a recuperação
 
+**Inventário de usuários em andamento:** captura do painel mostra lista sem linhas e mensagem de nenhum usuário, mas rodapé com total estimado de 10. Existência/ausência de usuários ainda inconclusiva; atualizar a lista e conferir antes de orientar criação. [Evidência sanitizada e próxima ação](CONFIGURACAO_EXTERNA_I3.md).
+
 **Estado externo mais recente em 27/10/2026:** última leitura pública informa cadastro fechado e todos os métodos retornados em `external` desabilitados, incluindo Email, Google, telefone e entrada anônima. O usuário confirmou individualmente vinculação manual desligada no painel; sem verificação administrativa independente. Próxima etapa: conferir somente se a lista Authentication → Users está vazia ou já contém usuários, sem dados pessoais no chat e sem criação/alteração. O agente não alterou configuração remota. [Evidência e roteiro](CONFIGURACAO_EXTERNA_I3.md).
 
 **Retomada de 27/10/2026:** recuperado `300098a`, sem commits posteriores na branch no momento da recuperação. Projeto existente e organização Free reconfirmados por leitura. Diagnóstico inicial e testes locais preservados no checkpoint `69e57ce`; código preservado e integração não habilitada.

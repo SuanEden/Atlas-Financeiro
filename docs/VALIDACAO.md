@@ -1,5 +1,9 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Inventário visual de usuários — 27/10/2026
+
+Captura do usuário, no projeto correto: nenhuma linha na lista, busca aparentemente vazia e mensagem `No users in your project`, com `Total: 10 users (estimated)` no rodapé. Inventário inconclusivo; estimativa não foi tratada como contagem real nem ausência de linhas como prova definitiva de ausência de usuários. Orientar atualização da lista e nova conferência. [Registro](CONFIGURACAO_EXTERNA_I3.md). Sem nova consulta administrativa, SQL remoto ou alteração de usuários pelo agente. Somente documentação sanitizada; captura/dados da conta não versionados, código inalterado e testes locais não repetidos.
+
 ## Confirmação individual de vinculação manual — 27/10/2026
 
 Usuário confirmou afirmativamente que `Allow manual linking` está desligado no painel. Evidência classificada como relato específico do usuário, sem captura ou consulta administrativa independente. Nenhuma nova leitura/alteração remota ou teste de cadastro/login nesta etapa. Próxima ação guiada é inventário visual da existência de usuários, sem dados pessoais no chat ou criação/alteração. [Registro](CONFIGURACAO_EXTERNA_I3.md). Código inalterado; testes locais não repetidos para este checkpoint documental.
