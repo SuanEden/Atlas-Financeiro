@@ -1,5 +1,9 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Captura inicial do Google Cloud — 27/10/2026
+
+Usuário enviou captura da página inicial do console Google Cloud, com projeto preexistente não identificado como Atlas e oferta de trial/crédito. Não comprova configuração OAuth, conta Google de login escolhida, situação de faturamento ou existência de projeto Google adequado ao Atlas. Próxima ação é inventário visual de projetos, somente leitura. [Registro e limites](CONFIGURACAO_EXTERNA_I3.md). Nenhuma criação/configuração Google executada; captura, nomes/IDs externos e dados da conta não versionados. Código inalterado; testes não repetidos para este checkpoint documental.
+
 ## Pré-cadastro administrativo real — 27/10/2026
 
 Após autorização específica e entrada privada local da credencial, helper retornou `USUARIO_CRIADO_E_CONFERIDO`: precondições de Auth/inventário, uma chamada createUser sem senha/convite, listagem e getUserById. Recibo comparado ao alvo privado: projeto/conta corretos, UUID válido e email confirmado. Captura do usuário mostra a mensagem de sucesso, sem valor de credencial. Não houve retry de POST nem segunda criação; entradas inválidas anteriores pararam antes de rede/marcador.

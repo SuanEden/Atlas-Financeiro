@@ -2,6 +2,12 @@
 
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
+## Inventário inicial do Google Cloud — 27/10/2026
+
+Após o pré-cadastro, o usuário abriu o console Google Cloud e enviou captura da tela inicial. Ela mostra um projeto preexistente sem vínculo confirmado com o Atlas, além de oferta de trial/crédito. Nome/IDs desse projeto e dados da conta não são necessários neste registro público. Não inferir identidade de login autorizada pelo avatar, conta administrativa ou projeto selecionado. Oferta visível não comprova situação de faturamento nem autorização para ativação.
+
+**Próxima etapa somente de leitura:** dispensar a oferta sem iniciar trial, abrir o seletor de projetos no topo e conferir a lista antes de decidir se existe projeto adequado para o Atlas. Não modificar, reutilizar ou excluir projeto preexistente por suposição. Nenhum projeto Google, cliente OAuth, escopo, faturamento ou configuração de provedor foi criado/alterado pelo agente. Supabase existente e pré-cadastro concluído permanecem preservados. Configuração Google efetiva continua dependente de autorização específica após identificação do alvo e preparação do procedimento.
+
 ## Pré-cadastro único criado e conferido — 27/10/2026
 
 A execução especificamente autorizada concluiu com `USUARIO_CRIADO_E_CONFERIDO`. O SDK listou base vazia antes de criar, enviou somente email escolhido e `email_confirm: true`, conferiu um único usuário e releu-o pelo mesmo UUID. Comparações locais do recibo com o alvo privado confirmaram projeto e conta corretos, UUID válido e email confirmado, sem imprimir valores pessoais. Uma captura posterior do usuário confirmou a mensagem sanitizada de sucesso. Chave recebida somente pela entrada oculta local, sem valor no chat/arquivos/Git.

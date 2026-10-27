@@ -1,5 +1,7 @@
 # I3 local — continuidade após a recuperação
 
+**Google Cloud em inventário somente de leitura:** captura mostra um projeto preexistente ainda sem vínculo confirmado com o Atlas e oferta de trial. Próxima orientação: dispensar oferta e abrir lista no seletor de projetos; sem criar/reutilizar/alterar recursos ou faturamento. [Registro sanitizado](CONFIGURACAO_EXTERNA_I3.md). Pré-cadastro Supabase concluído abaixo permanece preservado.
+
 **Pré-cadastro real concluído em 27/10/2026:** um único usuário da conta escolhida criado e conferido, com email confirmado, sem senha enviada no pedido ou convite. Banco confirmou 1 usuário/confirmado, 0 anônimos/logins/identidades Google; serviço gera registro interno de senha ao omitir o campo, conforme fonte e limite documentados. Cadastro público e métodos de entrada continuam desligados. Projeto ativo/Free; **não repetir a criação**. Helper corrigido com 11 testes locais aprovados. [Resultado, privacidade e retomada](CONFIGURACAO_EXTERNA_I3.md). Google, autorização financeira por UUID, schema/API e demais provas continuam pendentes.
 
 **Histórico da preparação:** usuário pediu autonomia e somente resultado; o alvo foi preenchido privadamente e a chave inserida em uma janela local com entrada oculta. Entradas inválidas anteriores pararam antes de qualquer requisição/criação. A execução administrativa posterior foi concluída e conferida conforme o resultado acima. [Procedimento e limites](PRE_CADASTRO_ADMIN_I3.md).
