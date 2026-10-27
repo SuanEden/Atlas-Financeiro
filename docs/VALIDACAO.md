@@ -1,5 +1,11 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Prévia após autorização somente Google — 27/10/2026
+
+Usuário respondeu `vamos` à ativação específica de Google já proposta. `get_project`/organização reconfirmaram projeto existente ativo/Free. GET Auth: 200, `disable_signup: true`, Google false e nenhum método retornado habilitado. SQL confirmou um usuário, autorização única ativa para o UUID privado exato, zero logins/identidades Google, protocolo posterior ausente e sete tabelas privadas vazias. Uma consulta SELECT inicial falhou por sintaxe; corrigida e repetida somente a leitura, sem escrita remota.
+
+[Roteiro autorizado](ROTEIRO_GOOGLE_OAUTH_I3.md) pronto; salvamento ainda depende do usuário no painel, porque o conector não oferece configuração do provedor. Nenhuma credencial OAuth obtida, ativação/login, alteração de banco, recurso pago ou publicação pelo agente. Somente documentação sanitizada alterada; suíte local anterior não repetida. Não confundir autorização concedida com provedor já habilitado.
+
 ## Data API somente api e negativas HTTP — 27/10/2026
 
 Após relato de salvamento pelo usuário, verificações HTTP com chave publicável existente: somente `api` na lista efetiva, por 406/PGRST106 em perfil sintético inexistente. Perfis `atlas_private`, `atlas_security`, `public` e `graphql_public` igualmente recusados com 406/PGRST106. POST `{}` a `/rest/v1/rpc/i3_readiness`, Content-Profile `api`, sem sessão: **401/42501, permission denied for schema api**. GET Auth: 200, cadastro fechado, nenhum método habilitado.

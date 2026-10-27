@@ -1,5 +1,7 @@
 # I3 — roteiro completo dos campos Google OAuth
 
+**Autorização atual — 27/10/2026:** usuário respondeu `vamos` à proposta específica de configurar/habilitar somente o Google com o cliente existente, mantendo cadastro público e escrita financeira desligados. Autorização vigente; não pedir novamente. A leitura imediatamente posterior ainda mostrou Google e todos os métodos retornados desligados. Projeto ativo/Free, conta/autorização única exata preservada, zero logins/identidades Google e sete tabelas privadas vazias. **Salvamento no painel ainda não realizado ou confirmado.** Conector sem comando de configuração do provedor: usuário preencherá os campos e salvará diretamente no painel oficial, sem segredo no chat. Próxima ação do agente após conclusão: leituras de verificação, sem repetir ativação ou criar usuário.
+
 **Estado atual após Data API em 27/10/2026:** fundação inicial, autorização única e exposição somente `api` já foram concluídas e verificadas. [Evidência](VERIFICACAO_DATA_API_I3.md). O cliente Google existente deve ser reutilizado. Próxima proposta é habilitar apenas o provedor Google no Supabase com os campos da seção 5, após autorização específica; ainda não habilitado. Preservar cadastro fechado, outros métodos, vinculação manual e escrita financeira desligados. O aplicativo remoto segue disabled; preparar a ativação do provedor não comprova login nem autoriza configurar a integração real local/publicação por consequência.
 
 Preparado em 27/10/2026 a pedido do usuário, que solicitou todos os campos juntos. **Roteiro não equivale a configuração executada.** Na preparação inicial, a captura mostrava Auth Platform ainda não configurada; o marco posterior está descrito a seguir. Projeto Google sem conta de faturamento conforme relato, Supabase existente e usuário pré-cadastrado preservados. [Estado externo](CONFIGURACAO_EXTERNA_I3.md).
@@ -8,13 +10,13 @@ Preparado em 27/10/2026 a pedido do usuário, que solicitou todos os campos junt
 
 Este documento contém placeholders. Obter a URL real pelo conector, identificando o projeto Supabase existente pelo nome, antes de preencher os valores operacionais privadamente. Não versionar email, referências operacionais, Client ID ou Client Secret reais. O agente não aplicou configurações remotas nesta preparação.
 
-## Próxima alteração proposta — somente Google no Supabase
+## Alteração autorizada e pendente de salvamento — somente Google no Supabase
 
-Preparada após a conferência da Data API; **não autorizada nem executada ainda**. Usar o projeto Supabase existente e o cliente Web Google já criado. O conector atual não oferece configuração do provedor; preencher diretamente no painel oficial, sem enviar valores ao chat.
+Preparada após a conferência da Data API e agora especificamente autorizada. **Ainda sem execução/salvamento comprovados.** Usar o projeto Supabase existente e o cliente Web Google já criado. O conector atual não oferece configuração do provedor; preencher diretamente no painel oficial, sem enviar valores ao chat.
 
 | Campo no provedor Google | Valor proposto após aprovação |
 |---|---|
-| Enable Sign in with Google | Ligado, somente quando o usuário aprovar esta etapa. |
+| Enable Sign in with Google | Ligado no formulário desta etapa já autorizada. |
 | Client IDs | ID do cliente Web existente, copiado privadamente do Google. |
 | Client Secret | Segredo do mesmo cliente, inserido diretamente no painel Supabase. |
 | Skip nonce checks, se aparecer | Desligado. |

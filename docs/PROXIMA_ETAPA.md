@@ -1,5 +1,9 @@
 # Próxima etapa — continuar I3 local
 
+## Prioridade após autorização de Google — 27/10/2026
+
+Google especificamente autorizado pelo usuário; não pedir novamente. Fornecer o [roteiro completo de campos](ROTEIRO_GOOGLE_OAUTH_I3.md) para salvamento privado no painel, pois o conector não configura o provedor. Última prévia: projeto ativo/Free, cadastro fechado, todos os métodos desligados, autorização única exata e tabelas privadas vazias. Depois do relato de conclusão, verificar por leitura a ativação exclusiva de Google e os bloqueios preservados. Não presumir login ou autorização de `.env` real, protocolo posterior, escrita financeira ou publicação.
+
 ## Prioridade após verificação da Data API — 27/10/2026
 
 Usuário concluiu Exposed schemas; somente `api` exposto e bloqueios HTTP confirmados. [Resultado](VERIFICACAO_DATA_API_I3.md). Próxima proposta preparada: configurar/habilitar somente o provedor Google no projeto Supabase existente, com o cliente Web já criado e segredos inseridos privadamente no painel. Requer autorização específica, pois Google continua explicitamente desligado. Usar [roteiro Google](ROTEIRO_GOOGLE_OAUTH_I3.md), sem recriar recursos, sem abrir cadastro, métodos extras ou escrita financeira. `.env` real/primeiro login, protocolo posterior, publicação e piloto não foram executados. Não repetir configuração já comprovada.

@@ -1,5 +1,9 @@
 # Estado atual
 
+## Ativação somente Google autorizada, salvamento pendente — 27/10/2026
+
+Usuário autorizou a proposta específica com `vamos`; não pedir novamente. Prévia por leituras: projeto ativo/Free, cadastro fechado, Google e todos os métodos retornados ainda desligados, autorização única exata, zero login/identidade Google e sete tabelas privadas vazias. [Roteiro completo e limites](ROTEIRO_GOOGLE_OAUTH_I3.md). Conector não configura o provedor: usuário deve preencher credenciais diretamente no painel e salvar; nenhuma ativação ou login comprovados ainda. Cadastro, métodos extras e escrita financeira permanecem desligados; aplicativo remoto disabled, sem `.env` real/publicação/protocolo posterior.
+
 ## Data API restrita conferida — 27/10/2026
 
 Após salvamento relatado pelo usuário, leituras HTTP confirmaram somente `api` exposto. Perfis privados, `public` e `graphql_public` recusados com 406/PGRST106; POST anônimo de readiness negado com 401/42501. Projeto ativo/Free, autorização única exata e oito tabelas com RLS preservados; sete tabelas privadas vazias. Cadastro e todos os métodos retornados continuam desligados; readiness por SQL com identidade simulada mantém escrita financeira falsa. [Evidência e limites](VERIFICACAO_DATA_API_I3.md). Próxima proposta preparada: habilitar somente Google com cliente existente, mediante autorização específica; Google e aplicativo remoto continuam desligados. Sem nova migração, publicação ou custo habilitado pelo agente.

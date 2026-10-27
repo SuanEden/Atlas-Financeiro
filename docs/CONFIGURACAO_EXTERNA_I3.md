@@ -1,5 +1,9 @@
 # I3 — início da configuração externa
 
+## Somente Google autorizado; preenchimento privado no painel — 27/10/2026
+
+Resposta `vamos` autoriza a proposta específica anterior: configurar/habilitar somente Google com cliente Web existente. Não repetir pedido de aprovação. Leitura de Auth após autorização ainda informa cadastro fechado e todos os métodos retornados desligados. Projeto ativo/Free; UUID/autorização exatos preservados, um usuário, nenhum login/identidade Google e sete tabelas privadas vazias. [Roteiro completo](ROTEIRO_GOOGLE_OAUTH_I3.md), com Client ID/Secret inseridos somente no painel oficial pelo usuário; ferramenta conectada não configura provedor. Nenhum segredo obtido ou ativação/salvamento/login comprovados pelo agente. Cadastro, Email, anônimo, vinculação manual, métodos extras e escrita financeira seguem com orientação de permanecer desligados. Sem novo serviço, cobrança, SQL de alteração, `.env` real ou publicação.
+
 ## Exposição somente api salva pelo usuário e verificada — 27/10/2026
 
 Usuário pediu todas as instruções da etapa e informou conclusão após roteiro de Exposed schemas. Consultas independentes confirmaram projeto ativo/Free, somente `api` exposto, perfis privados e anteriores recusados com 406/PGRST106 e readiness anônimo negado com 401/42501. Cadastro público e métodos retornados permanecem desligados. A mesma autorização privada continua ativa, RLS ligado, sem grants de escrita ou dados financeiros; protocolo posterior ausente. [Resultados e limites](VERIFICACAO_DATA_API_I3.md). Agente somente verificou; não alterou configuração remota nesta etapa. Próxima proposta preparada: habilitar Google com cliente Web existente e campos privados no painel, aguardando autorização específica, sem aplicação remota ou login pelo agente.
