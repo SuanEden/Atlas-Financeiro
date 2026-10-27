@@ -1,5 +1,11 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Roteiro completo Google OAuth — 27/10/2026
+
+Captura mostrou Auth Platform ainda não configurada. A pedido do usuário, preparado [roteiro de todos os campos](ROTEIRO_GOOGLE_OAUTH_I3.md), sem pedir uma captura por campo. Fontes primárias atuais Google/Supabase consultadas para assistente, público, escopos, clientes, loopback, branding e armazenamento do segredo exibido uma única vez. `get_project_url` reconfirmou URL operacional; porta/origem e `/auth/callback` conferidos no código, sem alterar configuração. Lista pública de sufixos confirmou `supabase.co`; domínio do projeto tratado conforme regra de domínio privado, sem alegar propriedade/verificação.
+
+Roteiro sanitizado com placeholders; sem email/UUID/Client ID/Secret reais. Nenhuma configuração Google/Supabase ou `.env` real aplicada, nenhum login OAuth testado. Gate de autorização do UUID/backend mantido antes da ativação do provedor. Código inalterado; testes não repetidos para a preparação documental.
+
 ## Vínculo de faturamento Google conforme relato — 27/10/2026
 
 Usuário informou texto explícito após consulta do projeto Google: `Este projeto não tem uma conta de faturamento`. Evidência de relato específico do painel, sem API independente; vínculo ausente naquele momento conforme relato. Não é inspeção de cartões/contas de pagamento ou garantia de gratuidade de outros serviços. [Registro e próxima preparação de Auth](CONFIGURACAO_EXTERNA_I3.md). Nenhuma configuração OAuth, pagamento/trial ou cliente Google executados pelo agente. Código inalterado; testes não repetidos para o checkpoint documental.

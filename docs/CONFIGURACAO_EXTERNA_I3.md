@@ -2,6 +2,12 @@
 
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
+## Roteiro completo de campos solicitado — 27/10/2026
+
+Captura posterior mostrou Google Auth Platform ainda não configurada, com botão Vamos começar. O usuário passou a pedir todas as informações de preenchimento juntas; essa preferência substitui a orientação anterior de solicitar uma captura por campo/etapa. Foi preparado o [roteiro completo Google OAuth](ROTEIRO_GOOGLE_OAUTH_I3.md), com dados de consentimento, público de teste, escopos mínimos, cliente Web, dois retornos distintos e referência futura Supabase. A URL do projeto Supabase foi reconfirmada por leitura e a origem/callback local conferidos no código. Valores operacionais reais foram fornecidos somente na conversa; o roteiro público usa placeholders.
+
+Nenhuma configuração de consentimento, cliente Google, provedor Supabase, URL remota ou `.env` real foi aplicada pelo agente. O roteiro é proposto, não evidência de execução. Concluir a parte Google conforme revisão/concordância do usuário; manter Google Supabase e modo remoto desabilitados até preparar/revisar autorização ativa do UUID e backend, com autorizações específicas de alteração remota. Não presumir que autenticação já concede acesso financeiro ou que a lista de usuários de teste é a barreira de acesso.
+
 ## Projeto Google sem conta de faturamento, conforme painel relatado — 27/10/2026
 
 Após abrir a consulta de faturamento do projeto Google criado, o usuário informou a mensagem explícita: `Este projeto não tem uma conta de faturamento`. Evidência classificada como relato específico do texto do painel, sem consulta independente à API Google. Isso resolve a pendência anterior de vínculo para esse projeto naquele momento; não inventaria cartões/contas de pagamento do usuário nem garante gratuidade permanente de outros recursos. Não vincular faturamento, ativar trial ou recursos pagos.
