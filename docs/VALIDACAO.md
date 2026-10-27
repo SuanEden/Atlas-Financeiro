@@ -1,5 +1,15 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Gateway local com assinatura real de teste — 27/10/2026
+
+PostgREST oficial 16.5 Windows obtido com digest SHA-256 fixado e verificado, em cache ignorado. PostgreSQL 17.10 temporário loopback, Auth/users sintéticos e segredo JWT HS256 aleatório somente em memória/ambiente do subprocesso. Nenhuma conexão ou credencial do projeto hospedado. Bootstrap compartilhado confere data_directory/versão, carrega migrações e encerra apenas seus próprios processos.
+
+`npm run test:all`: **22 aprovados** (10 nativos +12 iniciais HTTP). Após adicionar sub ausente/papel privilegiado, `npm run test:gateway`: **13 aprovados**. Não afirmar que houve uma única execução de 23. [Casos e limites](GATEWAY_LOCAL_I3.md): tokens inválidos/expirados/audiência/nbf, anônimo/sem autorização/revogado, schemas e SQL genérico fechados, commit/replay/divergência, isolamento por dono, concorrência HTTP, meia transferência com rollback e revogação em espera real. Node --check aprovado; processos próprios encerrados, servidor pessoal preservado e binários/dados fora do Git.
+
+Sem mudança de app/dependências/lockfile ou migrações; suíte app 211/1 ignorado, 24 navegador/3 PWA anterior não repetida. Não equiparar HS256/PostgREST local ao Google/GoTrue, JWKS ou distribuição hospedada; escrita financeira remota e dois aparelhos não estão aprovados. Nenhuma abertura financeira, associação, serviço pago ou publicação.
+
+Após staging, teste de privacidade **2 aprovados/1 ignorado**, com manifesto privado antigo ainda ausente. Revisão de credenciais/contas/binários aprovada. SELECT final hospedado: um usuário/Google/autorização ativa, gate false e nove tabelas privadas sem registros; nenhum teste local alterou esse estado.
+
 ## Conferência pessoal do protocolo concluída — 27/10/2026
 
 Usuário enviou os resultados efetivos da página: sessão Google verificada, envio financeiro bloqueado, consulta concluída/base vazia, tentativa inválida recusada e conclusão sem associação. Isso confirma por relato a execução com a sessão pessoal das três rotas; não captura independente de tráfego/token. SELECT posterior: **1 usuário original, 1 identidade Google, autorização única exata, gate false e zero registros em todas as nove tabelas privadas**. [Resultado e limites](CONFERENCIA_AUTENTICADA_I3.md). Sem alterações remotas, código/dependências ou suíte repetida para esse checkpoint documental. Escrita bem-sucedida, demais casos de isolamento/sessão e dois aparelhos não estão comprovados.

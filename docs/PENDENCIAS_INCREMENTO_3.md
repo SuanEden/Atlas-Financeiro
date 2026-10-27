@@ -1,5 +1,7 @@
 # Incremento 3 — decisões e ações do usuário
 
+**Avanço técnico — 27/10/2026:** concluídos 13 cenários locais de gateway/JWT assinado, além dos 10 de concorrência nativa, sem usar conta/dados remotos. [Limites](GATEWAY_LOCAL_I3.md). A conferência pessoal anterior já passou; não pedir repetição ou novos tokens. Próximas pendências são proteção operacional/versões e provas físicas, com gate remoto false e sem publicação/piloto. Testes locais não autorizam abrir a escrita remota ou atribuir dados sintéticos ao usuário pessoal.
+
 **Conferência pessoal concluída — 27/10/2026:** usuário executou a página e informou sessão/readiness, pull vazio e recusa da tentativa inválida; inventário posterior intacto. [Registro](CONFERENCIA_AUTENTICADA_I3.md). Não solicitar novamente esse clique, credenciais ou JWT. Continuar provas técnicas locais de gateway/isolamento, mantendo associação/escrita/publicação bloqueadas e separando os limites reais dos testes sintéticos.
 
 **Próxima ação pessoal — 27/10/2026:** recarga pós-migração relatada; abrir a [conferência autenticada local](CONFERENCIA_AUTENTICADA_I3.md) no mesmo perfil e clicar Conferir conexão. Ela testa sessão/readiness, pull vazio e recusa de payload inválido, sem token no chat ou escrita/associação. Código/QA sintéticos preparados sob autorização de prosseguimento; execução com sessão pessoal ainda pendente. Não pedir aprovação repetida da instalação ou liberação financeira para realizar essa conferência.

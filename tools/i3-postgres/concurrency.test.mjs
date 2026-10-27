@@ -1,33 +1,15 @@
 import { before, after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { mkdtemp, readFile, readdir } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { createServer } from 'node:net';
+import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
-import { Client } from 'pg';
-import { initdb, pg_ctl } from '@embedded-postgres/windows-x64';
+import { startSyntheticCluster } from './postgres-cluster.mjs';
 
 // Deliberately no DATABASE_URL/env override: this suite can only reach its own
 // synthetic loopback cluster. No hosted Auth, signed JWT, real account or OS service.
-let root, dataDir, port, admin, started = false;
-const connections = new Set();
-// PostgreSQL inherits native handles on Windows. Do not wait for a pipe held by
-// its background process after pg_ctl exits; diagnostics go to postgres.log.
-const run = (binary, args) => execFileSync(binary, args, { stdio: 'ignore', windowsHide: true, timeout: 30_000 });
-async function connect(owner) {
-  const client = new Client({ host: '127.0.0.1', port, user: 'postgres', database: 'postgres', ssl: false,
-    connectionTimeoutMillis: 3000, statement_timeout: 10_000, application_name: 'atlas-i3-synthetic-concurrency' });
-  await client.connect(); connections.add(client);
-  if (owner) {
-    await client.query('set role authenticated');
-    await client.query("select set_config('request.jwt.claim.sub',$1,false)", [owner]);
-  }
-  return client;
-}
-async function close(client) { connections.delete(client); await client.end(); }
+let cluster, admin;
+const connect = owner => cluster.connect(owner);
+const close = client => cluster.close(client);
 async function pair(owner, work) {
   const a = await connect(owner), b = await connect(owner);
   try { return await work(a, b); }
@@ -87,39 +69,14 @@ async function counts(id) {
 }
 
 before(async () => {
-  assert.equal(process.platform, 'win32');
-  root = await mkdtemp(join(tmpdir(), 'atlas-i3-pg-'));
-  dataDir = join(root, 'data');
-  const socket = createServer();
-  await new Promise((resolve, reject) => socket.once('error', reject).listen(0, '127.0.0.1', resolve));
-  port = socket.address().port;
-  await new Promise(resolve => socket.close(resolve));
-  // Trust authentication is confined to this short-lived synthetic loopback cluster.
-  run(initdb, ['-D', dataDir, '--username=postgres', '--auth=trust', '--encoding=UTF8', '--locale=C']);
-  started = true;
-  run(pg_ctl, ['start', '-D', dataDir, '-l', join(root, 'postgres.log'), '-w', '-t', '20', '-o', `-h 127.0.0.1 -p ${port} -c max_connections=15`]);
-  admin = await connect();
-  const version = (await admin.query("select current_setting('server_version_num')::int as version")).rows[0].version;
-  assert.ok(version >= 170000 && version < 180000);
-  await admin.query(`create role anon nologin; create role authenticated nologin;
-    create schema auth; create table auth.users(id uuid primary key);
-    create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
-    grant usage on schema auth to authenticated; grant execute on function auth.uid() to authenticated;`);
-  const migrations = new URL('../../supabase/migrations/', import.meta.url);
-  for (const name of (await readdir(migrations)).filter(name => name.endsWith('.sql')).sort()) {
-    await admin.query(await readFile(new URL(name, migrations), 'utf8'));
-  }
+  cluster = await startSyntheticCluster();
+  admin = cluster.admin;
   assert.equal((await admin.query('select writes_enabled from atlas_security.integration_control')).rows[0].writes_enabled, false);
   // The only write switch change is in this disposable local synthetic cluster.
   await admin.query('update atlas_security.integration_control set writes_enabled=true');
 }, { timeout: 60_000 });
 
-after(async () => {
-  for (const client of connections) { try { await client.end(); } catch { /* process stop remains mandatory */ } }
-  connections.clear();
-  if (started) run(pg_ctl, ['stop', '-D', dataDir, '-m', 'immediate', '-w', '-t', '20']);
-  // Keep temporary diagnostics/data outside Git; never recursively delete computed paths.
-});
+after(async () => { await cluster?.stop(); });
 
 test('database switch remains administrative and disabled rejects all financial work', async () => {
   const id = await owner();

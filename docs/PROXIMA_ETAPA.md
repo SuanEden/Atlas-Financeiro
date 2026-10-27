@@ -1,5 +1,9 @@
 # Próxima etapa — continuar I3 local
 
+## Prioridade após gateway assinado local — 27/10/2026
+
+[Dez testes nativos e treze de gateway HTTP local](GATEWAY_LOCAL_I3.md) aprovados; conferência pessoal real já concluída. Não repetir os testes de entrada/SDK que passaram. Prosseguir na proteção operacional do recorte, versões/arquivamento e critérios físicos pendentes, preservando gate false e separação de fixtures. Nenhum teste local autoriza associação pessoal, abertura de escrita, contratação ou publicação. Os processos de teste foram encerrados; não encerrar o PostgreSQL preexistente ou o servidor pessoal.
+
 ## Prioridade após conferência pessoal — 27/10/2026
 
 [Conferência real das três rotas concluída](CONFERENCIA_AUTENTICADA_I3.md), com inventário remoto intacto, gate false e nenhuma associação. Não repetir o passo pessoal ou coletar tokens. Avançar nos testes locais de gateway com assinatura/expiração/isolamento e operações sintéticas, sem dados ou configuração no projeto remoto. Manter distintos Auth hospedado, gateway local e dois aparelhos; não abrir escrita/publicar nem declarar I3 concluído.

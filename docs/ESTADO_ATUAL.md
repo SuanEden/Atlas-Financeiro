@@ -1,5 +1,9 @@
 # Estado atual
 
+## Gateway local assinado e isolamento HTTP validados — 27/10/2026
+
+Conferência real pessoal já registrada e inventário remoto intacto. Acrescentado PostgREST oficial 16.5, com digest fixado, a bancos nativos temporários locais. **10 testes de concorrência +13 de gateway passaram**, em execuções documentadas; assinatura/expiração/audiência, autorização/revogação, perfis privados, escrita/replay/rollback e isolamento exercitados com dados sintéticos locais. [Resultado e limites](GATEWAY_LOCAL_I3.md). Não houve dado, credencial ou alteração no projeto hospedado, que permanece com gate false. Processos próprios encerrados, servidor pessoal preservado. Recuperação operacional, versões/arquivamento e ensaios físicos seguem pendentes; não associar dados pessoais/publicar ou declarar I3 concluído.
+
 ## Conferência das três rotas com sessão pessoal concluída — 27/10/2026
 
 Usuário informou os quatro resultados esperados e conclusão sem associação: Google verificado, envio bloqueado, pull vazio e apply inválida recusada. SELECT posterior preserva usuário/UUID/Google/autorização únicos, gate false e nove tabelas privadas vazias. [Resultado e limites](CONFERENCIA_AUTENTICADA_I3.md). Não repetir o clique ou coletar tokens. Escrita bem-sucedida, associação, casos restantes de sessão/isolamento, proteção operacional e dois aparelhos não estão aprovados; I3 incompleto. Continuar as provas locais independentes sob a autorização vigente, sem abrir escrita remota/publicar.

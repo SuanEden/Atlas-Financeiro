@@ -21,3 +21,18 @@ Cobertura: gate administrativo, bootstrap simultâneo idempotente, appends conco
 PostgreSQL nativo com auth.uid simulado não é Supabase/Auth/PostgREST completo, nem teste em dois aparelhos. O servidor hospedado usa 17.11; esta prova na mesma versão principal não comprova igualdade de distribuição, extensões ou patch. Não autoriza aplicação remota nem abertura financeira.
 
 Fontes primárias: [embedded-postgres](https://github.com/leinelissen/embedded-postgres), [locks PostgreSQL](https://www.postgresql.org/docs/17/explicit-locking.html), [pg_blocking_pids](https://www.postgresql.org/docs/17/functions-info.html).
+
+## Gateway HTTP e JWT local
+
+```powershell
+npm run setup:gateway
+npm run test:gateway
+# Ou executar os dois arquivos de teste, sequencialmente:
+npm run test:all
+```
+
+O setup baixa a release oficial Windows PostgREST 16.5, verifica checksum fixado e guarda zip/binário somente em node_modules/.cache. Sem novas dependências npm, instalação global ou serviço. O teste chama o setup automaticamente se necessário e valida o cache antes de executar. Requer rede apenas para obter esse artefato público na primeira execução.
+
+O gateway usa o cluster sintético compartilhado, papel authenticator mínimo e segredo JWT aleatório efêmero; escuta somente loopback. A chave e os tokens não são argumentos de shell, não aparecem nos resultados e não pertencem ao Supabase real. Variáveis PG/credenciais externas não são herdadas pelo gateway. Dados locais podem ser escritos durante os ensaios, sem associação a conta pessoal ou destino remoto.
+
+Treze cenários cobrem assinatura/expiração/audiência, falta de sub, papel privilegiado, autorização/revogação, perfis privados, idempotência, isolamento, concorrência e rollback HTTP. [Resultados e limites](../../docs/GATEWAY_LOCAL_I3.md). Os processos próprios são encerrados; não usar encerramento genérico de postgres.exe/postgrest.exe para limpar testes.
