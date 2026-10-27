@@ -1,5 +1,11 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Helper administrativo local de pré-cadastro — 27/10/2026
+
+Identidade escolhida; email real ausente dos arquivos. `node --test scripts/i3-user-admin.test.mjs`: **9 aprovados**, com IO administrativo simulado e CLI real apenas rejeitando credencial sintética inválida antes de acessar a rede. Verificados: prévia sem escrita; payload exato sem senha/convite; bloqueios por inventário não vazio, configurações abertas/incompletas, entrada inválida e falha inicial/marcador; uma única tentativa sem retry após resultado incerto; verificação de identidade/confirmação e falha do recibo privado; saída sem valores privados.
+
+`node --check` aprovado. Parser PowerShell sem erros sintáticos; wrapper não executado interativamente. SDK fixado local carregado sem inicializar cliente. `git check-ignore` confirmou exclusão de `.private/i3-admin/tentativa.json` e `usuario.json`, sem criar esses arquivos. [Procedimento e limites](PRE_CADASTRO_ADMIN_I3.md). Nenhuma credencial administrativa ou criação remota; testes não comprovam SDK/gateway administrativo hospedado. Arquivos novos ficam fora de `app/`; dependências, aplicativo e migrações não mudaram. Suíte financeira/navegador não repetida nesta preparação isolada.
+
 ## Inspeção de criação sem senha — 27/10/2026
 
 Captura do formulário: Email, Password e Auto confirm user marcado. Código público oficial de CreateUserModal exige senha não vazia; documentação de `auth.admin.createUser` inclui exemplo com email confirmado e sem senha. [Fontes e decisão](CONFIGURACAO_EXTERNA_I3.md). Isso valida a existência documental de alternativa administrativa, sem comprovar execução no projeto hospedado ou primeiro vínculo Google. Não houve submissão pelo agente, nova contagem, credencial administrativa ou criação de usuário. Escolha privada da identidade ainda pendente. Código local inalterado; suíte não repetida para este checkpoint documental.

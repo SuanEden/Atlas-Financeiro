@@ -2,6 +2,12 @@
 
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
+## Identidade escolhida e procedimento preparado — 27/10/2026
+
+O usuário escolheu a conta Google e informou seu email na conversa. O valor não foi copiado para Git, documentação, fixtures ou configuração da aplicação. Está preparado o [procedimento administrativo concreto](PRE_CADASTRO_ADMIN_I3.md), com helper local fora do frontend, prévia somente de leitura por padrão e criação explícita de um único usuário com email confirmado, sem senha ou convite. Criação remota **ainda não autorizada nem executada**.
+
+Os testes locais do helper passaram com transporte simulado, incluindo saída sanitizada do CLI real; sintaxe PowerShell e exclusão dos futuros registros privados foram conferidas. Nenhuma chave administrativa foi obtida e nenhum teste usou serviço/usuário real. Próxima etapa com o usuário: autorização específica desse pré-cadastro, conforme a restrição de alterações remotas combinada. Depois orientar entrada privada no terminal local, sem chaves no chat, conferindo projeto/Free e execução uma etapa por vez. A última contagem real observada permanece zero; nenhum Google, SQL de alteração, publicação ou dado financeiro foi configurado.
+
 ## Formulário de criação inspecionado — 27/10/2026
 
 A captura do usuário mostra Create a new user com Email address, User Password, Auto confirm user? marcado e aviso de que o formulário não envia email de confirmação. A captura não comprova submissão ou criação. O [código público de CreateUserModal](https://github.com/supabase/supabase/blob/master/apps/studio/components/interfaces/Auth/Users/CreateUserModal.tsx), consultado nesta data, exige email válido e senha não vazia. Não assumir que deixar a senha vazia nesse formulário implementa o pré-cadastro sem senha previsto no plano. Não foi testada a versão hospedada por submissão.
