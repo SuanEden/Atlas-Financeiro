@@ -1,5 +1,9 @@
 # Estado atual
 
+## Projeto Google criado pelo usuário — 27/10/2026
+
+Captura confirma projeto Google `Atlas Financeiro` correspondente ao formulário preparado, em Nenhuma organização, criado pelo usuário após orientação condicionada à autorização específica. Vínculo de faturamento ainda não verificado: seção cortada na captura. Próxima etapa é leitura desse trecho antes de OAuth. [Evidência e limites](CONFIGURACAO_EXTERNA_I3.md). Supabase e pré-cadastro preservados, Google login ainda desabilitado; sem configuração paga ou OAuth pelo agente, I3 incompleto.
+
 ## Pré-cadastro criado e conferido — 27/10/2026
 
 Criação autorizada concluída para a conta escolhida: exatamente um usuário, email confirmado, nenhum login/anonimato/Google. Recibo confere projeto/conta/UUID privadamente. Cadastro público e métodos de entrada continuam desligados; projeto ativo/Free. Pedido omitiu senha e convite; serviço gerou registro interno de senha, sem senha definida ou recebida pelo usuário/agente. [Evidência e precisão](CONFIGURACAO_EXTERNA_I3.md). Não repetir criação. Google, autorização financeira por UUID, schema/API, testes negativos, publicação e dois aparelhos continuam pendentes; I3 incompleto.

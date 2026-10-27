@@ -2,6 +2,12 @@
 
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
+## Projeto Google criado pelo usuário; faturamento ainda não conferido — 27/10/2026
+
+Após a orientação de criação condicionada à concordância específica, o usuário enviou captura das configurações do novo projeto `Atlas Financeiro`. Nome e identificador correspondem ao formulário preparado; a tela também mostra número de projeto e indicação de Nenhuma organização. Registrar criação feita pelo usuário e evidência por captura, sem alegar consulta independente à API Google. Identificador/número operacionais e captura ficam fora do Git. O Supabase existente e seu único pré-cadastro permanecem preservados.
+
+A seção Conta de faturamento aparece somente no limite inferior cortado; **não é possível afirmar, por essa captura, se existe conta vinculada**. Próxima etapa somente de leitura: rolar até essa seção e conferir o trecho antes de qualquer configuração OAuth. Nenhum vínculo de faturamento, trial, cartão, serviço pago ou cliente OAuth foi orientado/executado pelo agente. A autorização usada nesta etapa foi para criar esse projeto Google, sem ampliar autorização para outras configurações.
+
 ## Formulário Google pronto para decisão de criação — 27/10/2026
 
 Captura do usuário mostra formulário Novo projeto preenchido com nome `Atlas Financeiro`, identificador gerado visível somente na interface, organização e recurso pai como Nenhuma organização, aviso de oito projetos restantes na cota e botão Criar. Não há campo de faturamento visível na captura completa do formulário. Isso não comprova criação ou situação de faturamento após criar; cota não deve ser alterada e projetos existentes não devem ser excluídos para esta etapa.

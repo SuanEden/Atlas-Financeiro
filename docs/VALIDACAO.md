@@ -1,5 +1,9 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Criação Google observada por captura — 27/10/2026
+
+Usuário enviou configurações do novo projeto `Atlas Financeiro`; nome/identificador correspondem ao formulário preparado, com número de projeto e Nenhuma organização visíveis. Evidência de criação pelo usuário via captura, sem consulta independente à API Google. A seção Conta de faturamento está cortada: vínculo não verificado, custo/configuração de faturamento não presumidos. Próxima etapa é leitura desse trecho antes de OAuth. [Registro](CONFIGURACAO_EXTERNA_I3.md). Captura/IDs fora do Git; nenhum cliente OAuth, serviço pago ou faturamento configurados pelo agente. Código inalterado; testes não repetidos para este checkpoint documental.
+
 ## Formulário de projeto Google preparado — 27/10/2026
 
 Captura mostra nome `Atlas Financeiro`, identificador gerado, organização/recurso pai Nenhuma organização, aviso de oito projetos restantes e botão Criar. Não há campo de faturamento visível; nenhum pagamento/trial foi autorizado. Proposta limitada à criação desse projeto após concordância do usuário, manifestada pela própria ação Criar na interface. Ainda sem evidência de criação ou faturamento real pós-criação. [Registro e condição de custo zero](CONFIGURACAO_EXTERNA_I3.md). Código inalterado, testes não repetidos; captura e identificador operacional fora do Git.
