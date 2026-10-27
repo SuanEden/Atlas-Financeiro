@@ -1,5 +1,9 @@
 # Estado atual
 
+## Janela privada de execução aberta — 27/10/2026
+
+Usuário pediu autonomia para executar o cadastro já especificamente autorizado. Aberta uma única janela **Atlas I3 - chave privada**, com alvo preenchido privadamente; aguarda apenas chave oculta. Precondições/criação única/conferência automáticas após entrada. Última conferência: janela ativa, sem tentativa/recibo; cadastro ainda não comprovado. [Procedimento e retomada](PRE_CADASTRO_ADMIN_I3.md). Não iniciar outra execução enquanto pendente. Autorização não abrange Google, outras contas, SQL de alteração ou publicação.
+
 ## Pré-cadastro especificamente autorizado — 27/10/2026
 
 Usuário autorizou criar um único cadastro confirmado da conta escolhida no projeto existente, sem senha/convite. Projeto ativo, Free e zero usuários reconfirmados por leitura; criação ainda não executada. Próxima etapa: localizar chave administrativa existente no painel e orientar entrada privada local, prévia e conferência antes da criação já autorizada. Nenhuma chave obtida ou janela iniciada. [Procedimento e escopo](PRE_CADASTRO_ADMIN_I3.md). Google, schema, publicação e demais alterações continuam separados; I3 incompleto.

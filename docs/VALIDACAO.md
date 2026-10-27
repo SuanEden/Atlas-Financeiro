@@ -1,5 +1,9 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Execução privada com menor interação — 27/10/2026
+
+Wrapper ampliado com `-AlvoPrivado` (alvo operacional ignorado, sem chave) e `-SalvarResultado` (somente estado/horário privados). Nove testes Node novamente aprovados; parser PowerShell aprovado. Teste real PowerShell não interativo recusou alvo privado ausente antes de entrada de chave ou rede. `git check-ignore` confirmou exclusão dos arquivos de alvo/resultado. Processo/Explorer na mesma sessão Windows interativa; uma única janela foi iniciada. Última conferência local: janela ativa, sem tentativa/recibo. Não comprova criação nem integração administrativa ainda. [Escopo autorizado e retomada](PRE_CADASTRO_ADMIN_I3.md). Nenhuma chave lida pelo agente, nenhum segredo em argumentos/logs/Git; testes de app não repetidos, pois app não mudou.
+
 ## Autorização de pré-cadastro e reconsulta — 27/10/2026
 
 Usuário autorizou especificamente um único cadastro confirmado, sem senha/convite, no projeto existente. `get_project`: mesmo projeto ativo; `get_organization`: `free` / `tier_free`; SELECT agregado somente de leitura em `auth.users`: **zero usuários**. Nenhuma chave administrativa obtida, execução interativa, janela iniciada ou criação realizada. Política PowerShell consultada por leitura: LocalMachine RemoteSigned, demais escopos Undefined; sem alterações de política. [Próxima entrada privada e limites](PRE_CADASTRO_ADMIN_I3.md). Código inalterado desde os nove testes locais abaixo; testes não repetidos para este checkpoint documental.

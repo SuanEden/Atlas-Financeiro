@@ -2,6 +2,12 @@
 
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
+## Execução autônoma autorizada, janela de entrada privada aberta — 27/10/2026
+
+O usuário pediu execução autônoma e somente o resultado, reduzindo as etapas interativas anteriores. A autorização específica de um único pré-cadastro permanece válida. O wrapper agora pode ler o alvo escolhido de arquivo privado ignorado e gravar apenas estado sanitizado, mantendo a chave somente em entrada oculta/memória/stdin. Nove testes Node novamente aprovados, parser PowerShell aprovado e teste real não interativo recusou alvo privado ausente antes de solicitar chave ou acessar a rede.
+
+Foi aberta uma única janela PowerShell interativa na mesma sessão Windows do desktop, com título **Atlas I3 - chave privada**, aguardando apenas a chave administrativa existente. O alvo está preenchido privadamente; a chave não passa pelo chat nem pelo Git. Após a entrada, `-Criar` faz precondições somente de leitura, tentativa única e conferência automaticamente, sem exigir prévia isolada/segunda entrada da chave. Na última conferência local, janela ativa, sem marcador de tentativa ou recibo; **nenhuma criação comprovada ainda**. Não lançar outra janela ou repetir enquanto o resultado estiver pendente. Conferir `.private/i3-admin/resultado.json`, recibo privado e estado remoto antes de declarar criação ou decidir retomada. Autonomia não amplia autorização para Google, outras contas, SQL de alteração ou publicação.
+
 ## Pré-cadastro autorizado, entrada privada pendente — 27/10/2026
 
 O usuário respondeu afirmativamente à autorização específica para criar **um único cadastro da conta escolhida**, no projeto existente, com email confirmado, sem senha adicional e sem envio de convite. Essa autorização permanece válida para o [procedimento preparado](PRE_CADASTRO_ADMIN_I3.md), sem exigir nova confirmação do mesmo escopo. Não abrange outras contas, Google, SQL de alteração, publicação, cobrança ou piloto.
