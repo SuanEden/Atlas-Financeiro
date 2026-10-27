@@ -1,5 +1,11 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Cliente OAuth observado e credencial exposta — 27/10/2026
+
+Captura mostra criação de cliente Google e segredo ativo legível. Criação observada por captura; callbacks, origens, tipo/nome, escopos e lista de testes não verificados. Credencial tratada como exposta: substituição no mesmo cliente com desativação do segredo anterior proposta conforme fonte oficial, mas não executada pelo agente nem confirmada pelo usuário. Valor/identificadores/sufixos/hash/imagem não transcritos em arquivos, pesquisas, comandos ou Git. [Registro e próxima ação](CONFIGURACAO_EXTERNA_I3.md).
+
+`get_project` reconfirmou o projeto Supabase existente ativo. GET público de settings: `disable_signup: true`, Google/Email/anônimo e todos os métodos retornados `false`. SELECT agregado: **1 usuário, 1 email confirmado, 0 identidades Google**. Sem login, uso do segredo exposto ou alteração remota pelo agente; nenhuma prova de revogação/rotação declarada. Código inalterado; testes locais não repetidos para o checkpoint documental.
+
 ## Roteiro completo Google OAuth — 27/10/2026
 
 Captura mostrou Auth Platform ainda não configurada. A pedido do usuário, preparado [roteiro de todos os campos](ROTEIRO_GOOGLE_OAUTH_I3.md), sem pedir uma captura por campo. Fontes primárias atuais Google/Supabase consultadas para assistente, público, escopos, clientes, loopback, branding e armazenamento do segredo exibido uma única vez. `get_project_url` reconfirmou URL operacional; porta/origem e `/auth/callback` conferidos no código, sem alterar configuração. Lista pública de sufixos confirmou `supabase.co`; domínio do projeto tratado conforme regra de domínio privado, sem alegar propriedade/verificação.

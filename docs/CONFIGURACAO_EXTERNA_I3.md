@@ -2,6 +2,14 @@
 
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
+## Cliente Google criado; substituição de segredo exposto pendente — 27/10/2026
+
+O usuário enviou captura com mensagem Cliente OAuth criado, identificador de cliente, segredo visível e status ativado. A referência visível é consistente com o projeto Google preparado; criação observada por captura, sem API independente. A imagem não comprova nome/tipo do cliente, origens, callbacks, escopos ou lista efetiva de usuários de teste. O aviso de teste não é prova negativa de acesso, especialmente pela exceção de escopos básicos já documentada.
+
+Como o Client Secret ativo apareceu na conversa, tratá-lo como exposto e substituí-lo antes de usar. **Não transcrever valor, identificador, sufixo, hash ou captura para arquivo, comando, pesquisa, log ou Git.** Plano concreto, a ser executado pelo usuário na interface: abrir o cliente existente, adicionar novo segredo, guardar somente em local privado sob seu controle e desativar o segredo anterior, preservando o cliente. Seguir [instruções oficiais Google](https://support.google.com/cloud/answer/15549257?hl=en). Nenhuma substituição/desativação foi executada pelo agente e nenhuma conclusão presumida; aguardar confirmação específica do usuário sobre novo segredo guardado e anterior desativado, sem solicitar valores ou capturas de segredos.
+
+Leituras atuais Supabase reconfirmaram projeto existente ativo, cadastro público fechado, Google/Email/anônimo e todos os métodos retornados desabilitados. Consulta agregada: **1 usuário, 1 email confirmado, 0 identidades Google**. Não houve configuração remota, tentativa de login ou uso do segredo exposto pelo agente. Permanecem pendentes autorização do UUID/backend e provas reais antes de ativar Google. A menção Product Design foi consultada como roteamento; não houve pedido concreto de design nem envio da imagem a ferramentas de design/geração.
+
 ## Roteiro completo de campos solicitado — 27/10/2026
 
 Captura posterior mostrou Google Auth Platform ainda não configurada, com botão Vamos começar. O usuário passou a pedir todas as informações de preenchimento juntas; essa preferência substitui a orientação anterior de solicitar uma captura por campo/etapa. Foi preparado o [roteiro completo Google OAuth](ROTEIRO_GOOGLE_OAUTH_I3.md), com dados de consentimento, público de teste, escopos mínimos, cliente Web, dois retornos distintos e referência futura Supabase. A URL do projeto Supabase foi reconfirmada por leitura e a origem/callback local conferidos no código. Valores operacionais reais foram fornecidos somente na conversa; o roteiro público usa placeholders.

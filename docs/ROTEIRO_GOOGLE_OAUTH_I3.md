@@ -1,6 +1,8 @@
 # I3 — roteiro completo dos campos Google OAuth
 
-Preparado em 27/10/2026 a pedido do usuário, que solicitou todos os campos juntos. **Roteiro não equivale a configuração executada.** Última captura mostrou Google Auth Platform ainda não configurada; projeto Google criado e sem conta de faturamento conforme relato. Supabase existente e usuário pré-cadastrado preservados. [Estado externo](CONFIGURACAO_EXTERNA_I3.md).
+Preparado em 27/10/2026 a pedido do usuário, que solicitou todos os campos juntos. **Roteiro não equivale a configuração executada.** Na preparação inicial, a captura mostrava Auth Platform ainda não configurada; o marco posterior está descrito a seguir. Projeto Google sem conta de faturamento conforme relato, Supabase existente e usuário pré-cadastrado preservados. [Estado externo](CONFIGURACAO_EXTERNA_I3.md).
+
+**Marco posterior:** captura do usuário confirmou criação de cliente OAuth e incluiu um Client Secret ativo. Não reutilizar esse segredo. Antes de qualquer integração, substituir somente o segredo mantendo o mesmo cliente: abrir Clientes, selecionar o cliente criado, usar Adicionar segredo/Add Secret, guardar o novo valor privadamente e desativar o segredo anterior. Não enviar captura/valor do novo segredo ao chat. Substituição ainda pendente de relato/conferência, não executada pelo agente. Segredo e identificadores reais não foram transcritos para este roteiro. [Procedimento oficial de substituição](https://support.google.com/cloud/answer/15549257?hl=en).
 
 Este documento contém placeholders. Obter a URL real pelo conector, identificando o projeto Supabase existente pelo nome, antes de preencher os valores operacionais privadamente. Não versionar email, referências operacionais, Client ID ou Client Secret reais. O agente não aplicou configurações remotas nesta preparação.
 

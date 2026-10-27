@@ -1,5 +1,9 @@
 # Estado atual
 
+## Cliente OAuth criado; segredo exposto a substituir — 27/10/2026
+
+Captura do usuário confirma criação de cliente Google e inclui segredo ativo; valor/identificadores/imagem não foram transcritos ou versionados. Próxima ação é substituir o segredo no mesmo cliente e desativar o anterior pela interface, com novo valor guardado privadamente, sem chat/captura. Rotação não executada ou confirmada. [Procedimento e evidência](CONFIGURACAO_EXTERNA_I3.md). Supabase por leitura continua ativo, cadastro fechado e métodos retornados desligados; um usuário confirmado, nenhuma identidade Google. Autorização do UUID/backend e integração permanecem pendentes; I3 incompleto.
+
 ## Google sem conta de faturamento vinculada — 27/10/2026
 
 Usuário relatou mensagem explícita do painel: projeto Google não tem conta de faturamento. Confirmação por relato, sem API independente; não comprova ausência de cartões na conta nem gratuidade permanente de recursos futuros. Próxima etapa é abrir Google Auth Platform e conferir formulário antes de salvar configuração OAuth. [Registro vigente](CONFIGURACAO_EXTERNA_I3.md). Sem trial/serviço pago pelo agente; Supabase e pré-cadastro preservados, Google login pendente e I3 incompleto.
