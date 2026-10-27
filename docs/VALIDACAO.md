@@ -1,5 +1,9 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Lista de projetos Google — 27/10/2026
+
+Capturas do usuário: aba Todos com quatro projetos preexistentes, busca Atlas sem resultados no contexto selecionado. Não identifica projeto Google do Atlas nem autoriza reutilização/criação. Próxima etapa é preparar formulário Novo projeto, nome sugerido `Atlas Financeiro`, sem clicar Criar; conferir dados/faturamento antes de autorização específica. [Registro e fontes oficiais](CONFIGURACAO_EXTERNA_I3.md). Nenhuma alteração Google ou de faturamento, código inalterado e testes não repetidos para este checkpoint documental. Capturas e nomes/IDs de terceiros fora do Git.
+
 ## Captura inicial do Google Cloud — 27/10/2026
 
 Usuário enviou captura da página inicial do console Google Cloud, com projeto preexistente não identificado como Atlas e oferta de trial/crédito. Não comprova configuração OAuth, conta Google de login escolhida, situação de faturamento ou existência de projeto Google adequado ao Atlas. Próxima ação é inventário visual de projetos, somente leitura. [Registro e limites](CONFIGURACAO_EXTERNA_I3.md). Nenhuma criação/configuração Google executada; captura, nomes/IDs externos e dados da conta não versionados. Código inalterado; testes não repetidos para este checkpoint documental.

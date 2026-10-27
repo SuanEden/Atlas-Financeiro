@@ -2,6 +2,14 @@
 
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
+## Lista de projetos Google e preparação do formulário — 27/10/2026
+
+Capturas posteriores mostram a aba Todos com quatro projetos preexistentes no contexto selecionado e busca por Atlas sem resultados. Nenhum projeto foi identificado como o alvo do Atlas; isso não comprova inexistência em outras contas/contextos nem a finalidade dos projetos com nomes genéricos. Nomes/IDs externos e capturas não foram versionados.
+
+Proposta ainda não executada: projeto Google Cloud separado, nome sugerido `Atlas Financeiro`, somente para preparar o login Google, sem vincular faturamento, iniciar trial ou criar recursos pagos. O projeto Supabase `atlas-financeiro-i3` permanece o mesmo. **Próxima etapa reversível:** abrir Novo projeto, preparar o nome e conferir o formulário real antes de clicar Criar, inclusive se há qualquer seleção de faturamento. A criação Google ainda precisa de autorização específica sobre o formulário concreto; a autorização anterior era somente para o pré-cadastro Auth já concluído.
+
+Fontes oficiais consultadas nesta data: [criação de projetos Google](https://docs.cloud.google.com/resource-manager/docs/creating-managing-projects) e [login Google no Supabase](https://supabase.com/docs/guides/auth/social-sign-in/auth-google). A documentação diferencia projeto e vínculo de faturamento; conferir a interface real, sem presumir custo/configuração da conta. Nenhuma alteração Google executada.
+
 ## Inventário inicial do Google Cloud — 27/10/2026
 
 Após o pré-cadastro, o usuário abriu o console Google Cloud e enviou captura da tela inicial. Ela mostra um projeto preexistente sem vínculo confirmado com o Atlas, além de oferta de trial/crédito. Nome/IDs desse projeto e dados da conta não são necessários neste registro público. Não inferir identidade de login autorizada pelo avatar, conta administrativa ou projeto selecionado. Oferta visível não comprova situação de faturamento nem autorização para ativação.
