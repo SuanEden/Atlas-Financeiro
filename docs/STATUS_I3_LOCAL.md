@@ -1,6 +1,6 @@
 # I3 local — continuidade após a recuperação
 
-**Estado externo mais recente em 27/10/2026:** após o usuário informar conclusão do formulário, duas leituras ainda mostram cadastro público aberto e agora entrada anônima habilitada; Email habilitado e Google desabilitado. Vinculação manual não verificada. Repetir orientação no mesmo formulário e verificar novamente antes de avançar para Email. O agente não alterou configuração remota. [Evidência e roteiro](CONFIGURACAO_EXTERNA_I3.md).
+**Estado externo mais recente em 27/10/2026:** nova leitura após correção pelo usuário informa cadastro público fechado (`disable_signup: true`) e entrada anônima desabilitada. Email ainda habilitado, Google desabilitado; vinculação manual não verificada de forma independente. Próxima etapa guiada: desabilitar Email, salvar e reconsultar; pedir confirmação individual da vinculação manual no painel. O agente não alterou configuração remota. [Evidência e roteiro](CONFIGURACAO_EXTERNA_I3.md).
 
 **Retomada de 27/10/2026:** recuperado `300098a`, sem commits posteriores na branch no momento da recuperação. Projeto existente e organização Free reconfirmados por leitura. Diagnóstico inicial e testes locais preservados no checkpoint `69e57ce`; código preservado e integração não habilitada.
 

@@ -1,5 +1,11 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Cadastro fechado após correção do formulário — 27/10/2026
+
+Após segundo relato de conclusão do usuário, `get_project` reconfirmou o projeto existente. GET público de Auth settings com URL distinta e `Cache-Control: no-cache`: `disable_signup: true`, `external.anonymous_users: false`, `external.email: true`, `external.google: false`. Configuração pública informa cadastro fechado e entrada anônima desabilitada. Vinculação manual não consta na resposta; confirmação individual no painel e verificação independente ainda pendentes. Não foram tentados cadastro ou login. [Registro e próxima etapa Email](CONFIGURACAO_EXTERNA_I3.md).
+
+Somente leituras remotas pelo agente e atualização documental sanitizada. Código inalterado, suíte local não repetida; resultados locais aprovados abaixo permanecem referentes à execução anterior. Email ainda não foi desabilitado; Google, SQL remoto, usuários e publicação não foram configurados pelo agente.
+
 ## Reconsulta após relato de conclusão do formulário — 27/10/2026
 
 Projeto existente reconfirmado com `get_project`. Duas leituras públicas de Auth settings, após o relato de conclusão do usuário: `disable_signup: false`, `external.anonymous_users: true`, `external.email: true`, `external.google: false`. A segunda requisição usou URL distinta e `Cache-Control: no-cache`. Cadastro público ainda aberto e entrada anônima habilitada; a etapa não passou na conferência. Vinculação manual ausente da resposta e não verificada. [Detalhes e próxima ação](CONFIGURACAO_EXTERNA_I3.md).

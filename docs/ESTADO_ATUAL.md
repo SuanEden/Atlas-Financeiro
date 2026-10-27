@@ -1,5 +1,9 @@
 # Estado atual
 
+## Cadastro fechado após correção — 27/10/2026
+
+Nova leitura após o segundo relato de conclusão do usuário: `disable_signup: true`, `external.anonymous_users: false`, Email habilitado e Google desabilitado. Configuração pública informa cadastro fechado e entrada anônima desligada; não houve teste negativo de cadastro/login. Vinculação manual continua sem confirmação individual ou verificação independente. Próxima etapa guiada: desabilitar Email e verificar após salvar, além de confirmar vinculação manual no painel. [Registro vigente](CONFIGURACAO_EXTERNA_I3.md). Agente não alterou Auth; aplicativo remoto desabilitado, I3 incompleto.
+
 ## Reconsulta do formulário de acesso — 27/10/2026
 
 Depois do relato de conclusão do usuário, duas leituras de Auth settings ainda indicam cadastro público aberto (`disable_signup: false`) e entrada anônima agora habilitada (`external.anonymous_users: true`). Email habilitado, Google desabilitado; vinculação manual não verificada. Continuar orientando o mesmo formulário, com as três opções gerais desligadas e salvamento, antes de avançar para Email. [Evidência atual](CONFIGURACAO_EXTERNA_I3.md). Agente não alterou configuração remota; código e modo remoto desabilitado preservados.

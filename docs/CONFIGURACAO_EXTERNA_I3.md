@@ -2,7 +2,13 @@
 
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
-## Reconsulta após relato de conclusão — 27/10/2026
+## Cadastro fechado confirmado após correção — 27/10/2026
+
+Após novo relato de conclusão do usuário, o projeto existente foi reconfirmado e um GET de `/auth/v1/settings`, com URL distinta e `Cache-Control: no-cache`, retornou `disable_signup: true`, `external.anonymous_users: false`, `external.email: true` e `external.google: false`. A configuração pública agora informa cadastro fechado e entrada anônima desabilitada. Isso substitui a divergência registrada abaixo; não é teste negativo de cadastro/login. Vinculação manual continua não verificada de forma independente, pois não consta na resposta pública e ainda não houve confirmação individual ou captura do painel.
+
+**Próxima etapa guiada:** na mesma página Sign In / Providers, abrir Email, desligar a habilitação do provedor e salvar. Aguardar novo relato e conferir `external.email: false` antes de tratar a etapa como concluída. Solicitar também confirmação individual de que `Allow manual linking` permanece desligado no painel; não habilitar Google nesta etapa. O agente continua somente com leituras remotas e checkpoints documentais, sem alterações de Auth, SQL remoto, criação de usuário ou publicação. Aplicativo remoto desabilitado; custo zero preservado como requisito.
+
+## Reconsulta anterior após relato de conclusão — 27/10/2026
 
 Após o usuário informar que concluiu a etapa do formulário, duas consultas somente de leitura de `/auth/v1/settings` retornaram `disable_signup: false`, `external.anonymous_users: true`, `external.email: true` e `external.google: false`. A segunda requisição usou URL distinta e `Cache-Control: no-cache` para reduzir a possibilidade de reaproveitamento de resposta. O projeto existente foi reconfirmado pelo conector antes das leituras. Nenhum teste de cadastro/login foi executado.
 
