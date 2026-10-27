@@ -1,5 +1,9 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Decisão do usuário e preparação dos retornos — 27/10/2026
+
+Usuário recusou a troca do segredo e pediu continuidade, sem evidência de rotação/revogação; decisão registrada sem manter a troca como exigência geral. `get_project_url` reconfirmou alvo Supabase. Código atual calcula retorno `/auth/callback` pela origem; proposta de Site URL `http://127.0.0.1:5173` e Redirect URL exata correspondente preparada para salvamento pelo usuário, sem execução ou comprovação do estado salvo. GET público atual: `disable_signup: true`, Google/Email/anônimo `false`. [Registro](CONFIGURACAO_EXTERNA_I3.md). Sem uso/transcrição de segredo, alteração remota pelo agente ou teste de login. Código inalterado; testes não repetidos para o checkpoint documental.
+
 ## Cliente OAuth observado e credencial exposta — 27/10/2026
 
 Captura mostra criação de cliente Google e segredo ativo legível. Criação observada por captura; callbacks, origens, tipo/nome, escopos e lista de testes não verificados. Credencial tratada como exposta: substituição no mesmo cliente com desativação do segredo anterior proposta conforme fonte oficial, mas não executada pelo agente nem confirmada pelo usuário. Valor/identificadores/sufixos/hash/imagem não transcritos em arquivos, pesquisas, comandos ou Git. [Registro e próxima ação](CONFIGURACAO_EXTERNA_I3.md).

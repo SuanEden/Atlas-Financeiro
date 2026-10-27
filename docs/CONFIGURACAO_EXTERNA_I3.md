@@ -2,6 +2,12 @@
 
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
+## Usuário recusou troca do segredo e pediu continuidade — 27/10/2026
+
+Depois da recomendação e pergunta específica, o usuário declarou que não fará a substituição e pediu seguir para o próximo passo. Registrar a decisão expressa sem presumir rotação/revogação nem repetir pedidos de confirmação da mesma troca. A recomendação permanece no histórico; não transformá-la em bloqueio geral ou executar substituição/desativação sem autorização. O valor exposto continua fora de arquivos, comandos, pesquisas e Git; não pedir novo envio no chat.
+
+**Próxima etapa concreta:** orientar Authentication → URL Configuration no Supabase existente, com Site URL `http://127.0.0.1:5173` e adição exata de `http://127.0.0.1:5173/auth/callback` em Redirect URLs, se ausente, preservando outras entradas até revisão. O próprio usuário confirma essas alterações específicas ao salvar. Ainda não foram aplicadas pelo agente nem verificadas no painel. A URL do projeto foi reconfirmada por leitura e o callback conferido no código. GET atual informa cadastro público fechado e Google/Email/anônimo desligados. Ativação do provedor segue para depois da revisão técnica de autorização da conta/backend; esse requisito é distinto da recomendação de trocar o segredo.
+
 ## Cliente Google criado; substituição de segredo exposto pendente — 27/10/2026
 
 O usuário enviou captura com mensagem Cliente OAuth criado, identificador de cliente, segredo visível e status ativado. A referência visível é consistente com o projeto Google preparado; criação observada por captura, sem API independente. A imagem não comprova nome/tipo do cliente, origens, callbacks, escopos ou lista efetiva de usuários de teste. O aviso de teste não é prova negativa de acesso, especialmente pela exceção de escopos básicos já documentada.

@@ -1,5 +1,9 @@
 # Estado atual
 
+## Continuidade solicitada sem troca de segredo — 27/10/2026
+
+Usuário recusou expressamente a troca recomendada e pediu o próximo passo; não presumir revogação nem repetir essa exigência. Orientar URLs locais de retorno no Supabase existente, sem salvamento comprovado ainda. GET atual confirma cadastro fechado e Google/Email/anônimo desligados. [Decisão, valores e limites](CONFIGURACAO_EXTERNA_I3.md). Ativação ainda requer revisão técnica de autorização da conta/backend e autorização remota específica; código e I3 incompleto preservados, nenhum segredo transcrito.
+
 ## Cliente OAuth criado; segredo exposto a substituir — 27/10/2026
 
 Captura do usuário confirma criação de cliente Google e inclui segredo ativo; valor/identificadores/imagem não foram transcritos ou versionados. Próxima ação é substituir o segredo no mesmo cliente e desativar o anterior pela interface, com novo valor guardado privadamente, sem chat/captura. Rotação não executada ou confirmada. [Procedimento e evidência](CONFIGURACAO_EXTERNA_I3.md). Supabase por leitura continua ativo, cadastro fechado e métodos retornados desligados; um usuário confirmado, nenhuma identidade Google. Autorização do UUID/backend e integração permanecem pendentes; I3 incompleto.
