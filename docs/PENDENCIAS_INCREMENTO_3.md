@@ -1,5 +1,7 @@
 # Incremento 3 — decisões e ações do usuário
 
+**Prioridade vigente — 27/10/2026:** recarga/reentrada relatadas e conta negativa recusada sem usuário adicional. Dez testes PostgreSQL nativo local com conexões independentes aprovados. [Evidência](CONCORRENCIA_E_ACESSO_I3.md). Próxima ação remota preparada para aprovação: [somente a segunda migração mantendo gate false](PROTOCOLO_REMOTO_I3.md). Não repetir login/logout ou teste negativo já registrados; não liberar escrita, associar base ou publicar. Testes com usuário cadastrado/revogado, expiração e dois aparelhos continuam pendentes.
+
 **Passo de sessão vigente — 27/10/2026:** aviso de bloqueio após saída relatado. Faltam F5 com bloqueio preservado e nova entrada na mesma conta; não repetir logout. [Registro e limites](RESULTADO_PRIMEIRO_LOGIN_I3.md). Associação/escrita continuam bloqueadas; não presumir revogação de JWT a partir do aviso visual.
 
 **Prioridade vigente após primeiro login — 27/10/2026:** vínculo Google real ao mesmo cadastro confirmado, sem duplicação e sem dados financeiros. [Resultado](RESULTADO_PRIMEIRO_LOGIN_I3.md). Próximo teste pessoal proposto: Sair e bloquear, recarregar mantendo bloqueio e entrar novamente com a mesma conta; não associar base nem cadastrar finanças. Matrizes negativas com sessão/JWT reais, protocolo/gateway, concorrência e dois dispositivos continuam pendentes. O login bem-sucedido não autoriza abertura financeira ou segunda migração.

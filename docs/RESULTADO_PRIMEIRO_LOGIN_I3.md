@@ -1,5 +1,7 @@
 # I3 — primeiro login Google real confirmado
 
+**Avanço posterior em 27/10/2026:** usuário confirmou o roteiro de recarga bloqueada e nova entrada, e executou tentativa com outra conta controlada, recusada sem novo usuário. Concorrência independente local também foi exercitada. [Evidência atual e limites](CONCORRENCIA_E_ACESSO_I3.md). Não repetir os passos de entrada/saída já confirmados.
+
 **Avanço do teste de saída — 27/10/2026:** usuário informou `Entre com Google para acessar seus dados.` e `Acesso local bloqueado. As pendências foram preservadas.`. Evidência textual de bloqueio visual após saída. Não informou se já pressionou F5, se o botão Sair desapareceu ou se entrou novamente; essas verificações não estão aprovadas ainda. Próxima ação pessoal: recarregar, confirmar permanência do bloqueio e entrar com a mesma conta. Nenhuma inspeção de sessão/token ou nova consulta/alteração remota nesta atualização.
 
 Conferido em 27/10/2026 após o usuário executar a entrada pessoal orientada e enviar o texto da tela. Base anterior: `d9472cd2b8a1c82f79af3d727b7452e418e1d34d`, branch `codex/incremento-3-local-foundation`.

@@ -1,5 +1,9 @@
 # Próxima etapa — continuar I3 local
 
+## Prioridade após testes de acesso e concorrência — 27/10/2026
+
+[Recarga/reentrada, conta negativa e dez testes nativos de concorrência](CONCORRENCIA_E_ACESSO_I3.md) registrados. A proposta concreta seguinte é [aplicar exclusivamente segunda migração com gate financeiro false](PROTOCOLO_REMOTO_I3.md), sujeita à aprovação específica. Procedimento já preparado, sem alterações remotas por consequência dos testes. Não repetir primeiro login ou fechar o banco local preexistente; a ferramenta encerrou somente seus clusters temporários. Escrita, associação, piloto/publicação e provas restantes não estão aprovados.
+
 ## Continuidade do teste de saída — 27/10/2026
 
 Usuário já relatou acesso local bloqueado/pendências preservadas após sair. [Registro](RESULTADO_PRIMEIRO_LOGIN_I3.md). Orientar agora F5 e confirmação de bloqueio persistente, seguida de nova entrada com a mesma conta. Não considerar esses dois passos concluídos sem relato; não pedir logout novamente nem abrir associação/escrita.

@@ -1,5 +1,9 @@
 # I3 — início da configuração externa
 
+## Recarga/reentrada e conta não cadastrada — 27/10/2026
+
+Usuário confirmou persistência do bloqueio após F5 e nova entrada na mesma conta. Em janela anônima orientada, outra conta controlada retornou erro seguro de callback. SELECTs posteriores: um usuário/UUID original, uma identidade Google original, autorização única preservada, zero finanças. Logs Auth agregados da janela da tentativa registraram mensagem Signups not allowed for this instance, sem conteúdo bruto ou dados pessoais retornados. Cadastro fechado/somente Google preservados. [Resultado e limites](CONCORRENCIA_E_ACESSO_I3.md). Nenhuma nova alteração remota; próxima proposta de segunda migração com gate false ainda depende de aprovação.
+
 ## Primeiro vínculo Google preserva o usuário — 27/10/2026
 
 Usuário executou o login e informou a tela verificada com envio bloqueado. Leituras confirmaram exatamente um usuário, UUID privado original preservado, conta confirmada/não anônima, login registrado e uma identidade Google no mesmo UUID, nenhuma em outro usuário. Autorização ativa única, oito tabelas com RLS e sete tabelas privadas vazias. GET informa somente Google habilitado/cadastro fechado; API privada e anônimo continuam negados. [Resultado e próximos testes](RESULTADO_PRIMEIRO_LOGIN_I3.md). Sem extração de token ou leitura de perfil pessoal pelo agente, alteração remota adicional, associação financeira, novo serviço, recurso pago ou publicação.

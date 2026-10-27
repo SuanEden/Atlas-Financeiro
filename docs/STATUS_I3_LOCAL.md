@@ -1,5 +1,7 @@
 # I3 local — continuidade após a recuperação
 
+**Prioridade vigente em 27/10/2026:** recarga bloqueada e nova entrada confirmadas por relato; outra conta recusada, sem cadastro/identidade/autorização extra ou finanças. PostgreSQL nativo local 17.10 passou **10 testes de concorrência com conexões/PIDs distintos**, sem serviços externos ou dependências no app. [Resultado e limites](CONCORRENCIA_E_ACESSO_I3.md). Próxima proposta: [segunda migração remota com gate false](PROTOCOLO_REMOTO_I3.md), aguardando aprovação específica; não abrir escrita/associação/publicação. Provas de JWT cadastrado sem autorização, expiração, outras superfícies e dois aparelhos continuam pendentes.
+
 **Avanço de sessão em 27/10/2026:** usuário relatou aviso de acesso local bloqueado e pedido de entrada Google após sair. [Registro](RESULTADO_PRIMEIRO_LOGIN_I3.md). Bloqueio visual confirmado por relato; F5 e nova entrada ainda não confirmados. Orientar recarga e reentrada na mesma conta, sem repetir saída, associar base ou abrir escrita. Nenhuma prova adicional de revogação JWT foi obtida.
 
 **Estado vigente após primeiro login em 27/10/2026:** primeiro Google real confirmado por relato de tela e consultas: um usuário, mesmo UUID esperado, identidade Google vinculada e login registrado. Autorização única preservada; cadastro fechado, somente Google habilitado, API restrita/anônimo negado, sete tabelas vazias e escrita bloqueada. [Evidência e limites](RESULTADO_PRIMEIRO_LOGIN_I3.md). Associação ainda não executada. Próximo teste proposto: saída local, recarga bloqueada e nova entrada na mesma conta. Não repetir pré-cadastro/configuração ou liberar escrita/protocolo por consequência do sucesso de login; I3 incompleto.
@@ -58,7 +60,7 @@ Navegador: Playwright/Edge, `http://127.0.0.1:5173`, 1280×900 e 390×844; não 
 
 ## Pendências locais antes da integração/piloto
 
-- PostgreSQL com conexões independentes e ensaio de concorrência/rollback real. `psql` e Docker não foram encontrados nesta VM; PGlite não substitui essa prova. Preparar o ambiente local sem provisionar remotamente por consequência automática.
+- Dez cenários de concorrência/rollback com conexões independentes foram agora comprovados em PostgreSQL nativo local 17.10. [Ferramenta isolada e limites](CONCORRENCIA_E_ACESSO_I3.md); não equivale a gateway/JWT hospedados, carga completa ou dois aparelhos. PGlite continua útil para a suíte rápida.
 - Revisão das permissões e contratos no gateway JWT/PostgREST/Supabase completo, incluindo configuração exclusiva do schema API; os testes atuais simulam papéis/identidade.
 - Exercitar associação com abas antigas fechadas e todos os pontos de interrupção, versões antigas de metadados, mais de uma origem e limites medidos. A carga atual recusa mais de 2 MiB/5 mil registros, sem ativação parcial; preparação em partes ainda não foi implementada. Não elevar limites silenciosamente.
 - Completar confronto de conflito com a versão remota em detalhes, tratamento explícito das dependências bloqueadas e decisões para origens divergentes. Não criar comandos substitutos sem confirmação.

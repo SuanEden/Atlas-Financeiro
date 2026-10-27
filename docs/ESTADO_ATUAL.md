@@ -1,5 +1,9 @@
 # Estado atual
 
+## Recarga/reentrada, conta negativa e concorrência local — 27/10/2026
+
+Usuário confirmou F5 bloqueado e nova entrada na mesma conta; outra conta em teste foi recusada. Leituras preservam usuário/UUID/autorização únicos, uma identidade Google e tabelas financeiras vazias. Logs agregados mostram cadastro fechado na tentativa. Ferramenta local Windows PostgreSQL 17.10, isolada de app/servidor, passou **10 testes com conexões independentes**; clusters próprios encerrados. [Evidências e limites](CONCORRENCIA_E_ACESSO_I3.md). Próxima alteração concreta preparada: [aplicar somente segunda migração mantendo escrita false](PROTOCOLO_REMOTO_I3.md), ainda aguardando aprovação específica. Nenhuma migração, abertura financeira, serviço pago ou publicação remota nesta etapa.
+
 ## Saída local exibiu bloqueio; recarga e reentrada pendentes — 27/10/2026
 
 Usuário informou pedido de entrada Google e aviso de acesso local bloqueado/pendências preservadas. Relato confirma o bloqueio visual após saída; não comprova recarga, nova entrada ou invalidação de JWT. [Evidência e continuidade](RESULTADO_PRIMEIRO_LOGIN_I3.md). Próximo passo: F5, confirmar bloqueio persistente e entrar novamente com a mesma conta. Não repetir saída já relatada nem associar base/abrir escrita. Sem nova inspeção ou alteração remota nesta atualização.

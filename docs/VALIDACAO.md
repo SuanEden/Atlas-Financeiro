@@ -1,5 +1,15 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Recarga/reentrada, recusa e concorrência independente — 27/10/2026
+
+Usuário confirmou o roteiro F5 bloqueado/nova entrada; interface validada por relato. SELECTs reconfirmaram usuário/UUID/autorização originais e identidade Google única, sete tabelas vazias; GET cadastro fechado/somente Google. Outra conta controlada tentou entrar em janela anônima e recebeu erro seguro. Inventário posterior permaneceu igual. Logs somente agregados em janela de vinte minutos: duas ocorrências de Signups not allowed for this instance; não são contagem de tentativas/pessoas. Sem tokens, email ou conteúdo bruto extraídos.
+
+Nova ferramenta isolada em `tools/i3-postgres`, binários Windows PostgreSQL 17.10 e driver pg fixados com lockfile, sem mudar app/dependências/SQL existentes. `npm test`: **10 aprovados**, conexões TCP/PIDs independentes e contenção por pg_blocking_pids, cobrindo idempotência, serialização, rollback/feed, estornos, constraint diferida, limite de paginação e revogação na espera. Primeira execução falhou no startup por pipe herdado, antes dos testes; stdio/cleanup corrigidos e nova execução aprovada. Clusters próprios encerrados, inclusive o da tentativa inicial, sem tocar PostgreSQL preexistente ou excluir diretórios.
+
+`node --check` do runner aprovado. Após preparar os arquivos para commit, `npx vitest run tests/project-privacy.test.ts`: **2 aprovados/1 ignorado**, o ignorado ainda depende do manifesto privado original ausente. Dependências/binários e dados temporários excluídos do Git; revisão dos arquivos preparados não encontrou credenciais ou dados de conta.
+
+[Relatório e limites](CONCORRENCIA_E_ACESSO_I3.md). Auth.uid é simulado nesse banco local; não é Supabase 17.11/gateway/JWT, carga ou dois aparelhos. Suítes anteriores do aplicativo não repetidas, pois código/dependências dele não mudaram. Segunda migração remota preparada com checksum e gate false, **não aplicada/autorizada ainda**. Nenhuma nova configuração, abertura financeira, serviço externo ou publicação.
+
 ## Aviso de bloqueio após saída relatado — 27/10/2026
 
 Usuário informou pedido de entrada Google e aviso de acesso local bloqueado/pendências preservadas. Evidência de renderização por relato textual, sem acesso do agente ao perfil pessoal. F5, desaparecimento do controle Sair e nova entrada não foram informados; não marcar persistência ou reautenticação como aprovadas. Nenhuma consulta remota adicional, teste de token, alteração de código/configuração ou suíte repetida. [Continuidade](RESULTADO_PRIMEIRO_LOGIN_I3.md).
