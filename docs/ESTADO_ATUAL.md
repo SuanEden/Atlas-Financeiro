@@ -1,5 +1,9 @@
 # Estado atual
 
+## Conferência das três rotas com sessão pessoal concluída — 27/10/2026
+
+Usuário informou os quatro resultados esperados e conclusão sem associação: Google verificado, envio bloqueado, pull vazio e apply inválida recusada. SELECT posterior preserva usuário/UUID/Google/autorização únicos, gate false e nove tabelas privadas vazias. [Resultado e limites](CONFERENCIA_AUTENTICADA_I3.md). Não repetir o clique ou coletar tokens. Escrita bem-sucedida, associação, casos restantes de sessão/isolamento, proteção operacional e dois aparelhos não estão aprovados; I3 incompleto. Continuar as provas locais independentes sob a autorização vigente, sem abrir escrita remota/publicar.
+
 ## Recarga após protocolo relatada; conferência autenticada preparada — 27/10/2026
 
 Usuário informou novamente login verificado/envio aguardando liberação após recarga. Relato de tela, sem captura de tráfego ou comprovação de todos os controles. Leitura confirmou mesmo usuário/autorização, gate false e nove tabelas privadas vazias. [Tela local de conferência](CONFERENCIA_AUTENTICADA_I3.md) preparada para testar readiness/pull/recusa de apply usando o SDK e a sessão pessoal, sem extrair tokens ou construir comando válido. Dez unitários e QA Edge desktop/celular com respostas sintéticas aprovados; execução pessoal ainda pendente. Nenhuma nova alteração remota ou abertura financeira.

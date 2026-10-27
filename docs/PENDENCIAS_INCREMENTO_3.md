@@ -1,5 +1,7 @@
 # Incremento 3 — decisões e ações do usuário
 
+**Conferência pessoal concluída — 27/10/2026:** usuário executou a página e informou sessão/readiness, pull vazio e recusa da tentativa inválida; inventário posterior intacto. [Registro](CONFERENCIA_AUTENTICADA_I3.md). Não solicitar novamente esse clique, credenciais ou JWT. Continuar provas técnicas locais de gateway/isolamento, mantendo associação/escrita/publicação bloqueadas e separando os limites reais dos testes sintéticos.
+
 **Próxima ação pessoal — 27/10/2026:** recarga pós-migração relatada; abrir a [conferência autenticada local](CONFERENCIA_AUTENTICADA_I3.md) no mesmo perfil e clicar Conferir conexão. Ela testa sessão/readiness, pull vazio e recusa de payload inválido, sem token no chat ou escrita/associação. Código/QA sintéticos preparados sob autorização de prosseguimento; execução com sessão pessoal ainda pendente. Não pedir aprovação repetida da instalação ou liberação financeira para realizar essa conferência.
 
 **Prioridade vigente após execução — 27/10/2026:** protocolo e índice de apoio já autorizados, aplicados e verificados com gate false. [Resultado](RESULTADO_PROTOCOLO_REMOTO_I3.md). Não pedir novamente autorização ou reaplicar. Próxima conferência pessoal é recarregar a tela e confirmar login verificado/envio aguardando liberação; associação e escrita seguem bloqueadas. Matriz JWT autenticada completa, sessão/isolamento restantes, proteção operacional e dois aparelhos ainda pendentes. Não publicar, contratar ou iniciar piloto por consequência da autorização de prosseguimento.

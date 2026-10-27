@@ -1,5 +1,9 @@
 # Próxima etapa — continuar I3 local
 
+## Prioridade após conferência pessoal — 27/10/2026
+
+[Conferência real das três rotas concluída](CONFERENCIA_AUTENTICADA_I3.md), com inventário remoto intacto, gate false e nenhuma associação. Não repetir o passo pessoal ou coletar tokens. Avançar nos testes locais de gateway com assinatura/expiração/isolamento e operações sintéticas, sem dados ou configuração no projeto remoto. Manter distintos Auth hospedado, gateway local e dois aparelhos; não abrir escrita/publicar nem declarar I3 concluído.
+
 ## Prioridade — conferir rotas com sessão pessoal, 27/10/2026
 
 Recarga após protocolo foi relatada. [Página manual preparada e validada](CONFERENCIA_AUTENTICADA_I3.md), usando cliente existente e chamadas sem mutação financeira. Orientar um clique em Conferir conexão no mesmo perfil do Atlas; obter somente texto dos resultados e conferir depois o inventário remoto por leitura. Essa etapa dispensa coleta de JWT/credenciais, não associa base e não abre escrita. Provas unitárias/UI sintética não equivalem à sessão real; não marcar esta conferência como concluída antes do relato.

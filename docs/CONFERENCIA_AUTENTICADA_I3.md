@@ -1,5 +1,7 @@
 # I3 — conferência das RPCs pela sessão pessoal, sem escrita
 
+**Resultado pessoal confirmado em 27/10/2026:** usuário informou todas as quatro confirmações e conclusão sem associação. A execução com a sessão pessoal foi realizada; não solicitar novamente o mesmo clique. SELECT posterior confirmou exatamente um usuário/Google/autorização originais, gate false e nove tabelas privadas vazias. As seções seguintes preservam a preparação e os limites da prova: resultados reais informados pelo usuário e inventário independente, sem captura/exportação do JWT ou tráfego de seu perfil.
+
 Preparada em 27/10/2026, após a confirmação textual do usuário de login verificado/envio bloqueado ao recarregar a aplicação depois do protocolo remoto. Base anterior: `df1751eb8ba167e703978a15b7d2d5ba503c9993`.
 
 ## Evidência atual e lacuna específica
@@ -64,6 +66,6 @@ Capturas temporárias `atlas-live-check-1280.png` e `atlas-live-check-390.png`, 
 
 ## Continuidade e limites
 
-**A execução com a sessão pessoal ainda aguarda o usuário clicar e informar os textos de resultado.** Os resultados sintéticos acima não comprovam as RPCs novas com seu JWT real. Depois do relato, conferir por SELECT se usuário/autorização e gate continuam preservados e as nove tabelas privadas permanecem vazias. Não extrair tokens ou operar o perfil pessoal por automação.
+**Execução pessoal concluída e inventário conferido por SELECT.** Usuário informou sessão Google verificada, envio bloqueado, consulta remota vazia, tentativa inválida recusada e nenhuma associação. Isso acrescenta o caminho autenticado real aos ensaios sintéticos, sem transformar a recusa em prova de escrita financeira bem-sucedida. Não extrair tokens ou operar o perfil pessoal por automação; os demais casos de sessão/isolamento e dois aparelhos continuam pendentes.
 
 Se a página pedir entrada, voltar ao Atlas, entrar com a mesma conta e repetir. Se mostrar envio habilitado, divergência de base/conta ou falha de recusa, interromper e diagnosticar antes de qualquer associação. Não abrir escrita, criar usuários, remover dados ou alterar serviços para fazer o teste passar. I3 continua incompleto, sem piloto/dados pessoais, publicação ou recursos pagos.

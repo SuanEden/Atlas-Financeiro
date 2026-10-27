@@ -1,5 +1,9 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Conferência pessoal do protocolo concluída — 27/10/2026
+
+Usuário enviou os resultados efetivos da página: sessão Google verificada, envio financeiro bloqueado, consulta concluída/base vazia, tentativa inválida recusada e conclusão sem associação. Isso confirma por relato a execução com a sessão pessoal das três rotas; não captura independente de tráfego/token. SELECT posterior: **1 usuário original, 1 identidade Google, autorização única exata, gate false e zero registros em todas as nove tabelas privadas**. [Resultado e limites](CONFERENCIA_AUTENTICADA_I3.md). Sem alterações remotas, código/dependências ou suíte repetida para esse checkpoint documental. Escrita bem-sucedida, demais casos de isolamento/sessão e dois aparelhos não estão comprovados.
+
 ## Recarga relatada e página de conferência autenticada — 27/10/2026
 
 Usuário transcreveu mensagem de login verificado/envio bloqueado após recarga do protocolo; isso não comprova todos os controles ou captura independente de JWT/tráfego. SELECTs preservaram usuário/UUID/autorização únicos, gate false e nove tabelas privadas vazias. Nenhuma mudança remota nesta etapa.
