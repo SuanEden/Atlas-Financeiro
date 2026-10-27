@@ -2,7 +2,15 @@
 
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
-## Inventário de usuários inconclusivo na captura — 27/10/2026
+## Inventário confirmado por contagem de leitura — 27/10/2026
+
+O usuário informou que atualizar a lista não alterou a divergência. Após reconfirmar o projeto existente com `get_project`, foi feita **consulta SQL remota somente de leitura** pelo conector: `select count(*)::text as total_usuarios from auth.users;`. Resultado: `total_usuarios: "0"`. Não foram selecionados emails, UUIDs, identidades, credenciais ou registros individuais. Nenhum DDL, DML, migração, configuração ou criação de usuário foi executado.
+
+A contagem exata confirma zero usuários naquele momento. O total estimado de 10 exibido no rodapé não corresponde à contagem consultada; a causa da estimativa divergente não foi determinada. Isso resolve a dúvida de inventário abaixo, sem comprovar funcionamento de login ou cadastro restrito. Os registros anteriores de ausência de SQL remoto referem-se aos checkpoints anteriores; nesta etapa houve somente o SELECT agregado documentado.
+
+**Próxima etapa guiada:** abrir Add user → Create new user no painel e inspecionar o formulário ainda vazio, sem salvar/criar usuário. Conferir campos e opções reais antes de preparar o pré-cadastro único com email confirmado, sem convite SMTP e sem senha própria, conforme plano. A identidade Google deve ser escolhida privadamente; não inferir pelo nome administrativo ou GitHub. Criação/configuração efetiva continua dependente de autorização específica; não habilitar provedores ou cadastro público por consequência dessa leitura.
+
+## Inventário anterior inconclusivo na captura — 27/10/2026
 
 Captura enviada pelo usuário mostra o projeto correto em Authentication → Users, campo de busca aparentemente vazio, nenhuma linha e mensagem `No users in your project`. Entretanto, o rodapé mostra `Total: 10 users (estimated)`. Essa estimativa não comprova dez usuários e a mensagem central, diante da divergência, não foi tratada como comprovação definitiva de lista vazia. Causa não determinada; não atribuir a cache, filtro, erro do painel ou registros reais sem evidência adicional.
 

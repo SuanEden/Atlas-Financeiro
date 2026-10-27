@@ -1,5 +1,11 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Contagem de usuários por leitura agregada — 27/10/2026
+
+Usuário informou que atualizar o painel não mudou a divergência. `get_project` reconfirmou o projeto existente. `execute_sql`, somente com `select count(*)::text as total_usuarios from auth.users;`, retornou `"0"`. Inventário exato naquele momento: zero usuários. Não foram lidos dados individuais ou credenciais; nenhum DDL, DML, migração ou configuração foi executado. A estimativa visual de 10 não corresponde à contagem observada, sem causa diagnosticada para o rodapé. [Registro e próxima inspeção do formulário](CONFIGURACAO_EXTERNA_I3.md).
+
+Este é o primeiro SELECT remoto documentado nesta sequência, distinto de aplicar alterações remotas. Não é teste de cadastro/login ou autorização. Código inalterado; suíte local não repetida para o checkpoint documental sanitizado. Nenhum usuário criado, provedor habilitado ou publicação realizada pelo agente.
+
 ## Inventário visual de usuários — 27/10/2026
 
 Captura do usuário, no projeto correto: nenhuma linha na lista, busca aparentemente vazia e mensagem `No users in your project`, com `Total: 10 users (estimated)` no rodapé. Inventário inconclusivo; estimativa não foi tratada como contagem real nem ausência de linhas como prova definitiva de ausência de usuários. Orientar atualização da lista e nova conferência. [Registro](CONFIGURACAO_EXTERNA_I3.md). Sem nova consulta administrativa, SQL remoto ou alteração de usuários pelo agente. Somente documentação sanitizada; captura/dados da conta não versionados, código inalterado e testes locais não repetidos.

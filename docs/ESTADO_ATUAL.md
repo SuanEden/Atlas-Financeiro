@@ -1,5 +1,9 @@
 # Estado atual
 
+## Contagem de usuários confirmada — 27/10/2026
+
+Após persistir a divergência do painel, projeto existente reconfirmado e SELECT remoto somente de leitura de `count(*)` em `auth.users` retornou **zero usuários**, sem dados individuais ou alterações. Estimativa visual de 10 não corresponde à contagem atual; causa não determinada. Próxima etapa: abrir formulário Create new user vazio para inspeção, sem criar/salvar. [Registro e limites](CONFIGURACAO_EXTERNA_I3.md). Código inalterado, nenhuma migração/configuração/criação de usuário/publicação e I3 incompleto.
+
 ## Vinculação manual confirmada pelo usuário — 27/10/2026
 
 Usuário respondeu afirmativamente à pergunta específica sobre `Allow manual linking` desligado. Confirmação do painel relatada pelo usuário, sem verificação independente; demais controles conforme última leitura pública abaixo. Próxima etapa: conferir somente se Authentication → Users está vazia ou contém usuários, sem dados pessoais no chat ou criação/alteração de usuários. [Registro vigente](CONFIGURACAO_EXTERNA_I3.md). Sem nova leitura/configuração remota pelo agente, código inalterado e I3 incompleto.
