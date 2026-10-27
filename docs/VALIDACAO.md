@@ -1,5 +1,15 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Recuperação e leitura de Auth — 27/10/2026
+
+- `git fetch origin`, checkout da branch I3 e igualdade de HEAD com `git ls-remote`: `300098a7c59b41f7cbc972cda91a74753c93317b`, sem commit posterior na branch no momento da recuperação. Diretório inicialmente limpo; sem reset, force push ou merge.
+- Leituras Supabase: projeto existente ativo em São Paulo, organização `free` / `tier_free`. GET público de Auth settings com chave publicável ativa: `disable_signup: false`, `external.email: true`, Google/anônimo/telefone e demais provedores retornados `false`. Vinculação manual ausente da resposta e não verificada. Sem credencial administrativa, login, tentativa de cadastro, SQL remoto ou alteração de configuração. [Registro detalhado](CONFIGURACAO_EXTERNA_I3.md).
+- Node 22.13.0/npm 10.9.2. `npm ci`: 70 pacotes adicionados, 71 auditados, zero vulnerabilidades reportadas. Nenhuma atualização de dependência ou lockfile.
+- `npm run check` concluído com código 0 nesta VM: **191 aprovados/1 ignorado** em 16 arquivos Vitest, **typecheck/build aprovados**, **24 testes de navegador** e **3 de PWA**. O teste privado do manifesto histórico continua ignorado pelo motivo já documentado. Testes sintéticos não comprovam Google real, JWT/PostgREST, concorrência independente ou dois aparelhos.
+- Browser plugin not available; executada a suíte Playwright/Edge já versionada, desktop 1280×900 e celular emulado 390×844, em `http://127.0.0.1:5173` e PWA em `http://127.0.0.1:4173`. Nenhuma alteração de interface ou nova inspeção visual manual foi realizada. Avisos `NO_COLOR`/`FORCE_COLOR` do runner e recusa deliberada de arquivo fora da raiz Vite não causaram falha.
+
+Este checkpoint altera somente documentação técnica sanitizada. O modo remoto continua desabilitado; cadastro fechado e desativação de Email continuam pendentes de execução pelo usuário, confirmação e nova leitura. Plano Free não equivale a inspeção de cartão ou garantia de gratuidade permanente. Nenhuma publicação, pagamento/trial ou piloto foi executado.
+
 ## Inventário externo confirmado — 26/10/2026
 
 Após criação pessoal pelo usuário, `list_projects` confirmou `atlas-financeiro-i3`, região `sa-east-1`, estado `ACTIVE_HEALTHY`; `get_organization` confirmou `plan: free` e `tier: tier_free`. Somente leitura; não foram inspecionados métodos de pagamento, Auth, usuários ou schema nem aplicadas migrações/configurações. Não é teste de integração. Código inalterado; a suíte não foi reexecutada para este checkpoint documental. Dados operacionais privados/segredos não integram o registro. Detalhes em [CONFIGURACAO_EXTERNA_I3.md](CONFIGURACAO_EXTERNA_I3.md).

@@ -1,6 +1,28 @@
 # I3 — início da configuração externa
 
-Atualizado em 26/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md) e substitui somente as afirmações históricas de que nenhum projeto hospedado existe.
+Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
+
+## Retomada e consulta de Auth — 27/10/2026
+
+A branch `codex/incremento-3-local-foundation` foi recuperada com worktree inicialmente limpo. Após `git fetch origin`, HEAD e `git ls-remote` apontaram para `300098a7c59b41f7cbc972cda91a74753c93317b`, sem commits posteriores na branch antes deste checkpoint documental.
+
+`list_projects` e `get_project` reconfirmaram o projeto existente `atlas-financeiro-i3`, região `sa-east-1`, estado `ACTIVE_HEALTHY`. `get_organization` reconfirmou `plan: free` e `tier: tier_free`. Nenhum projeto foi criado; método de pagamento não foi inspecionado. Continua obrigatório custo zero, sem cartão, upgrade, trial ou adicionais pagos.
+
+Para conferir o estado atual sem obter credenciais administrativas, foi consultado somente por GET o endpoint público `/auth/v1/settings`, usando uma chave publicável ativa obtida pelo conector. A chave não foi gravada em arquivo, configuração do aplicativo ou Git. Resultado observado:
+
+| Configuração | Valor observado | Interpretação |
+|---|---|---|
+| `disable_signup` | `false` | Cadastro público ainda aberto. |
+| `external.email` | `true` | Entrada por email habilitada. |
+| `external.google` | `false` | Google desabilitado. |
+| `external.anonymous_users` | `false` | Entrada anônima desabilitada. |
+| Demais provedores retornados, incluindo telefone | `false` | Desabilitados nessa resposta. |
+
+Vinculação manual não é informada por essa resposta e permanece **não verificada**. O conector disponível não oferece leitura da configuração administrativa de Auth; conferir essa opção no painel com o usuário, sem solicitar token administrativo. A leitura de settings não testa login, bloqueio efetivo de cadastro ou autorização por UUID e não inventaria usuários, tabelas ou métodos adicionais ausentes da resposta.
+
+Próxima etapa guiada, no mesmo formulário Authentication → Sign In / Providers: desligar `Allow new users to sign up`, manter `Allow anonymous sign-ins` e `Allow manual linking` desligados e salvar. Aguardar confirmação do usuário e reconsultar o estado público; a vinculação manual exige evidência do painel. Depois, em etapa separada, orientar a desativação de Email e revisar os métodos de entrada antes de qualquer ativação Google. Nenhuma alteração dessa etapa foi executada ou presumida nesta retomada.
+
+Foram consultados o changelog e a [configuração geral oficial](https://supabase.com/docs/guides/auth/general-configuration) em 27/10/2026. Não houve SQL remoto, criação de usuário, login, alteração de Auth, ativação Google, publicação ou configuração real do aplicativo. Os demais projetos não foram alterados. I3 continua incompleto.
 
 ## Marco confirmado
 

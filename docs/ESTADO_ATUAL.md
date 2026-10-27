@@ -1,5 +1,9 @@
 # Estado atual
 
+## Retomada — 27/10/2026
+
+Recuperado o HEAD remoto `300098a` na branch I3, sem commits posteriores no momento da consulta. Projeto existente ativo em São Paulo e organização Free reconfirmados. Consulta pública somente de leitura de Auth mostrou cadastro ainda aberto e Email habilitado; Google/anônimo desabilitados. Vinculação manual não verificada. [Registro atual e próxima etapa guiada](CONFIGURACAO_EXTERNA_I3.md). Nenhuma configuração remota foi alterada; o aplicativo continua com modo remoto desabilitado. I3 permanece incompleto.
+
 ## Início da configuração externa — 26/10/2026
 
 O usuário criou pessoalmente `atlas-financeiro-i3`. Consulta somente de leitura confirmou projeto ativo em São Paulo e organização Free. [Registro e limites](CONFIGURACAO_EXTERNA_I3.md). Auth/API ainda não foram inspecionados/configurados pelo agente; nenhuma migração, Google real, publicação ou dado pessoal foi enviado. O modo remoto do aplicativo continua desabilitado. As afirmações seguintes de ausência de serviço referem-se ao checkpoint local anterior.
