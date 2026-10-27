@@ -2,6 +2,12 @@
 
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
+## Vinculação manual confirmada pelo usuário — 27/10/2026
+
+À pergunta explícita se `Allow manual linking` estava desligado, o usuário respondeu afirmativamente. Registrar como **confirmação do usuário no painel**, sem captura ou verificação administrativa independente. A última consulta pública, preservada abaixo, confirmou cadastro fechado e Email, entrada anônima, telefone e Google desabilitados. Nenhuma nova consulta ou alteração remota foi executada nesta confirmação.
+
+**Próxima etapa guiada:** abrir Authentication → Users no projeto existente e informar somente se a lista está vazia ou se já existe algum usuário, sem enviar emails, UUIDs ou outros dados pessoais no chat. O conector disponível não fornece listagem de usuários Auth. Essa conferência é leitura antes de definir privadamente a identidade Google e preparar o pré-cadastro administrativo único; não criar, convidar, excluir ou alterar usuário nesta etapa. Criação/configuração, Google, SQL remoto e publicação continuam sujeitos às autorizações específicas documentadas.
+
 ## Email desativado confirmado — 27/10/2026
 
 Após o usuário informar conclusão da etapa Email, `get_project` reconfirmou o projeto existente. GET público de `/auth/v1/settings`, com URL distinta e `Cache-Control: no-cache`, retornou `disable_signup: true` e todos os métodos listados em `external` como `false`, incluindo Email, Google, telefone e entrada anônima. A configuração pública informa cadastro fechado, Email e entrada anônima desabilitados. Não houve tentativa de cadastro/login nem alteração remota pelo agente.

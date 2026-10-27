@@ -1,6 +1,6 @@
 # I3 local — continuidade após a recuperação
 
-**Estado externo mais recente em 27/10/2026:** leitura após a etapa Email informa cadastro público fechado (`disable_signup: true`) e todos os métodos retornados em `external` desabilitados, incluindo Email, Google, telefone e entrada anônima. Falta confirmação individual no painel de que vinculação manual está desligada; essa opção não consta na resposta pública. Próxima etapa é essa conferência com o usuário, antes da etapa própria de Google. O agente não alterou configuração remota. [Evidência e roteiro](CONFIGURACAO_EXTERNA_I3.md).
+**Estado externo mais recente em 27/10/2026:** última leitura pública informa cadastro fechado e todos os métodos retornados em `external` desabilitados, incluindo Email, Google, telefone e entrada anônima. O usuário confirmou individualmente vinculação manual desligada no painel; sem verificação administrativa independente. Próxima etapa: conferir somente se a lista Authentication → Users está vazia ou já contém usuários, sem dados pessoais no chat e sem criação/alteração. O agente não alterou configuração remota. [Evidência e roteiro](CONFIGURACAO_EXTERNA_I3.md).
 
 **Retomada de 27/10/2026:** recuperado `300098a`, sem commits posteriores na branch no momento da recuperação. Projeto existente e organização Free reconfirmados por leitura. Diagnóstico inicial e testes locais preservados no checkpoint `69e57ce`; código preservado e integração não habilitada.
 

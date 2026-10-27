@@ -1,5 +1,9 @@
 # Estado atual
 
+## Vinculação manual confirmada pelo usuário — 27/10/2026
+
+Usuário respondeu afirmativamente à pergunta específica sobre `Allow manual linking` desligado. Confirmação do painel relatada pelo usuário, sem verificação independente; demais controles conforme última leitura pública abaixo. Próxima etapa: conferir somente se Authentication → Users está vazia ou contém usuários, sem dados pessoais no chat ou criação/alteração de usuários. [Registro vigente](CONFIGURACAO_EXTERNA_I3.md). Sem nova leitura/configuração remota pelo agente, código inalterado e I3 incompleto.
+
 ## Email desativado confirmado — 27/10/2026
 
 Leitura após conclusão da etapa Email pelo usuário: cadastro público fechado e todos os métodos retornados em `external` desabilitados, incluindo Email, entrada anônima, telefone e Google. Falta confirmação individual no painel de que vinculação manual está desligada; essa opção não consta na resposta pública. [Registro vigente e próxima conferência](CONFIGURACAO_EXTERNA_I3.md). Sem teste de cadastro/login, alteração de Auth pelo agente, SQL remoto, usuário ou publicação; aplicativo remoto desabilitado e I3 incompleto.

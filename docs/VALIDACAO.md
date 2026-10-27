@@ -1,5 +1,9 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Confirmação individual de vinculação manual — 27/10/2026
+
+Usuário confirmou afirmativamente que `Allow manual linking` está desligado no painel. Evidência classificada como relato específico do usuário, sem captura ou consulta administrativa independente. Nenhuma nova leitura/alteração remota ou teste de cadastro/login nesta etapa. Próxima ação guiada é inventário visual da existência de usuários, sem dados pessoais no chat ou criação/alteração. [Registro](CONFIGURACAO_EXTERNA_I3.md). Código inalterado; testes locais não repetidos para este checkpoint documental.
+
 ## Email desativado confirmado — 27/10/2026
 
 `get_project` reconfirmou o projeto existente. Após relato de conclusão da etapa Email, GET público de Auth settings com URL distinta e `Cache-Control: no-cache`: `disable_signup: true`, todos os valores retornados em `external` como `false`, incluindo Email, Google, telefone e entrada anônima. Configuração pública informa cadastro fechado e Email desativado. Vinculação manual não consta na resposta; confirmação individual do painel ainda pendente. Não houve tentativa de cadastro/login, leitura de usuários ou alteração de Auth pelo agente. [Registro](CONFIGURACAO_EXTERNA_I3.md).
