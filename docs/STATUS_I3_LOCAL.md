@@ -1,6 +1,8 @@
 # I3 local — continuidade após a recuperação
 
-**Retomada de 27/10/2026:** recuperado `300098a`, sem commits posteriores na branch no momento da consulta. Projeto existente e organização Free reconfirmados por leitura. Auth público consultado: cadastro aberto e Email habilitado; Google/anônimo desabilitados; vinculação manual não verificada. Próxima etapa é fechar cadastro com o usuário, aguardando confirmação e nova leitura. [Evidência e roteiro](CONFIGURACAO_EXTERNA_I3.md). Código preservado, integração não habilitada.
+**Estado externo mais recente em 27/10/2026:** após o usuário informar conclusão do formulário, duas leituras ainda mostram cadastro público aberto e agora entrada anônima habilitada; Email habilitado e Google desabilitado. Vinculação manual não verificada. Repetir orientação no mesmo formulário e verificar novamente antes de avançar para Email. O agente não alterou configuração remota. [Evidência e roteiro](CONFIGURACAO_EXTERNA_I3.md).
+
+**Retomada de 27/10/2026:** recuperado `300098a`, sem commits posteriores na branch no momento da recuperação. Projeto existente e organização Free reconfirmados por leitura. Diagnóstico inicial e testes locais preservados no checkpoint `69e57ce`; código preservado e integração não habilitada.
 
 **Marco externo posterior:** o usuário criou o projeto de integração sintética e o agente confirmou, por consultas de leitura, estado ativo, São Paulo e plano Free. Ver [CONFIGURACAO_EXTERNA_I3.md](CONFIGURACAO_EXTERNA_I3.md). Isso atualiza o inventário de serviços, sem alterar código, habilitar integração ou comprovar Auth/SQL/publicação. As referências abaixo a nenhum serviço criado descrevem a entrega local anterior.
 

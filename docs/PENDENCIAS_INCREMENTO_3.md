@@ -1,6 +1,6 @@
 # Incremento 3 — decisões e ações do usuário
 
-**Consulta atual em 27/10/2026:** projeto existente/Free reconfirmados. Cadastro público ainda aberto e Email habilitado; Google/anônimo desabilitados; vinculação manual não verificada. O usuário ainda precisa fechar cadastro no formulário e confirmar o salvamento; depois revisar Email em etapa separada. [Evidência de leitura e limites](CONFIGURACAO_EXTERNA_I3.md). Orientação não equivale a execução ou teste de bloqueio.
+**Reconsulta atual em 27/10/2026:** após relato de conclusão do formulário, duas leituras ainda mostram cadastro público aberto e entrada anônima agora habilitada. Email habilitado, Google desabilitado; vinculação manual não verificada. Continuar no mesmo formulário: orientar as três opções gerais desligadas, salvar e reconsultar antes de avançar para Email. Projeto existente reconfirmado; Free observado na consulta anterior deste dia. [Evidência de leitura e limites](CONFIGURACAO_EXTERNA_I3.md). Relato de conclusão não foi tratado como validação do estado desejado.
 
 **Inventário externo iniciado:** usuário criou pessoalmente projeto separado de I3; ativo em São Paulo, organização Free confirmada por consulta. [Registro vigente](CONFIGURACAO_EXTERNA_I3.md). Próxima configuração guiada: fechar cadastro público e métodos de entrada indevidos. Auth ainda não foi verificado; criação não autoriza automaticamente SQL, Google, publicação ou piloto. O roteiro abaixo preserva as condições, mas inventário/criação já não são etapas inteiramente futuras.
 

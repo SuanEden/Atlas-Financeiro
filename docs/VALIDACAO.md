@@ -1,5 +1,11 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Reconsulta após relato de conclusão do formulário — 27/10/2026
+
+Projeto existente reconfirmado com `get_project`. Duas leituras públicas de Auth settings, após o relato de conclusão do usuário: `disable_signup: false`, `external.anonymous_users: true`, `external.email: true`, `external.google: false`. A segunda requisição usou URL distinta e `Cache-Control: no-cache`. Cadastro público ainda aberto e entrada anônima habilitada; a etapa não passou na conferência. Vinculação manual ausente da resposta e não verificada. [Detalhes e próxima ação](CONFIGURACAO_EXTERNA_I3.md).
+
+Nenhuma tentativa de cadastro/login ou alteração remota pelo agente. Somente documentação técnica sanitizada alterada; suíte local não foi repetida, pois o código não mudou desde a execução aprovada abaixo. Não avançar para Email/Google antes de corrigir e conferir este formulário.
+
 ## Recuperação e leitura de Auth — 27/10/2026
 
 - `git fetch origin`, checkout da branch I3 e igualdade de HEAD com `git ls-remote`: `300098a7c59b41f7cbc972cda91a74753c93317b`, sem commit posterior na branch no momento da recuperação. Diretório inicialmente limpo; sem reset, force push ou merge.

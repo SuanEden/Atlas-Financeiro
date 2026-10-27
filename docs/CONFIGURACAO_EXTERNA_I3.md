@@ -2,7 +2,15 @@
 
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
-## Retomada e consulta de Auth — 27/10/2026
+## Reconsulta após relato de conclusão — 27/10/2026
+
+Após o usuário informar que concluiu a etapa do formulário, duas consultas somente de leitura de `/auth/v1/settings` retornaram `disable_signup: false`, `external.anonymous_users: true`, `external.email: true` e `external.google: false`. A segunda requisição usou URL distinta e `Cache-Control: no-cache` para reduzir a possibilidade de reaproveitamento de resposta. O projeto existente foi reconfirmado pelo conector antes das leituras. Nenhum teste de cadastro/login foi executado.
+
+O resultado ainda indica cadastro público aberto e entrada anônima habilitada; diverge do estado solicitado e substitui os valores da primeira consulta abaixo. Não atribuir a causa à interface ou ao usuário sem evidência. Vinculação manual segue não verificada, pois não consta na resposta pública; o relato geral de conclusão não confirma individualmente essa opção.
+
+**Próxima ação continua no mesmo formulário:** orientar o usuário a conferir o projeto correto, deixar `Allow new users to sign up`, `Allow anonymous sign-ins` e `Allow manual linking` desligados e salvar. Reconsultar após novo relato; se houver dificuldade, conferir captura somente desse bloco, sem segredos. Ainda não avançar para Email ou Google. O agente não alterou configuração remota. O próximo checkpoint é exclusivamente documental e não exige repetir os testes locais de código já aprovados.
+
+## Retomada e primeira consulta de Auth — 27/10/2026
 
 A branch `codex/incremento-3-local-foundation` foi recuperada com worktree inicialmente limpo. Após `git fetch origin`, HEAD e `git ls-remote` apontaram para `300098a7c59b41f7cbc972cda91a74753c93317b`, sem commits posteriores na branch antes deste checkpoint documental.
 

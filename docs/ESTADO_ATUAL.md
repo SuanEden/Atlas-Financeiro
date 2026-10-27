@@ -1,5 +1,9 @@
 # Estado atual
 
+## Reconsulta do formulário de acesso — 27/10/2026
+
+Depois do relato de conclusão do usuário, duas leituras de Auth settings ainda indicam cadastro público aberto (`disable_signup: false`) e entrada anônima agora habilitada (`external.anonymous_users: true`). Email habilitado, Google desabilitado; vinculação manual não verificada. Continuar orientando o mesmo formulário, com as três opções gerais desligadas e salvamento, antes de avançar para Email. [Evidência atual](CONFIGURACAO_EXTERNA_I3.md). Agente não alterou configuração remota; código e modo remoto desabilitado preservados.
+
 ## Retomada — 27/10/2026
 
 Recuperado o HEAD remoto `300098a` na branch I3, sem commits posteriores no momento da consulta. Projeto existente ativo em São Paulo e organização Free reconfirmados. Consulta pública somente de leitura de Auth mostrou cadastro ainda aberto e Email habilitado; Google/anônimo desabilitados. Vinculação manual não verificada. [Registro atual e próxima etapa guiada](CONFIGURACAO_EXTERNA_I3.md). Nenhuma configuração remota foi alterada; o aplicativo continua com modo remoto desabilitado. I3 permanece incompleto.
