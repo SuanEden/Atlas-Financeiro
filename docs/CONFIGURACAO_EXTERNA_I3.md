@@ -2,6 +2,12 @@
 
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
+## Formulário Google pronto para decisão de criação — 27/10/2026
+
+Captura do usuário mostra formulário Novo projeto preenchido com nome `Atlas Financeiro`, identificador gerado visível somente na interface, organização e recurso pai como Nenhuma organização, aviso de oito projetos restantes na cota e botão Criar. Não há campo de faturamento visível na captura completa do formulário. Isso não comprova criação ou situação de faturamento após criar; cota não deve ser alterada e projetos existentes não devem ser excluídos para esta etapa.
+
+Ação concreta proposta: criar **somente esse projeto Google Cloud**, para preparar o login, sem ativar trial, vincular faturamento, fornecer cartão ou criar serviço pago. O Supabase existente permanece o mesmo. Após apresentar nome/escopo/condição de custo zero, orientar que o próprio usuário clique Criar **se concordar em autorizar essa criação específica**; não exigir uma resposta afirmativa adicional antes de ele executar a ação na interface. A criação ainda não foi executada ou observada. Depois conferir projeto selecionado e faturamento por leitura antes de configurar OAuth. Identificador operacional e captura fora do Git.
+
 ## Lista de projetos Google e preparação do formulário — 27/10/2026
 
 Capturas posteriores mostram a aba Todos com quatro projetos preexistentes no contexto selecionado e busca por Atlas sem resultados. Nenhum projeto foi identificado como o alvo do Atlas; isso não comprova inexistência em outras contas/contextos nem a finalidade dos projetos com nomes genéricos. Nomes/IDs externos e capturas não foram versionados.

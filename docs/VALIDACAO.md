@@ -1,5 +1,9 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Formulário de projeto Google preparado — 27/10/2026
+
+Captura mostra nome `Atlas Financeiro`, identificador gerado, organização/recurso pai Nenhuma organização, aviso de oito projetos restantes e botão Criar. Não há campo de faturamento visível; nenhum pagamento/trial foi autorizado. Proposta limitada à criação desse projeto após concordância do usuário, manifestada pela própria ação Criar na interface. Ainda sem evidência de criação ou faturamento real pós-criação. [Registro e condição de custo zero](CONFIGURACAO_EXTERNA_I3.md). Código inalterado, testes não repetidos; captura e identificador operacional fora do Git.
+
 ## Lista de projetos Google — 27/10/2026
 
 Capturas do usuário: aba Todos com quatro projetos preexistentes, busca Atlas sem resultados no contexto selecionado. Não identifica projeto Google do Atlas nem autoriza reutilização/criação. Próxima etapa é preparar formulário Novo projeto, nome sugerido `Atlas Financeiro`, sem clicar Criar; conferir dados/faturamento antes de autorização específica. [Registro e fontes oficiais](CONFIGURACAO_EXTERNA_I3.md). Nenhuma alteração Google ou de faturamento, código inalterado e testes não repetidos para este checkpoint documental. Capturas e nomes/IDs de terceiros fora do Git.
