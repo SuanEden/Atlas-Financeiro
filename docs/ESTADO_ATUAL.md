@@ -1,5 +1,9 @@
 # Estado atual
 
+## Saída local exibiu bloqueio; recarga e reentrada pendentes — 27/10/2026
+
+Usuário informou pedido de entrada Google e aviso de acesso local bloqueado/pendências preservadas. Relato confirma o bloqueio visual após saída; não comprova recarga, nova entrada ou invalidação de JWT. [Evidência e continuidade](RESULTADO_PRIMEIRO_LOGIN_I3.md). Próximo passo: F5, confirmar bloqueio persistente e entrar novamente com a mesma conta. Não repetir saída já relatada nem associar base/abrir escrita. Sem nova inspeção ou alteração remota nesta atualização.
+
 ## Primeiro login Google real confirmado — 27/10/2026
 
 Usuário relatou login verificado/envio aguardando liberação. SELECTs confirmaram um único usuário, mesmo UUID pré-cadastrado, conta confirmada, login registrado e identidade Google vinculada ao UUID esperado; autorização ativa preservada. Sete tabelas privadas vazias, RLS e bloqueio DML preservados. Cadastro fechado, somente Google habilitado, API restrita e anônimo negado. [Resultado e limites](RESULTADO_PRIMEIRO_LOGIN_I3.md). Associação ainda não realizada; não abrir escrita para ultrapassar a mensagem de associação. Próximo teste pessoal: sair/bloquear, recarregar e entrar novamente com a mesma conta, seguido de conferência por leitura. Protocolo posterior, testes negativos reais e dois aparelhos continuam pendentes.

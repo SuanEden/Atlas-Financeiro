@@ -1,5 +1,7 @@
 # Incremento 3 — decisões e ações do usuário
 
+**Passo de sessão vigente — 27/10/2026:** aviso de bloqueio após saída relatado. Faltam F5 com bloqueio preservado e nova entrada na mesma conta; não repetir logout. [Registro e limites](RESULTADO_PRIMEIRO_LOGIN_I3.md). Associação/escrita continuam bloqueadas; não presumir revogação de JWT a partir do aviso visual.
+
 **Prioridade vigente após primeiro login — 27/10/2026:** vínculo Google real ao mesmo cadastro confirmado, sem duplicação e sem dados financeiros. [Resultado](RESULTADO_PRIMEIRO_LOGIN_I3.md). Próximo teste pessoal proposto: Sair e bloquear, recarregar mantendo bloqueio e entrar novamente com a mesma conta; não associar base nem cadastrar finanças. Matrizes negativas com sessão/JWT reais, protocolo/gateway, concorrência e dois dispositivos continuam pendentes. O login bem-sucedido não autoriza abertura financeira ou segunda migração.
 
 **Prioridade vigente — 27/10/2026:** Google foi salvo pelo usuário e confirmado como único método habilitado; não repetir ativação. Cadastro fechado, mesma autorização, escrita bloqueada e tabelas privadas vazias. [Primeiro login pessoal preparado para aprovação](PRIMEIRO_LOGIN_GOOGLE_I3.md), com tela local/PKCE/callback conferidos sem tráfego OAuth remoto. A próxima ação pode ligar a identidade Google ao usuário existente e criar sessão; preservar UUID, sem associação financeira ou protocolo posterior. Preparação local já feita não precisa de aprovação repetida; nenhum `.env` real foi criado.

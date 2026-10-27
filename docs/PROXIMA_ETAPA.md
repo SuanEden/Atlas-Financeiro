@@ -1,5 +1,9 @@
 # Próxima etapa — continuar I3 local
 
+## Continuidade do teste de saída — 27/10/2026
+
+Usuário já relatou acesso local bloqueado/pendências preservadas após sair. [Registro](RESULTADO_PRIMEIRO_LOGIN_I3.md). Orientar agora F5 e confirmação de bloqueio persistente, seguida de nova entrada com a mesma conta. Não considerar esses dois passos concluídos sem relato; não pedir logout novamente nem abrir associação/escrita.
+
 ## Prioridade após primeiro login real — 27/10/2026
 
 Primeiro Google real e UUID original preservado confirmados, sem conta duplicada ou registros financeiros. [Evidência e roteiro](RESULTADO_PRIMEIRO_LOGIN_I3.md). Próximo teste pessoal: saída local, recarga ainda bloqueada e nova entrada na mesma conta, mantendo associação/envio indisponíveis. Não pedir novamente autorização/configuração do provedor ou pré-cadastro; não acessar tokens do navegador. Depois do relato, conferir por leitura e registrar checkpoint. Protocolo posterior/abertura financeira dependem de preparação técnica e aprovação própria; testes reais negativos, concorrência e dois aparelhos seguem pendentes.

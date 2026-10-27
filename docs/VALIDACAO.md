@@ -1,5 +1,9 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Aviso de bloqueio após saída relatado — 27/10/2026
+
+Usuário informou pedido de entrada Google e aviso de acesso local bloqueado/pendências preservadas. Evidência de renderização por relato textual, sem acesso do agente ao perfil pessoal. F5, desaparecimento do controle Sair e nova entrada não foram informados; não marcar persistência ou reautenticação como aprovadas. Nenhuma consulta remota adicional, teste de token, alteração de código/configuração ou suíte repetida. [Continuidade](RESULTADO_PRIMEIRO_LOGIN_I3.md).
+
 ## Primeiro Google real no UUID pré-cadastrado — 27/10/2026
 
 Usuário informou mensagem de login verificado/envio aguardando liberação e controles Entrar/Sair. Consultas somente de leitura: **1 usuário, mesmo UUID esperado, conta confirmada/não anônima, login registrado, 1 identidade Google no UUID correto, 0 em outro usuário**, autorização ativa única preservada. Oito tabelas com RLS, zero DML de cliente e sete tabelas privadas vazias; protocolo posterior ausente. Projeto ativo; GET Auth cadastro fechado/somente Google. HTTP reconfirmou API somente `api`, privado 406/PGRST106 e readiness anônimo 401/42501.
