@@ -1,5 +1,9 @@
 # Estado atual
 
+## Recuperação e revisão do backend — 27/10/2026
+
+Recuperado HEAD remoto `40e31a6`, worktree inicialmente limpo. Leituras atuais: projeto existente ativo/Free, 1 usuário confirmado sem login e uma identidade Email; nenhum schema Atlas ou migração remota. Logo, autorização financeira ainda não existe. Cadastro público e todos os métodos retornados continuam desligados. Os endereços anteriores foram aceitos pelo usuário; captura não disponível. [Procedimento concreto preparado](AUTORIZACAO_BACKEND_I3.md): somente primeira migração privada e autorização do UUID pré-cadastrado, com escrita financeira bloqueada, aguardando aprovação específica. Nenhuma alteração remota executada. Base local revalidada e 10 testes do novo procedimento aprovados; I3 incompleto.
+
 ## Continuidade solicitada sem troca de segredo — 27/10/2026
 
 Usuário recusou expressamente a troca recomendada e pediu o próximo passo; não presumir revogação nem repetir essa exigência. Orientar URLs locais de retorno no Supabase existente, sem salvamento comprovado ainda. GET atual confirma cadastro fechado e Google/Email/anônimo desligados. [Decisão, valores e limites](CONFIGURACAO_EXTERNA_I3.md). Ativação ainda requer revisão técnica de autorização da conta/backend e autorização remota específica; código e I3 incompleto preservados, nenhum segredo transcrito.

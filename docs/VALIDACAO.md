@@ -1,5 +1,17 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Recuperação, inventário real e autorização preparada — 27/10/2026
+
+- Branch I3 recuperada a partir do HEAD remoto `40e31a6bad4a31587b0c41d5049598b098ecbd50`, inicialmente limpa. Sem reset, merge ou force push.
+- Leituras Supabase: projeto ativo/Free; 1 usuário confirmado, 0 anônimos, 0 logins registrados; 1 identidade Email, nenhuma Google. Schemas Atlas ausentes e lista de migrações vazia. Nenhuma relação em `public`, extensão GraphQL ausente, defaults de clientes encontrados específicos de `public`. Configuração efetiva de schemas HTTP não verificada pelos parâmetros SQL; raiz REST com chave publicável retornou 401 pedindo chave secreta, sem contorno administrativo.
+- GET público de Auth: cadastro fechado, todos os métodos retornados desligados. URLs aceitas por relato do usuário, sem acesso à captura anterior ou nova comprovação de salvamento. Sem cadastro/login ou escrita remota.
+- `npm ci --no-audit --no-fund` e `npm run check` aprovados na base recuperada: **191 testes/1 ignorado, 24 navegador, 3 PWA**, typecheck/build. O ignorado depende do manifesto privado antigo ausente. Avisos esperados de cores e bloqueio de arquivo fora da raiz não impediram o fluxo.
+- `node --test scripts/i3-user-admin.test.mjs`: **11 aprovados**, sem executar o helper administrativo real.
+- Novo procedimento SQL de autorização preparado, sem migração existente alterada. `npx vitest run tests/authorization-preparation.test.ts`: **10 aprovados**; `npm run typecheck` aprovado depois da inclusão. O check completo acima precedeu esses novos testes; sem alteração do aplicativo distribuído.
+- UUID do único pré-cadastro conferido por leitura administrativa e mantido somente em registro privado ignorado pelo Git; email não consultado, nenhum segredo obtido. `git check-ignore` confirmou a exclusão. Uma falha local de parsing da resposta ocorreu antes do registro; consulta somente de leitura repetida com parsing corrigido, sem qualquer requisição de escrita.
+
+[Artefatos, precondições e proposta para aprovação](AUTORIZACAO_BACKEND_I3.md). Testes SQL em PGlite com papéis/identidades simulados; sem JWT, gateway, concorrência independente ou dois dispositivos físicos. Nenhuma concessão real criada, provedor ativado, projeto recriado, cobrança habilitada ou publicação executada. I3 incompleto.
+
 ## Decisão do usuário e preparação dos retornos — 27/10/2026
 
 Usuário recusou a troca do segredo e pediu continuidade, sem evidência de rotação/revogação; decisão registrada sem manter a troca como exigência geral. `get_project_url` reconfirmou alvo Supabase. Código atual calcula retorno `/auth/callback` pela origem; proposta de Site URL `http://127.0.0.1:5173` e Redirect URL exata correspondente preparada para salvamento pelo usuário, sem execução ou comprovação do estado salvo. GET público atual: `disable_signup: true`, Google/Email/anônimo `false`. [Registro](CONFIGURACAO_EXTERNA_I3.md). Sem uso/transcrição de segredo, alteração remota pelo agente ou teste de login. Código inalterado; testes não repetidos para o checkpoint documental.

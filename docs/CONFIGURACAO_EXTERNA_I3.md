@@ -1,5 +1,9 @@
 # I3 — início da configuração externa
 
+## Recuperação por leituras e proposta de autorização — 27/10/2026
+
+Após recuperar `40e31a6`, leituras reconfirmaram projeto existente ativo, organização Free, 1 usuário confirmado/não anônimo/sem login e identidade Email única. Nenhum schema Atlas ou migração remota: autorização financeira não criada. Cadastro público e todos os métodos retornados continuam desligados. Nenhuma alteração, criação, login, segredo administrativo, pagamento ou publicação nesta retomada. Os dois endereços foram considerados corretos pelo usuário; não há acesso à captura anterior nem confirmação administrativa independente dos retornos salvos. [Inventário completo e ação preparada para aprovação](AUTORIZACAO_BACKEND_I3.md). A proposta limita-se à fundação privada inicial e autorização única por UUID, mantendo escrita financeira bloqueada. Google e protocolo posterior permanecem separados.
+
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
 ## Usuário recusou troca do segredo e pediu continuidade — 27/10/2026

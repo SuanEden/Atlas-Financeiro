@@ -1,5 +1,9 @@
 # Próxima etapa — continuar I3 local
 
+## Prioridade de recuperação — 27/10/2026
+
+Revisão do servidor existente feita por consultas de leitura: não há migração/schema Atlas nem autorização financeira. A próxima ação concreta está preparada em [AUTORIZACAO_BACKEND_I3.md](AUTORIZACAO_BACKEND_I3.md): instalar somente fundação inicial e autorizar UUID pré-cadastrado, mantendo escrita financeira bloqueada. Aguardar aprovação específica dessa alteração remota; depois conferir o estado antes de executar. Não repetir pré-cadastro, criar projeto ou ativar Google. Revisão do protocolo/gateway e provas reais permanecem pendentes.
+
 ## Prioridade vigente depois da ligação da interface
 
 Ler [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md): a ligação de Auth/controlador às telas e cópia I3 já foi implementada. Não repetir o lote descrito nas prioridades históricas abaixo. Conferir o HEAD remoto da branch para o checkpoint mais recente. Continuar pelas pendências locais do resumo (ambiente de concorrência, associação interrompida/legada, conflitos/dependências, tombstones e proteção operacional da cópia); integração externa e piloto continuam aguardando autorização específica, com orientação uma etapa por vez. Não iniciar I4.
