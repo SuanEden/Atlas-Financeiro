@@ -1,5 +1,9 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Inspeção de criação sem senha — 27/10/2026
+
+Captura do formulário: Email, Password e Auto confirm user marcado. Código público oficial de CreateUserModal exige senha não vazia; documentação de `auth.admin.createUser` inclui exemplo com email confirmado e sem senha. [Fontes e decisão](CONFIGURACAO_EXTERNA_I3.md). Isso valida a existência documental de alternativa administrativa, sem comprovar execução no projeto hospedado ou primeiro vínculo Google. Não houve submissão pelo agente, nova contagem, credencial administrativa ou criação de usuário. Escolha privada da identidade ainda pendente. Código local inalterado; suíte não repetida para este checkpoint documental.
+
 ## Contagem de usuários por leitura agregada — 27/10/2026
 
 Usuário informou que atualizar o painel não mudou a divergência. `get_project` reconfirmou o projeto existente. `execute_sql`, somente com `select count(*)::text as total_usuarios from auth.users;`, retornou `"0"`. Inventário exato naquele momento: zero usuários. Não foram lidos dados individuais ou credenciais; nenhum DDL, DML, migração ou configuração foi executado. A estimativa visual de 10 não corresponde à contagem observada, sem causa diagnosticada para o rodapé. [Registro e próxima inspeção do formulário](CONFIGURACAO_EXTERNA_I3.md).

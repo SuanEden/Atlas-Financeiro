@@ -1,6 +1,6 @@
 # I3 local — continuidade após a recuperação
 
-**Inventário de usuários confirmado:** atualização do painel não resolveu a divergência. SELECT remoto somente de leitura, agregado e sem dados individuais, confirmou **zero usuários** em `auth.users`; estimativa de 10 no rodapé não corresponde à contagem naquele momento. Próxima etapa: abrir e inspecionar formulário Add user → Create new user vazio, sem salvar/criar. [Evidência e limites](CONFIGURACAO_EXTERNA_I3.md).
+**Inventário de usuários confirmado:** SELECT remoto somente de leitura confirmou **zero usuários** em `auth.users`; estimativa visual de 10 não corresponde à contagem naquele momento. Formulário de criação inspecionado; o código público exige senha. Preservar pré-cadastro sem senha via procedimento administrativo próprio, ainda não executado. Próxima etapa: fechar formulário sem salvar e escolher privadamente a identidade Google, sem email/senha no chat. [Evidência e limites](CONFIGURACAO_EXTERNA_I3.md).
 
 **Estado externo mais recente em 27/10/2026:** última leitura pública informa cadastro fechado e todos os métodos retornados em `external` desabilitados, incluindo Email, Google, telefone e entrada anônima. O usuário confirmou individualmente vinculação manual desligada no painel; sem verificação administrativa independente. Inventário de usuários resolvido pela contagem acima. O agente não alterou configuração remota. [Evidência e roteiro](CONFIGURACAO_EXTERNA_I3.md).
 

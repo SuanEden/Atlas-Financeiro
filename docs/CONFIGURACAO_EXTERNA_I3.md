@@ -2,6 +2,14 @@
 
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
+## Formulário de criação inspecionado — 27/10/2026
+
+A captura do usuário mostra Create a new user com Email address, User Password, Auto confirm user? marcado e aviso de que o formulário não envia email de confirmação. A captura não comprova submissão ou criação. O [código público de CreateUserModal](https://github.com/supabase/supabase/blob/master/apps/studio/components/interfaces/Auth/Users/CreateUserModal.tsx), consultado nesta data, exige email válido e senha não vazia. Não assumir que deixar a senha vazia nesse formulário implementa o pré-cadastro sem senha previsto no plano. Não foi testada a versão hospedada por submissão.
+
+A [referência oficial de createUser](https://supabase.com/docs/reference/javascript/auth-admin-createuser) contém criação administrativa com email e `email_confirm: true`, omitindo senha. Essa alternativa requer ambiente administrativo confiável; chave administrativa não pode ir para frontend/chat/Git. Nenhuma chave administrativa foi solicitada/obtida, nenhum script administrativo foi executado e nenhum usuário foi criado. O conector GitHub de leitura retornou ferramenta indisponível; o código público foi lido por HTTPS como fallback.
+
+**Próxima etapa guiada:** fechar o formulário sem salvar e escolher privadamente a conta Google autorizada, respondendo apenas que a conta foi escolhida, sem enviar email ou senha. Depois preparar procedimento administrativo concreto e revisado para um único usuário confirmado, sem senha e sem convite, com autorização específica antes da criação. Não trocar esse requisito por senha temporária nem abrir cadastro público. Última contagem observada permanece zero; não houve nova contagem nesta inspeção.
+
 ## Inventário confirmado por contagem de leitura — 27/10/2026
 
 O usuário informou que atualizar a lista não alterou a divergência. Após reconfirmar o projeto existente com `get_project`, foi feita **consulta SQL remota somente de leitura** pelo conector: `select count(*)::text as total_usuarios from auth.users;`. Resultado: `total_usuarios: "0"`. Não foram selecionados emails, UUIDs, identidades, credenciais ou registros individuais. Nenhum DDL, DML, migração, configuração ou criação de usuário foi executado.

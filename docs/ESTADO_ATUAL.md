@@ -1,5 +1,9 @@
 # Estado atual
 
+## Inspeção do formulário de criação — 27/10/2026
+
+Captura mostra Email, Password e Auto confirm user marcado. Código público do formulário exige senha não vazia; referência oficial da API administrativa permite email confirmado sem senha. Orientação atual: fechar sem salvar e escolher privadamente a conta Google; preparar depois procedimento administrativo sem senha, com autorização específica antes de criar. [Evidência e limites](CONFIGURACAO_EXTERNA_I3.md). Nenhum usuário, segredo administrativo ou alteração remota nesta inspeção. Última contagem zero; I3 incompleto.
+
 ## Contagem de usuários confirmada — 27/10/2026
 
 Após persistir a divergência do painel, projeto existente reconfirmado e SELECT remoto somente de leitura de `count(*)` em `auth.users` retornou **zero usuários**, sem dados individuais ou alterações. Estimativa visual de 10 não corresponde à contagem atual; causa não determinada. Próxima etapa: abrir formulário Create new user vazio para inspeção, sem criar/salvar. [Registro e limites](CONFIGURACAO_EXTERNA_I3.md). Código inalterado, nenhuma migração/configuração/criação de usuário/publicação e I3 incompleto.
