@@ -2,6 +2,24 @@
 
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
+## Pré-cadastro único criado e conferido — 27/10/2026
+
+A execução especificamente autorizada concluiu com `USUARIO_CRIADO_E_CONFERIDO`. O SDK listou base vazia antes de criar, enviou somente email escolhido e `email_confirm: true`, conferiu um único usuário e releu-o pelo mesmo UUID. Comparações locais do recibo com o alvo privado confirmaram projeto e conta corretos, UUID válido e email confirmado, sem imprimir valores pessoais. Uma captura posterior do usuário confirmou a mensagem sanitizada de sucesso. Chave recebida somente pela entrada oculta local, sem valor no chat/arquivos/Git.
+
+Verificação remota independente, somente agregada: **1 usuário, 1 email confirmado, 0 anônimos, 0 usuários com login realizado e 0 identidades Google**. GET público reconfirmou `disable_signup: true`, Email/anônimo/Google desabilitados e todos os demais métodos retornados desabilitados. Vinculação manual permanece conforme confirmação anterior do usuário no painel. Projeto ativo e organização Free foram reconfirmados nesta retomada. Nenhum outro projeto alterado, convite enviado pelo helper, dado financeiro, SQL de alteração, migração, Google ou publicação executados.
+
+**Correção da expectativa sobre senha:** o payload não continha senha, mas a contagem de campo `encrypted_password` não vazio retornou **1**. O [código oficial de adminUserCreate](https://github.com/supabase/auth/blob/master/internal/api/admin.go) gera senha aleatória interna quando ela é omitida; o resultado observado é compatível. Não declarar senha ausente do banco nem login por senha testado. Nenhuma senha adicional foi fornecida ao usuário ou lida pelo agente; nenhum hash foi obtido. Não executar alteração para apagar esse campo. [Procedimento com resultado e limites](PRE_CADASTRO_ADMIN_I3.md).
+
+**Retomada futura:** preservar marcador/recibo privados e não repetir o helper de criação. Esses arquivos são ignorados e descartáveis com a VM; a existência do usuário no serviço deve ser reconferida por leitura em outra VM antes de qualquer ação. Email/UUID operacionais ficam fora do Git. Google, autorização ativa por UUID, schema/API, testes negativos, publicação e dois dispositivos continuam pendentes e sujeitos às autorizações específicas; I3 incompleto.
+
+## Retomada da entrada privada e diagnóstico de chave pública — 27/10/2026
+
+Na retomada solicitada pelo usuário, a janela anterior já estava fechada, sem tentativa ou recibo. Projeto ativo, Free e zero usuários/confirmados/com senha foram reconfirmados por leituras agregadas. A nova entrada parou na validação de formato, antes de qualquer requisição. O helper foi ajustado para remover espaços externos, aceitar Secret key e JWT administrativo legado `service_role`, distinguir Publishable/anon e não mostrar valores privados. Onze testes locais aprovados; sintaxe Node/PowerShell aprovada. Classificação local não valida assinatura ou privilégios; essa validação cabe à API do projeto.
+
+Uma entrada posterior foi identificada pelo helper como **Publishable**, recusada antes de rede ou marcador. A captura mostra somente a mensagem sanitizada e a entrada oculta. Nenhuma chave foi copiada ao chat ou Git. As janelas de falha já concluídas foram encerradas e seus resultados sanitizados arquivados no diretório privado; não houve exclusão de marcador ou nova tentativa após criação incerta. Não havia marcador/recibo antes de cada reabertura.
+
+Foi aberta outra janela privada para a chave administrativa existente. Orientação atual: na página API Keys, usar `service_role` da aba Legacy anon, service_role API keys, ou uma Secret key existente, nunca Publishable/anon. Última conferência ainda sem tentativa/recibo; criação não comprovada. O modo Select do console foi observado e o usuário foi orientado a sair com Esc antes de colar. Autorização de criação única permanece; conferir resultado e estado real antes de repetir ou declarar sucesso.
+
 ## Execução autônoma autorizada, janela de entrada privada aberta — 27/10/2026
 
 O usuário pediu execução autônoma e somente o resultado, reduzindo as etapas interativas anteriores. A autorização específica de um único pré-cadastro permanece válida. O wrapper agora pode ler o alvo escolhido de arquivo privado ignorado e gravar apenas estado sanitizado, mantendo a chave somente em entrada oculta/memória/stdin. Nove testes Node novamente aprovados, parser PowerShell aprovado e teste real não interativo recusou alvo privado ausente antes de solicitar chave ou acessar a rede.

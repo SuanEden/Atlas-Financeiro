@@ -9,6 +9,26 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 export class AdminStop extends Error {}
 function stop(message) { throw new AdminStop(message) }
 
+export function validateAdminInput(config) {
+  if (!config || typeof config !== 'object' || !/^[a-z]{20}$/.test(config.projectRef ?? '')) {
+    stop('Identificador do projeto invalido; nenhuma requisicao iniciada.')
+  }
+  const secret = typeof config.secret === 'string' ? config.secret.trim() : ''
+  if (secret.startsWith('sb_publishable_')) {
+    stop('Chave publica recebida. Use Secret key (sb_secret), nao Publishable key; nenhuma requisicao iniciada.')
+  }
+  if (/^sb_secret_[A-Za-z0-9_-]+$/.test(secret)) return { ...config, secret }
+  if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(secret)) {
+    let role
+    try { role = JSON.parse(Buffer.from(secret.split('.')[1], 'base64url').toString('utf8')).role }
+    catch { stop('Chave administrativa invalida; nenhuma requisicao iniciada.') }
+    // Classification only. The project API must validate the signature and privileges.
+    if (role === 'service_role') return { ...config, secret }
+    stop('Chave sem papel administrativo. Use Secret key ou service_role; nenhuma requisicao iniciada.')
+  }
+  stop('Chave administrativa ausente ou formato nao reconhecido. Copie o valor pelo botao Copy; nenhuma requisicao iniciada.')
+}
+
 export async function prepareUser({ projectRef, email, create = false }, io) {
   if (!/^[a-z]{20}$/.test(projectRef ?? '') || typeof create !== 'boolean') {
     stop('Configuracao invalida; nenhuma criacao iniciada.')
@@ -61,10 +81,8 @@ async function main() {
     input += part
     if (input.length > 8192) stop('Entrada invalida.')
   }
-  const config = JSON.parse(input)
+  const config = validateAdminInput(JSON.parse(input))
   input = ''
-  if (!/^[a-z]{20}$/.test(config.projectRef ?? '') ||
-      !/^sb_secret_[A-Za-z0-9_-]+$/.test(config.secret ?? '')) stop('Projeto ou chave secreta invalida.')
   const url = `https://${config.projectRef}.supabase.co`
   const require = createRequire(resolve(root, 'app/package.json'))
   const { createClient } = require('@supabase/supabase-js')

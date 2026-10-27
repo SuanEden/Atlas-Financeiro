@@ -1,5 +1,19 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Pré-cadastro administrativo real — 27/10/2026
+
+Após autorização específica e entrada privada local da credencial, helper retornou `USUARIO_CRIADO_E_CONFERIDO`: precondições de Auth/inventário, uma chamada createUser sem senha/convite, listagem e getUserById. Recibo comparado ao alvo privado: projeto/conta corretos, UUID válido e email confirmado. Captura do usuário mostra a mensagem de sucesso, sem valor de credencial. Não houve retry de POST nem segunda criação; entradas inválidas anteriores pararam antes de rede/marcador.
+
+Consulta remota agregada independente confirmou **1 usuário, 1 email confirmado, 0 anônimos, 0 usuários com login realizado, 0 identidades Google**. Campo de senha não vazio: **1**, embora pedido tenha omitido senha. Fonte oficial de adminUserCreate gera senha aleatória quando omitida; resultado compatível, sem leitura de hash ou senha e sem alteração posterior. Não alegar campo de senha vazio. GET público: cadastro fechado, Email/anônimo/Google e todos os métodos retornados desabilitados. Projeto ativo/Free reconfirmados na retomada. [Fontes, resultado e limites](CONFIGURACAO_EXTERNA_I3.md).
+
+Evidência real restrita ao pré-cadastro administrativo e leituras. Não comprova primeiro vínculo/login Google, autorização financeira, JWT/PostgREST, schema próprio, concorrência, sync ou dois aparelhos. Nenhuma migração, SQL de alteração, publicação ou dado financeiro remoto. Email/UUID/credencial fora do Git. Código do app inalterado; 11 testes locais do helper aprovados conforme abaixo, sem repetir suíte financeira/navegador.
+
+## Retomada e diagnóstico local de credencial — 27/10/2026
+
+Projeto ativo e Free reconfirmados; leitura agregada retornou zero usuários, zero emails confirmados e zero usuários com senha. Janela anterior fechada, sem marcador/recibo. Capturas posteriores mostraram erro de formato e depois diagnóstico específico de Publishable, ambos antes de inicializar SDK/requisições; valores ocultos, sem segredo em registro técnico. Resultados sanitizados de falhas anteriores arquivados privadamente antes de reabrir, sem apagar marcador. Criação remota ainda não comprovada.
+
+`node --test scripts/i3-user-admin.test.mjs`: **11 aprovados**. Novos casos: espaços externos, classificação de Secret key/legado service_role, recusa de Publishable, anon, valores mascarados e formatos inválidos sem revelar entrada. JWT local apenas classificado; assinatura/privilégios serão verificados pelo serviço. `node --check`, parser PowerShell e `git diff --check` aprovados. Nenhum teste de transporte administrativo hospedado aprovado por esses resultados. [Estado e próxima entrada privada](CONFIGURACAO_EXTERNA_I3.md). App inalterado; suíte financeira/navegador não repetida.
+
 ## Execução privada com menor interação — 27/10/2026
 
 Wrapper ampliado com `-AlvoPrivado` (alvo operacional ignorado, sem chave) e `-SalvarResultado` (somente estado/horário privados). Nove testes Node novamente aprovados; parser PowerShell aprovado. Teste real PowerShell não interativo recusou alvo privado ausente antes de entrada de chave ou rede. `git check-ignore` confirmou exclusão dos arquivos de alvo/resultado. Processo/Explorer na mesma sessão Windows interativa; uma única janela foi iniciada. Última conferência local: janela ativa, sem tentativa/recibo. Não comprova criação nem integração administrativa ainda. [Escopo autorizado e retomada](PRE_CADASTRO_ADMIN_I3.md). Nenhuma chave lida pelo agente, nenhum segredo em argumentos/logs/Git; testes de app não repetidos, pois app não mudou.

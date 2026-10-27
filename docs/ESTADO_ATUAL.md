@@ -1,5 +1,13 @@
 # Estado atual
 
+## Pré-cadastro criado e conferido — 27/10/2026
+
+Criação autorizada concluída para a conta escolhida: exatamente um usuário, email confirmado, nenhum login/anonimato/Google. Recibo confere projeto/conta/UUID privadamente. Cadastro público e métodos de entrada continuam desligados; projeto ativo/Free. Pedido omitiu senha e convite; serviço gerou registro interno de senha, sem senha definida ou recebida pelo usuário/agente. [Evidência e precisão](CONFIGURACAO_EXTERNA_I3.md). Não repetir criação. Google, autorização financeira por UUID, schema/API, testes negativos, publicação e dois aparelhos continuam pendentes; I3 incompleto.
+
+## Retomada da chave administrativa — 27/10/2026
+
+Projeto ativo/Free e zero usuários reconfirmados. Entradas privadas pararam na validação local, sem requisições/marcador; a última foi Publishable. Helper agora distingue tipos, remove espaços externos e aceita Secret key ou legado service_role; 11 testes locais aprovados. Nova janela privada aguarda chave administrativa existente, sem criação comprovada. [Registro e limites](CONFIGURACAO_EXTERNA_I3.md). Não repetir com resultado incerto, nem pedir chave pelo chat.
+
 ## Janela privada de execução aberta — 27/10/2026
 
 Usuário pediu autonomia para executar o cadastro já especificamente autorizado. Aberta uma única janela **Atlas I3 - chave privada**, com alvo preenchido privadamente; aguarda apenas chave oculta. Precondições/criação única/conferência automáticas após entrada. Última conferência: janela ativa, sem tentativa/recibo; cadastro ainda não comprovado. [Procedimento e retomada](PRE_CADASTRO_ADMIN_I3.md). Não iniciar outra execução enquanto pendente. Autorização não abrange Google, outras contas, SQL de alteração ou publicação.

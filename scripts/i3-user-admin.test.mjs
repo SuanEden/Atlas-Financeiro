@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { prepareUser } from './i3-user-admin.mjs'
+import { prepareUser, validateAdminInput } from './i3-user-admin.mjs'
 
 const config = { projectRef: 'abcdefghijklmnopqrst', email: ' user@example.test ' }
 const user = { id: 'synthetic-id', email: 'user@example.test', is_anonymous: false,
@@ -89,5 +89,21 @@ test('real CLI rejects invalid credentials locally without printing private inpu
   })
   assert.equal(result.status, 1)
   assert.doesNotMatch(result.stdout + result.stderr, /user@example|INVALID_PRIVATE_VALUE/)
-  assert.match(result.stderr, /chave secreta invalida/)
+  assert.match(result.stderr, /formato nao reconhecido/)
+})
+test('private input trims copied whitespace and classifies supported administrative keys without requests', () => {
+  const modern = validateAdminInput({ ...config, secret: ' \r\nsb_secret_synthetic_input\t ' })
+  assert.equal(modern.secret, 'sb_secret_synthetic_input')
+  const legacy = [Buffer.from('{}').toString('base64url'),
+    Buffer.from(JSON.stringify({ role: 'service_role' })).toString('base64url'), 'synthetic_signature'].join('.')
+  assert.equal(validateAdminInput({ ...config, secret: legacy }).secret, legacy)
+})
+test('public, masked, malformed, and wrong-role keys fail locally without including private values', () => {
+  const nonAdmin = [Buffer.from('{}').toString('base64url'),
+    Buffer.from(JSON.stringify({ role: 'anon' })).toString('base64url'), 'synthetic_signature'].join('.')
+  for (const secret of ['sb_publishable_synthetic_input', '********', nonAdmin, '', 'PRIVATE_VALUE']) {
+    assert.throws(() => validateAdminInput({ ...config, secret }), error =>
+      !error.message.includes(secret || 'UNMATCHABLE') && error.message.includes('nenhuma requisicao iniciada'))
+  }
+  assert.throws(() => validateAdminInput({ ...config, projectRef: 'invalid', secret: 'PRIVATE_VALUE' }), /Identificador/)
 })

@@ -41,7 +41,8 @@ try {
     } else {
         $adminEmailInput = Read-Host 'Email Google escolhido'
     }
-    $adminSecretInput = Read-Host 'Chave sb_secret do projeto (entrada oculta)' -AsSecureString
+    Write-Host 'Use Secret key (sb_secret) ou a chave administrativa legada service_role. Nao use Publishable/anon.'
+    $adminSecretInput = Read-Host 'Chave administrativa do projeto (entrada oculta)' -AsSecureString
     $adminSecretPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminSecretInput)
     try { $adminSecretText = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($adminSecretPointer) }
     finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($adminSecretPointer) }
