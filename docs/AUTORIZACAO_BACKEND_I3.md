@@ -1,6 +1,6 @@
 # I3 — autorização da conta antes de Google
 
-Preparado em 27/10/2026 após recuperar `40e31a6bad4a31587b0c41d5049598b098ecbd50` da branch `codex/incremento-3-local-foundation`. **Nenhuma alteração remota deste procedimento foi autorizada ou executada.**
+Preparado em 27/10/2026 após recuperar `40e31a6bad4a31587b0c41d5049598b098ecbd50` da branch `codex/incremento-3-local-foundation`. **Atualização: fundação inicial e autorização única especificamente aprovadas e executadas.** [Resultado, correspondência da versão remota e verificações](RESULTADO_FUNDACAO_REMOTA_I3.md). As seções abaixo preservam a proposta e o procedimento originais; não repetir a aplicação.
 
 ## Estado efetivamente consultado
 

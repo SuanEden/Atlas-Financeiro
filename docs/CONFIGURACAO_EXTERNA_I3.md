@@ -1,5 +1,9 @@
 # I3 — início da configuração externa
 
+## Fundação inicial e autorização aplicadas com aprovação — 27/10/2026
+
+Usuário autorizou expressamente somente a fundação inicial e sua conta pré-cadastrada. Projeto/plano e UUID exato foram reconfirmados contra registro privado, com igualdade entre identidade Email e cadastro, sem inferência por GitHub/organização. Aplicada primeira migração (versão remota `20261027152920`) e criada uma autorização ativa; sete tabelas privadas permanecem vazias, oito tabelas com RLS e sem DML financeiro ao cliente. Doze verificações SQL reais com identidade simulada aprovadas; perfis Atlas recusados por HTTP 406/PGRST106. Cadastro e todos os métodos retornados continuam desligados. Nenhum segredo, novo serviço, recurso pago ou publicação. [Evidência, advisors e limites](RESULTADO_FUNDACAO_REMOTA_I3.md). Mudança futura da exposição HTTP para somente `api` ainda não aprovada/executada; Google e protocolo posterior permanecem separados.
+
 ## Recuperação por leituras e proposta de autorização — 27/10/2026
 
 Após recuperar `40e31a6`, leituras reconfirmaram projeto existente ativo, organização Free, 1 usuário confirmado/não anônimo/sem login e identidade Email única. Nenhum schema Atlas ou migração remota: autorização financeira não criada. Cadastro público e todos os métodos retornados continuam desligados. Nenhuma alteração, criação, login, segredo administrativo, pagamento ou publicação nesta retomada. Os dois endereços foram considerados corretos pelo usuário; não há acesso à captura anterior nem confirmação administrativa independente dos retornos salvos. [Inventário completo e ação preparada para aprovação](AUTORIZACAO_BACKEND_I3.md). A proposta limita-se à fundação privada inicial e autorização única por UUID, mantendo escrita financeira bloqueada. Google e protocolo posterior permanecem separados.

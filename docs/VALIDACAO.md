@@ -1,5 +1,17 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Fundação remota aplicada e permissões verificadas — 27/10/2026
+
+- Execução especificamente autorizada pelo usuário. Projeto existente ativo/Free e UUID exato conferidos contra registro privado; SQL confirmou correspondência da identidade Email com o cadastro, retornando somente booleano. Sem inferência por nome de GitHub/organização.
+- Aplicada exclusivamente a primeira fundação, checksum inalterado. Histórico remoto contém somente `20261027152920 / i3_private_foundation`, versão gerada pela ferramenta para o conteúdo do arquivo local `20261026164923`. Concessão administrativa posterior: uma autorização ativa para o UUID esperado. Não reaplicar automaticamente por diferença de prefixo.
+- Oito tabelas com RLS, papéis de cliente sem superuser/bypass, sem DML nas tabelas privadas/autorização e sem USAGE/SELECT ao anônimo. Única RPC `api.i3_readiness`, invoker, sem EXECUTE ao anônimo. Protocolo posterior ausente.
+- Executado novo script administrativo `scripts/sql/i3-verify-foundation.sql` no PostgreSQL hospedado: **12 verificações aprovadas**, cobrindo readiness desligado, linha exata autorizada, sete tabelas vazias, autoautorização/DML recusados, identidade ausente/estranha e anônimo negados. Papéis reais com claims simulados administrativamente; não JWT/Google real. Nenhum usuário de teste ou dado financeiro criado.
+- GETs HTTP com chave publicável aos perfis `atlas_private`, `atlas_security`, `api`: **406/PGRST106**, schemas efetivamente expostos informados como `public, graphql_public`. Essa configuração não foi alterada. GET Auth antes/depois: cadastro fechado, nenhum método habilitado. Inventário final: um usuário confirmado, zero logins/Google e uma autorização ativa; sete tabelas financeiras vazias.
+- Advisors: segurança somente WARN de proteção de senhas vazadas desligada; desempenho três INFO de índices ainda não usados. Nenhuma correção/configuração adicional executada.
+- Sem alteração de aplicativo/dependências/migrações locais; fluxo local completo anterior não repetido. Validação desta etapa: consultas reais, negativas de permissões, inventário e HTTP. Sem pagamento, serviço novo ou publicação.
+
+[Relatório completo, limitações e próxima configuração sujeita à aprovação](RESULTADO_FUNDACAO_REMOTA_I3.md). I3 continua incompleto.
+
 ## Recuperação, inventário real e autorização preparada — 27/10/2026
 
 - Branch I3 recuperada a partir do HEAD remoto `40e31a6bad4a31587b0c41d5049598b098ecbd50`, inicialmente limpa. Sem reset, merge ou force push.

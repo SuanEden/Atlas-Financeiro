@@ -1,5 +1,9 @@
 # Estado atual
 
+## Fundação privada e autorização única aplicadas — 27/10/2026
+
+Após autorização específica, projeto existente ativo/Free e UUID privado exato reconfirmados, com identidade Email correspondente. Primeira fundação aplicada (versão remota `20261027152920`, conteúdo do arquivo local `20261026164923`), e uma autorização ativa criada para a conta pré-cadastrada. Oito tabelas com RLS, sem DML financeiro ao cliente; sete tabelas privadas vazias. Doze verificações no banco hospedado aprovadas com papéis reais/claims simulados; HTTP privado recusado com 406/PGRST106. Google, cadastro e escrita financeira continuam desligados, protocolo posterior ausente, sem publicação ou recurso pago. [Resultado e limites](RESULTADO_FUNDACAO_REMOTA_I3.md). Próxima configuração proposta: expor somente `api` na Data API, mediante aprovação própria; atualmente expostos `public, graphql_public`. I3 incompleto.
+
 ## Recuperação e revisão do backend — 27/10/2026
 
 Recuperado HEAD remoto `40e31a6`, worktree inicialmente limpo. Leituras atuais: projeto existente ativo/Free, 1 usuário confirmado sem login e uma identidade Email; nenhum schema Atlas ou migração remota. Logo, autorização financeira ainda não existe. Cadastro público e todos os métodos retornados continuam desligados. Os endereços anteriores foram aceitos pelo usuário; captura não disponível. [Procedimento concreto preparado](AUTORIZACAO_BACKEND_I3.md): somente primeira migração privada e autorização do UUID pré-cadastrado, com escrita financeira bloqueada, aguardando aprovação específica. Nenhuma alteração remota executada. Base local revalidada e 10 testes do novo procedimento aprovados; I3 incompleto.

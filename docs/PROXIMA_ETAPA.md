@@ -1,5 +1,9 @@
 # Próxima etapa — continuar I3 local
 
+## Prioridade após fundação remota — 27/10/2026
+
+Fundação inicial e autorização da conta aprovadas, executadas e verificadas. [Resultados e limites](RESULTADO_FUNDACAO_REMOTA_I3.md). Não reaplicar ou reautorizar. Próxima proposta concreta: mudar somente Exposed schemas da Data API de `public, graphql_public` para `api`, mantendo Google, cadastro e escrita financeira desligados. Essa configuração adicional depende de aprovação específica e conferência do campo no painel; não está autorizada pela aplicação da fundação. Não aplicar protocolo posterior, configurar faturamento ou publicar. I3 incompleto; prova assinada de Auth/isolamento e dois aparelhos continuam pendentes.
+
 ## Prioridade de recuperação — 27/10/2026
 
 Revisão do servidor existente feita por consultas de leitura: não há migração/schema Atlas nem autorização financeira. A próxima ação concreta está preparada em [AUTORIZACAO_BACKEND_I3.md](AUTORIZACAO_BACKEND_I3.md): instalar somente fundação inicial e autorizar UUID pré-cadastrado, mantendo escrita financeira bloqueada. Aguardar aprovação específica dessa alteração remota; depois conferir o estado antes de executar. Não repetir pré-cadastro, criar projeto ou ativar Google. Revisão do protocolo/gateway e provas reais permanecem pendentes.
