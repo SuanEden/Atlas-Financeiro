@@ -1,8 +1,8 @@
 # I3 — procedimento administrativo de pré-cadastro
 
-Preparado em 27/10/2026; **ainda não executado contra o projeto real**. Usuário escolheu a conta Google; seu email não integra este documento nem o código. [Estado externo vigente](CONFIGURACAO_EXTERNA_I3.md).
+Preparado em 27/10/2026; **criação especificamente autorizada pelo usuário nesta data, ainda não executada contra o projeto real**. Usuário escolheu a conta Google; seu email não integra este documento nem o código. [Estado externo vigente](CONFIGURACAO_EXTERNA_I3.md).
 
-## Ação proposta para autorização específica
+## Ação especificamente autorizada
 
 Criar um único usuário Auth no projeto existente `atlas-financeiro-i3`, usando a conta escolhida pelo usuário, com email confirmado, sem definir senha e sem enviar convite. O payload administrativo contém somente `email` e `email_confirm: true`. Essa ação não configura Google, autorização financeira por UUID, schema, migrações, publicação ou dados financeiros; essas etapas continuam separadas. Cadastro público e provedores permanecem desligados.
 
@@ -24,7 +24,7 @@ Após confirmar o projeto por consulta de leitura e autorizar a ação, orientar
 
 Sem `-Criar`, o comando é somente de leitura. Ele exige cadastro fechado e todos os métodos retornados desabilitados e verifica lista vazia pela API administrativa. Não consulta faturamento/plano; confirmar Free separadamente antes da execução. A vinculação manual não aparece na configuração pública; sua conferência no painel continua sendo necessária.
 
-**Somente depois da autorização específica**, o comando com `-Criar` realiza uma tentativa de criação. A aprovação autoriza esse pré-cadastro concreto; não autoriza outros usuários, configuração Google, SQL ou publicação. Não executar os dois comandos automaticamente em sequência; conferir o resultado de cada etapa.
+**A autorização específica já foi concedida** para o comando com `-Criar`, que realiza uma tentativa de criação. Não solicitar novamente aprovação para o mesmo escopo. A aprovação autoriza esse pré-cadastro concreto; não autoriza outros usuários, configuração Google, SQL de alteração ou publicação. Entrada privada local da chave ainda pendente; nenhum valor administrativo foi recebido. Não executar prévia e criação automaticamente em sequência; conferir o resultado de cada etapa.
 
 Antes da chamada, grava `.private/i3-admin/tentativa.json` em modo exclusivo. Tentativa existente impede nova criação por esse helper, mesmo se a resposta anterior tiver sido perdida. Após a chamada, confere pela API que só há um usuário, com o mesmo UUID e email confirmado, não anônimo, sem identidade Google ainda. Guarda email/UUID no recibo privado `.private/i3-admin/usuario.json`, sem chave ou sessão. Esses caminhos estão ignorados pelo Git. No Windows, proteção efetiva dos arquivos depende das permissões do perfil/diretório; não há criptografia própria e a VM continua descartável.
 

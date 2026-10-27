@@ -1,5 +1,9 @@
 # Estado atual
 
+## Pré-cadastro especificamente autorizado — 27/10/2026
+
+Usuário autorizou criar um único cadastro confirmado da conta escolhida no projeto existente, sem senha/convite. Projeto ativo, Free e zero usuários reconfirmados por leitura; criação ainda não executada. Próxima etapa: localizar chave administrativa existente no painel e orientar entrada privada local, prévia e conferência antes da criação já autorizada. Nenhuma chave obtida ou janela iniciada. [Procedimento e escopo](PRE_CADASTRO_ADMIN_I3.md). Google, schema, publicação e demais alterações continuam separados; I3 incompleto.
+
 ## Procedimento de pré-cadastro preparado — 27/10/2026
 
 Identidade Google escolhida pelo usuário, sem email versionado. [Helper administrativo local e procedimento](PRE_CADASTRO_ADMIN_I3.md) preparados para prévia sem escrita e criação explícita de um único usuário confirmado sem senha/convite, com entrada administrativa privada futura. Nove testes locais do helper aprovados; integração remota e entrada interativa não executadas. Próxima etapa: autorização específica antes da criação, por exigência do usuário. Nenhum usuário criado ou segredo administrativo obtido; última contagem real zero. Código do app, migrações, Google e publicação inalterados; I3 incompleto.

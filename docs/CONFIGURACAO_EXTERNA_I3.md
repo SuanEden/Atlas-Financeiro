@@ -2,6 +2,12 @@
 
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
+## Pré-cadastro autorizado, entrada privada pendente — 27/10/2026
+
+O usuário respondeu afirmativamente à autorização específica para criar **um único cadastro da conta escolhida**, no projeto existente, com email confirmado, sem senha adicional e sem envio de convite. Essa autorização permanece válida para o [procedimento preparado](PRE_CADASTRO_ADMIN_I3.md), sem exigir nova confirmação do mesmo escopo. Não abrange outras contas, Google, SQL de alteração, publicação, cobrança ou piloto.
+
+Antes da execução, `get_project` reconfirmou o projeto ativo; `get_organization` reconfirmou Free e um SELECT agregado de leitura reconfirmou **zero usuários**. Nenhum usuário foi criado, chave administrativa obtida, helper interativo executado ou janela iniciada nesta etapa. A execução depende de o usuário localizar uma chave secreta existente no painel e inseri-la privadamente no terminal local. Próxima orientação: abrir Settings → API Keys e informar apenas se há chave em Secret keys, sem copiar valor ou enviar captura de segredo ao chat. Depois orientar prévia somente de leitura e conferir seu resultado antes da criação já autorizada.
+
 ## Identidade escolhida e procedimento preparado — 27/10/2026
 
 O usuário escolheu a conta Google e informou seu email na conversa. O valor não foi copiado para Git, documentação, fixtures ou configuração da aplicação. Está preparado o [procedimento administrativo concreto](PRE_CADASTRO_ADMIN_I3.md), com helper local fora do frontend, prévia somente de leitura por padrão e criação explícita de um único usuário com email confirmado, sem senha ou convite. Criação remota **ainda não autorizada nem executada**.

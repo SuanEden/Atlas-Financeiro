@@ -1,5 +1,9 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Autorização de pré-cadastro e reconsulta — 27/10/2026
+
+Usuário autorizou especificamente um único cadastro confirmado, sem senha/convite, no projeto existente. `get_project`: mesmo projeto ativo; `get_organization`: `free` / `tier_free`; SELECT agregado somente de leitura em `auth.users`: **zero usuários**. Nenhuma chave administrativa obtida, execução interativa, janela iniciada ou criação realizada. Política PowerShell consultada por leitura: LocalMachine RemoteSigned, demais escopos Undefined; sem alterações de política. [Próxima entrada privada e limites](PRE_CADASTRO_ADMIN_I3.md). Código inalterado desde os nove testes locais abaixo; testes não repetidos para este checkpoint documental.
+
 ## Helper administrativo local de pré-cadastro — 27/10/2026
 
 Identidade escolhida; email real ausente dos arquivos. `node --test scripts/i3-user-admin.test.mjs`: **9 aprovados**, com IO administrativo simulado e CLI real apenas rejeitando credencial sintética inválida antes de acessar a rede. Verificados: prévia sem escrita; payload exato sem senha/convite; bloqueios por inventário não vazio, configurações abertas/incompletas, entrada inválida e falha inicial/marcador; uma única tentativa sem retry após resultado incerto; verificação de identidade/confirmação e falha do recibo privado; saída sem valores privados.
