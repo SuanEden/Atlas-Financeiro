@@ -1,5 +1,9 @@
 # Estado atual
 
+## Cópia e retomada operacional ensaiadas localmente — 27/10/2026
+
+Doze testes de cópia consistente/retomada preservam pendências, recibos, conflitos e origem; exportador agora recusa servidor divergente do namespace. Downloads reais iguais após logout/reentrada sintéticos em Edge desktop/celular. Sete testes recuperam dump administrativo em outro PostgreSQL temporário, com comparação integral, saldos, RLS, replay e rollback. [Resultado e procedimento](PROTECAO_OPERACIONAL_I3.md). Check app **223/1 ignorado, 24 navegador/3 PWA**. Sem importador JSON I3, restauração completa I4 ou ensaio hospedado. SELECT final: conta/Google/acesso únicos, gate false e nove tabelas privadas vazias. I3 incompleto; versões/arquivamento, recuperação após perda total e provas físicas seguem abertas. Nenhuma mudança remota/publicação/custo.
+
 ## Gateway local assinado e isolamento HTTP validados — 27/10/2026
 
 Conferência real pessoal já registrada e inventário remoto intacto. Acrescentado PostgREST oficial 16.5, com digest fixado, a bancos nativos temporários locais. **10 testes de concorrência +13 de gateway passaram**, em execuções documentadas; assinatura/expiração/audiência, autorização/revogação, perfis privados, escrita/replay/rollback e isolamento exercitados com dados sintéticos locais. [Resultado e limites](GATEWAY_LOCAL_I3.md). Não houve dado, credencial ou alteração no projeto hospedado, que permanece com gate false. Processos próprios encerrados, servidor pessoal preservado. Recuperação operacional, versões/arquivamento e ensaios físicos seguem pendentes; não associar dados pessoais/publicar ou declarar I3 concluído.

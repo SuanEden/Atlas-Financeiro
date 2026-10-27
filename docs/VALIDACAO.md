@@ -1,5 +1,17 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Proteção operacional: navegador e cópia administrativa sintética — 27/10/2026
+
+`npx vitest run tests/sync/backup-safety.test.ts`: **12 aprovados**; typecheck aprovado. Reabertura da origem, bootstrap interrompido/origem divergente, offline/centavos, commit com resposta perdida, ACK antes do feed, rollback de página, exportação concorrente, conflitos/dependências/resolução, destino novo sem operação offline, recusa I2, isolamento de Auth/servidor e erro de leitura. Exportador passou a recusar servidor divergente do namespace, sem mudar formato/schema. [Matriz e limites](PROTECAO_OPERACIONAL_I3.md).
+
+Teste Auth de navegador ampliado compara downloads reais e IndexedDB, depois arquivo após logout/recarga/reentrada, seguido de confirmação única sintética. Edge em 1280×900/390×844, Browser plugin ausente, QA em 5174; título/URL/conteúdo, overlay, console, interação e capturas temporárias conferidos. Rodada dirigida: **4 aprovados**. Check completo posterior: **223 aprovados/1 ignorado**, typecheck/build, **24 navegador/3 PWA**. Ignorado ainda é manifesto privado original ausente. Instalação existente mantida para preservar servidor pessoal ativo; dependências/lockfiles não alterados.
+
+Novo `tools/i3-postgres/backup.test.mjs`: Node --check e `npm run test:backup`, **7 aprovados** após corrigir chamadas de assinatura do novo teste. Clientes pg_dump/pg_restore 17.2 já instalados, dois clusters sintéticos PostgreSQL 17.10 loopback e destino vazio. Compara nove tabelas, saldos, IDs/recibos/feed/proveniência, snapshot sem commit posterior, RLS/constraints/invoker/gate false, outro dono/anônimo, replay, digest adulterado e erro SQL sem destino parcial. Não altera bootstrap/migrações/dependências; suítes anteriores de concorrência/gateway não repetidas. `test:all` inclui a nova suíte, sem alegar execução conjunta dos 30 testes.
+
+Processos próprios encerrados, PostgreSQL preexistente e servidor pessoal 5173 preservados; dumps/bancos/capturas/downloads fora do Git. SELECT final hospedado: 1 usuário/Google/autorização ativa, gate false e zero registros privados. Não houve mutação remota. Retomada de origem não é restauração de arquivo; dump sintético não é recuperação Supabase/Google/IndexedDB ou dois aparelhos. B01 reforçado e B02 administrativo local ensaiado; B02 hospedado e perda total I3 continuam pendentes.
+
+Após staging explícito, diff --check e revisão dos 15 arquivos/padrões de credenciais/identificadores privados sem achados. Teste de privacidade repetido: **2 aprovados/1 ignorado**, mesmo manifesto antigo ausente. Nenhum artefato financeiro/temporário preparado para Git.
+
 ## Gateway local com assinatura real de teste — 27/10/2026
 
 PostgREST oficial 16.5 Windows obtido com digest SHA-256 fixado e verificado, em cache ignorado. PostgreSQL 17.10 temporário loopback, Auth/users sintéticos e segredo JWT HS256 aleatório somente em memória/ambiente do subprocesso. Nenhuma conexão ou credencial do projeto hospedado. Bootstrap compartilhado confere data_directory/versão, carrega migrações e encerra apenas seus próprios processos.

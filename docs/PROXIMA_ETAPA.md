@@ -1,5 +1,9 @@
 # Próxima etapa — continuar I3 local
 
+## Prioridade após proteção operacional — 27/10/2026
+
+[Cópia/retomada e dump administrativo sintético ensaiados](PROTECAO_OPERACIONAL_I3.md): 12 testes novos, 7 nativos de recuperação; check 223/1 ignorado, 24 navegador/3 PWA. Não repetir conferência pessoal ou ativar escrita. Avançar na revisão local de versões incompatíveis e arquivamento/tombstones, preparando contratos/testes e eventual proposta remota concreta. Recuperação do JSON I3 após perda total ainda indisponível; B02 hospedado e dois aparelhos não comprovados. Não ampliar para importador completo/gerações I4, promover fixtures, publicar ou iniciar uso pessoal.
+
 ## Prioridade após gateway assinado local — 27/10/2026
 
 [Dez testes nativos e treze de gateway HTTP local](GATEWAY_LOCAL_I3.md) aprovados; conferência pessoal real já concluída. Não repetir os testes de entrada/SDK que passaram. Prosseguir na proteção operacional do recorte, versões/arquivamento e critérios físicos pendentes, preservando gate false e separação de fixtures. Nenhum teste local autoriza associação pessoal, abertura de escrita, contratação ou publicação. Os processos de teste foram encerrados; não encerrar o PostgreSQL preexistente ou o servidor pessoal.

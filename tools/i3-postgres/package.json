@@ -8,7 +8,8 @@
     "test": "node --test --test-concurrency=1 concurrency.test.mjs",
     "setup:gateway": "node setup-postgrest.mjs",
     "test:gateway": "node --test --test-concurrency=1 gateway.test.mjs",
-    "test:all": "node --test --test-concurrency=1 concurrency.test.mjs gateway.test.mjs"
+    "test:backup": "node --test --test-concurrency=1 backup.test.mjs",
+    "test:all": "node --test --test-concurrency=1 concurrency.test.mjs gateway.test.mjs backup.test.mjs"
   },
   "devDependencies": {
     "@embedded-postgres/windows-x64": "17.10.0-beta.17",

@@ -16,6 +16,8 @@ Em **Backup**, o botão **Baixar backup** exporta JSON com histórico e outbox. 
 
 No futuro modo de integração, a exportação I3 usa um formato separado para preservar recibos, cursor, conflitos e proveniência, sem sessão. O importador mínimo I2 não aceita essa cópia. Exportação não é prova de restauração; I4 permanece fora do escopo.
 
+[Proteção operacional revisada em 27/10/2026](docs/PROTECAO_OPERACIONAL_I3.md): 12 testes de cópia/retomada da origem, download real após logout/reentrada sintéticos e 7 de dump/restauração administrativa local aprovados. A recuperação do arquivo JSON I3 após perda total do navegador e o ensaio administrativo hospedado continuam pendentes. Escrita financeira permanece bloqueada.
+
 ## Documentação
 
 - [Plano aprovado](docs/PLANO_APROVADO.md) e [roadmap completo](docs/ROADMAP.md).

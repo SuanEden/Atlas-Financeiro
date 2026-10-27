@@ -3,6 +3,7 @@ import type { LocalSyncStore } from './local-sync-store';
 
 /** Consistent I3 copy, distinct from the I2 recovery format. Never reads Auth storage. */
 export async function exportSyncBackup(store:LocalSyncStore,serverId:string):Promise<string> {
+  if(serverId!==store.serverId) throw new TypeError('O servidor da cópia deve corresponder à base local.');
   const state=await store.read();
   return JSON.stringify({
     format:'atlas-financeiro-sync-backup',schemaVersion:1,protocolVersion:1,

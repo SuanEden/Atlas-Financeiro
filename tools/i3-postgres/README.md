@@ -27,7 +27,7 @@ Fontes primárias: [embedded-postgres](https://github.com/leinelissen/embedded-p
 ```powershell
 npm run setup:gateway
 npm run test:gateway
-# Ou executar os dois arquivos de teste, sequencialmente:
+# Ou executar todas as suítes locais, sequencialmente:
 npm run test:all
 ```
 
@@ -36,3 +36,11 @@ O setup baixa a release oficial Windows PostgREST 16.5, verifica checksum fixado
 O gateway usa o cluster sintético compartilhado, papel authenticator mínimo e segredo JWT aleatório efêmero; escuta somente loopback. A chave e os tokens não são argumentos de shell, não aparecem nos resultados e não pertencem ao Supabase real. Variáveis PG/credenciais externas não são herdadas pelo gateway. Dados locais podem ser escritos durante os ensaios, sem associação a conta pessoal ou destino remoto.
 
 Treze cenários cobrem assinatura/expiração/audiência, falta de sub, papel privilegiado, autorização/revogação, perfis privados, idempotência, isolamento, concorrência e rollback HTTP. [Resultados e limites](../../docs/GATEWAY_LOCAL_I3.md). Os processos próprios são encerrados; não usar encerramento genérico de postgres.exe/postgrest.exe para limpar testes.
+
+## Cópia administrativa e recuperação sintética
+
+`npm run test:backup` exige clientes PostgreSQL 17 já instalados em `C:/Program Files/PostgreSQL/17/bin`; o runner confere versão e não instala nada. Usa dois clusters próprios do bootstrap, cria destinos vazios e gera dump customizado somente no temporário da origem. Não aceita URL/porta de serviço externo. Ambientes de conexão do sistema não são herdados pelos subprocessos. Não encerra o serviço PostgreSQL instalado.
+
+Sete testes comparam nove tabelas, contagens/relações/saldos/recibos/proveniência, exclusão de commit posterior, RLS/constraints/gate, outro proprietário/anônimo, replay sem duplicação e recusa de adulteração/erro SQL com rollback. A restauração usa transação única/exit-on-error, sem clean ou substituição. Dumps/dados permanecem fora do Git; clusters próprios são encerrados sem exclusão recursiva.
+
+Os papéis globais e Auth simulados são preparados pelo bootstrap de cada cluster. Não é recuperação Supabase hospedada, Google, Storage, papéis globais ou JSON/IndexedDB I3. [Evidência, resultado observado e limites](../../docs/PROTECAO_OPERACIONAL_I3.md). `test:all` agora inclui concorrência, gateway e backup; seus totais só devem ser informados como rodada conjunta após executar esse comando com sucesso.

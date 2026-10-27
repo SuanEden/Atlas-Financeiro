@@ -24,7 +24,7 @@ const ALL = ['confirmed','pending','receipts','meta'];
 export class LocalSyncStore {
   readonly #db: SyncDatabase;
   readonly name: string;
-  constructor(readonly userId: string, serverId: string, deviceNamespace='default') {
+  constructor(readonly userId: string, readonly serverId: string, deviceNamespace='default') {
     assertEntityId(userId);
     if (!/^[a-z0-9.-]{1,100}$/.test(serverId) || !/^[a-z0-9-]{1,60}$/.test(deviceNamespace)) throw new TypeError('Contexto local de sincronização inválido.');
     this.name=`atlas-financeiro:sync:v1:${serverId}:${userId}:${deviceNamespace}`;

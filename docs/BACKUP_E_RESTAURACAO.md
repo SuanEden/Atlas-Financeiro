@@ -2,6 +2,12 @@
 
 **Exportação implementada em I2; recuperação mínima antecipada e autorizada em I3. Restauração completa continua em I4.** O aplicativo baixa um JSON versionado com manifesto, dataset completo e operações pendentes. Valores monetários permanecem strings canônicas. O arquivo não contém credenciais, sessão ou configuração remota.
 
+## Cópia operacional I3 — revisão em 27/10/2026
+
+O formato separado `atlas-financeiro-sync-backup` conserva confirmado, projeção, envelopes/estados pendentes, conflitos, recibos, cursor e proveniência, sem sessão. O identificador do servidor no arquivo deve coincidir com o namespace aberto; divergência agora é recusada. Doze testes de cópia/retomada e downloads reais após logout/reentrada sintéticos passaram; sete testes recuperaram um dump administrativo sintético em outro PostgreSQL local. [Procedimento e evidências](PROTECAO_OPERACIONAL_I3.md).
+
+**Reabrir uma origem preservada não é restaurar o arquivo I3.** O importador I2 recusa esse JSON e nenhum importador I3 foi criado. Após perda total do IndexedDB, operações nunca enviadas não aparecem em outro dispositivo só por entrar na conta. Guardar arquivo privado fora da VM preserva evidência, mas ainda não fornece recuperação executável dessa cópia. B02 hospedado, restauração completa e gerações não foram comprovados por este ensaio. Manter a escrita bloqueada e não iniciar dados pessoais com base em uma promessa de restauração ausente.
+
 ## Recuperação mínima de I2 — implementação local
 
 Em Backup, selecionar **Arquivo JSON de I2** e conferir a prévia. A seleção valida sem gravar. O botão exige confirmação explícita. Aceitam-se até 10 MiB e 50 mil registros financeiros, formato/versão conhecidos, contagens corretas, dinheiro canônico em strings, UUIDs, datas, referências, histórico e outbox coerentes. Tipos e payloads das operações são comparados com as entidades exatas; IDs de operação repetidos, cobertura dupla e transferência parcial são recusados.
