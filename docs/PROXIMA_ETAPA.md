@@ -1,5 +1,9 @@
 # Próxima etapa — continuar I3 local
 
+## Prioridade após primeiro login real — 27/10/2026
+
+Primeiro Google real e UUID original preservado confirmados, sem conta duplicada ou registros financeiros. [Evidência e roteiro](RESULTADO_PRIMEIRO_LOGIN_I3.md). Próximo teste pessoal: saída local, recarga ainda bloqueada e nova entrada na mesma conta, mantendo associação/envio indisponíveis. Não pedir novamente autorização/configuração do provedor ou pré-cadastro; não acessar tokens do navegador. Depois do relato, conferir por leitura e registrar checkpoint. Protocolo posterior/abertura financeira dependem de preparação técnica e aprovação própria; testes reais negativos, concorrência e dois aparelhos seguem pendentes.
+
 ## Prioridade após habilitação Google conferida — 27/10/2026
 
 Google exclusivo habilitado, cadastro fechado e bloqueio financeiro verificados. [Primeiro login preparado](PRIMEIRO_LOGIN_GOOGLE_I3.md). Servidor local loopback com integração somente no processo e QA desktop/celular aprovados; OAuth foi interceptado, sem autenticação. Próxima ação remota concreta para aprovação é o primeiro login pessoal, vinculando Google ao cadastro existente e preservando o UUID. Após retorno, conferir identidade/login por leitura e mensagem de envio ainda bloqueado. Não pedir novamente autorização do provedor, criar `.env` com segredos, associar base, abrir escrita, aplicar segunda migração ou publicar.

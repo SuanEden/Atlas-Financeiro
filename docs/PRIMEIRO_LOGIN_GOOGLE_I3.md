@@ -1,5 +1,7 @@
 # I3 — provedor Google conferido e primeiro login preparado
 
+**Atualização posterior:** usuário realizou o primeiro login e o mesmo UUID pré-cadastrado foi preservado, com uma identidade Google e sem dados financeiros. [Resultado real e próxima verificação](RESULTADO_PRIMEIRO_LOGIN_I3.md). As seções seguintes preservam a preparação/teste interceptado anterior; não repetir configuração ou tratar o primeiro login como ainda não realizado.
+
 Atualizado em 27/10/2026, após o usuário informar PRONTO ao salvar o provedor Google especificamente autorizado. Base anterior: `4732177dbef689533b6a99237ea176074767771e`, branch `codex/incremento-3-local-foundation`.
 
 ## Configuração real observada

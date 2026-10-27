@@ -1,5 +1,9 @@
 # I3 — início da configuração externa
 
+## Primeiro vínculo Google preserva o usuário — 27/10/2026
+
+Usuário executou o login e informou a tela verificada com envio bloqueado. Leituras confirmaram exatamente um usuário, UUID privado original preservado, conta confirmada/não anônima, login registrado e uma identidade Google no mesmo UUID, nenhuma em outro usuário. Autorização ativa única, oito tabelas com RLS e sete tabelas privadas vazias. GET informa somente Google habilitado/cadastro fechado; API privada e anônimo continuam negados. [Resultado e próximos testes](RESULTADO_PRIMEIRO_LOGIN_I3.md). Sem extração de token ou leitura de perfil pessoal pelo agente, alteração remota adicional, associação financeira, novo serviço, recurso pago ou publicação.
+
 ## Google salvo pelo usuário e habilitação exclusiva conferida — 27/10/2026
 
 Depois de fornecer JSON do cliente e pedir tabela preenchida, usuário relatou PRONTO no salvamento. Credenciais/JSON não foram incluídos em arquivos/Git ou utilizados pelo agente em requisições. GET atual: somente Google habilitado, cadastro fechado. Projeto ativo/Free; mesmo UUID/autorização, zero logins/identidades Google, RLS e sete tabelas privadas vazias. Readiness com escrita falsa e negativas HTTP privado/anônimo preservadas. [Validação e preparação do primeiro login](PRIMEIRO_LOGIN_GOOGLE_I3.md). Processo local integration preparado com chave publicável, sem `.env` persistente, autenticação ou publicação. QA com OAuth interceptado aprovada; primeiro vínculo real continua pendente de aprovação/ação pessoal, sem novos recursos ou cobrança habilitada.

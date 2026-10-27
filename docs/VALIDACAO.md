@@ -1,5 +1,11 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Primeiro Google real no UUID pré-cadastrado — 27/10/2026
+
+Usuário informou mensagem de login verificado/envio aguardando liberação e controles Entrar/Sair. Consultas somente de leitura: **1 usuário, mesmo UUID esperado, conta confirmada/não anônima, login registrado, 1 identidade Google no UUID correto, 0 em outro usuário**, autorização ativa única preservada. Oito tabelas com RLS, zero DML de cliente e sete tabelas privadas vazias; protocolo posterior ausente. Projeto ativo; GET Auth cadastro fechado/somente Google. HTTP reconfirmou API somente `api`, privado 406/PGRST106 e readiness anônimo 401/42501.
+
+[Relatório e limites](RESULTADO_PRIMEIRO_LOGIN_I3.md). A evidência real combina registros do servidor com texto da interface fornecido pelo usuário; o adaptador só publica sucesso depois de verificar usuário/identidade e readiness. Não houve captura independente de tráfego autenticado, extração de token/código ou automação do perfil pessoal. Não equiparar essa prova à matriz inteira de JWT/isolamento/sessão. Associação não executada, escrita bloqueada. Próximo teste proposto: sair/recarregar/entrar novamente. Sem mudanças de código/dependências/migrações, suíte local não repetida e nenhuma alteração remota pelo agente.
+
 ## Google exclusivo confirmado e tela de login preparada — 27/10/2026
 
 GET Auth após PRONTO: 200, `disable_signup: true`, somente Google true. Projeto ativo/Free e migração inicial única. SQL confirmou mesmo UUID/autorização, um usuário confirmado, zero logins/identidades Google, oito tabelas com RLS, zero grants DML ao cliente e sete tabelas privadas vazias. Readiness com identidade simulada permanece versão 1/escrita falsa. HTTP privado 406/PGRST106 e readiness anônimo 401/42501.

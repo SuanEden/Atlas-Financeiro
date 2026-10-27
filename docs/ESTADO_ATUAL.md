@@ -1,5 +1,9 @@
 # Estado atual
 
+## Primeiro login Google real confirmado — 27/10/2026
+
+Usuário relatou login verificado/envio aguardando liberação. SELECTs confirmaram um único usuário, mesmo UUID pré-cadastrado, conta confirmada, login registrado e identidade Google vinculada ao UUID esperado; autorização ativa preservada. Sete tabelas privadas vazias, RLS e bloqueio DML preservados. Cadastro fechado, somente Google habilitado, API restrita e anônimo negado. [Resultado e limites](RESULTADO_PRIMEIRO_LOGIN_I3.md). Associação ainda não realizada; não abrir escrita para ultrapassar a mensagem de associação. Próximo teste pessoal: sair/bloquear, recarregar e entrar novamente com a mesma conta, seguido de conferência por leitura. Protocolo posterior, testes negativos reais e dois aparelhos continuam pendentes.
+
 ## Google habilitado; primeiro login preparado — 27/10/2026
 
 Após PRONTO do usuário, GET confirmou somente Google habilitado e cadastro fechado. Projeto ativo/Free, UUID/autorização única preservados, nenhum login/identidade Google ainda; oito tabelas com RLS, sem DML de cliente e sete tabelas privadas vazias. Readiness continua com escrita financeira falsa; HTTP privado/anônimo bloqueado. [Evidência e próximo teste](PRIMEIRO_LOGIN_GOOGLE_I3.md). Servidor local preparado em loopback com integration somente no processo e chave publicável, sem `.env` real/publicação ou mudança do padrão disabled. QA Edge desktop/celular aprovada; clique OAuth interceptado localmente, sem login remoto. Próxima ação para aprovação: primeiro login pessoal que vincule Google ao usuário existente, preservando UUID e bloqueio financeiro.
