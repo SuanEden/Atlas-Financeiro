@@ -1,5 +1,11 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Email desativado confirmado — 27/10/2026
+
+`get_project` reconfirmou o projeto existente. Após relato de conclusão da etapa Email, GET público de Auth settings com URL distinta e `Cache-Control: no-cache`: `disable_signup: true`, todos os valores retornados em `external` como `false`, incluindo Email, Google, telefone e entrada anônima. Configuração pública informa cadastro fechado e Email desativado. Vinculação manual não consta na resposta; confirmação individual do painel ainda pendente. Não houve tentativa de cadastro/login, leitura de usuários ou alteração de Auth pelo agente. [Registro](CONFIGURACAO_EXTERNA_I3.md).
+
+Checkpoint somente documental; código inalterado e suíte local não repetida. Sem SQL remoto, publicação, novos recursos ou custos pelo agente. Integração real e I3 continuam incompletos.
+
 ## Cadastro fechado após correção do formulário — 27/10/2026
 
 Após segundo relato de conclusão do usuário, `get_project` reconfirmou o projeto existente. GET público de Auth settings com URL distinta e `Cache-Control: no-cache`: `disable_signup: true`, `external.anonymous_users: false`, `external.email: true`, `external.google: false`. Configuração pública informa cadastro fechado e entrada anônima desabilitada. Vinculação manual não consta na resposta; confirmação individual no painel e verificação independente ainda pendentes. Não foram tentados cadastro ou login. [Registro e próxima etapa Email](CONFIGURACAO_EXTERNA_I3.md).

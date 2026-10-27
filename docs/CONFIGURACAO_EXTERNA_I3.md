@@ -2,6 +2,12 @@
 
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
+## Email desativado confirmado — 27/10/2026
+
+Após o usuário informar conclusão da etapa Email, `get_project` reconfirmou o projeto existente. GET público de `/auth/v1/settings`, com URL distinta e `Cache-Control: no-cache`, retornou `disable_signup: true` e todos os métodos listados em `external` como `false`, incluindo Email, Google, telefone e entrada anônima. A configuração pública informa cadastro fechado, Email e entrada anônima desabilitados. Não houve tentativa de cadastro/login nem alteração remota pelo agente.
+
+**Próxima etapa:** obter confirmação individual no painel de que `Allow manual linking` está desligado. Essa configuração não consta na resposta pública; o usuário respondeu somente "pronto" após a orientação de Email e a solicitação adicional, sem identificar o estado dessa opção. Não registrar verificação independente nem conclusão integral de Auth. Google continua desabilitado e sua configuração exige etapa própria com autorização específica; não abrir cadastro como atalho. Código/migrações e modo remoto desabilitado preservados, sem SQL remoto, usuários, publicação ou custos novos pelo agente.
+
 ## Cadastro fechado confirmado após correção — 27/10/2026
 
 Após novo relato de conclusão do usuário, o projeto existente foi reconfirmado e um GET de `/auth/v1/settings`, com URL distinta e `Cache-Control: no-cache`, retornou `disable_signup: true`, `external.anonymous_users: false`, `external.email: true` e `external.google: false`. A configuração pública agora informa cadastro fechado e entrada anônima desabilitada. Isso substitui a divergência registrada abaixo; não é teste negativo de cadastro/login. Vinculação manual continua não verificada de forma independente, pois não consta na resposta pública e ainda não houve confirmação individual ou captura do painel.
