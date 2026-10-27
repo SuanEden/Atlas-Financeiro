@@ -1,5 +1,13 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Data API somente api e negativas HTTP — 27/10/2026
+
+Após relato de salvamento pelo usuário, verificações HTTP com chave publicável existente: somente `api` na lista efetiva, por 406/PGRST106 em perfil sintético inexistente. Perfis `atlas_private`, `atlas_security`, `public` e `graphql_public` igualmente recusados com 406/PGRST106. POST `{}` a `/rest/v1/rpc/i3_readiness`, Content-Profile `api`, sem sessão: **401/42501, permission denied for schema api**. GET Auth: 200, cadastro fechado, nenhum método habilitado.
+
+Projeto ativo/Free reconfirmado, migração única anterior preservada. SQL confirmou autorização única para UUID privado esperado, oito tabelas com RLS, zero grants DML ao cliente, sete tabelas vazias e única RPC invoker sem EXECUTE anônimo. Readiness por SQL/identidade esperada simulada: versão 1, escrita financeira falsa. Um usuário confirmado, nenhum login/identidade Google. Sem valores privados nos registros públicos.
+
+[Relatório e limites](VERIFICACAO_DATA_API_I3.md). São negativas HTTP reais e contexto de identidade simulado somente na leitura SQL; não login Google/JWT real. Aplicativo/dependências/migrações locais inalterados; suíte local não repetida. Nenhuma configuração remota adicional, nova concessão, serviço, recurso pago ou publicação pelo agente. Próxima proposta Google aguarda autorização específica.
+
 ## Fundação remota aplicada e permissões verificadas — 27/10/2026
 
 - Execução especificamente autorizada pelo usuário. Projeto existente ativo/Free e UUID exato conferidos contra registro privado; SQL confirmou correspondência da identidade Email com o cadastro, retornando somente booleano. Sem inferência por nome de GitHub/organização.

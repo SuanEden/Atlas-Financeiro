@@ -1,5 +1,9 @@
 # Próxima etapa — continuar I3 local
 
+## Prioridade após verificação da Data API — 27/10/2026
+
+Usuário concluiu Exposed schemas; somente `api` exposto e bloqueios HTTP confirmados. [Resultado](VERIFICACAO_DATA_API_I3.md). Próxima proposta preparada: configurar/habilitar somente o provedor Google no projeto Supabase existente, com o cliente Web já criado e segredos inseridos privadamente no painel. Requer autorização específica, pois Google continua explicitamente desligado. Usar [roteiro Google](ROTEIRO_GOOGLE_OAUTH_I3.md), sem recriar recursos, sem abrir cadastro, métodos extras ou escrita financeira. `.env` real/primeiro login, protocolo posterior, publicação e piloto não foram executados. Não repetir configuração já comprovada.
+
 ## Prioridade após fundação remota — 27/10/2026
 
 Fundação inicial e autorização da conta aprovadas, executadas e verificadas. [Resultados e limites](RESULTADO_FUNDACAO_REMOTA_I3.md). Não reaplicar ou reautorizar. Próxima proposta concreta: mudar somente Exposed schemas da Data API de `public, graphql_public` para `api`, mantendo Google, cadastro e escrita financeira desligados. Essa configuração adicional depende de aprovação específica e conferência do campo no painel; não está autorizada pela aplicação da fundação. Não aplicar protocolo posterior, configurar faturamento ou publicar. I3 incompleto; prova assinada de Auth/isolamento e dois aparelhos continuam pendentes.

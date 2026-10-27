@@ -1,5 +1,9 @@
 # I3 — início da configuração externa
 
+## Exposição somente api salva pelo usuário e verificada — 27/10/2026
+
+Usuário pediu todas as instruções da etapa e informou conclusão após roteiro de Exposed schemas. Consultas independentes confirmaram projeto ativo/Free, somente `api` exposto, perfis privados e anteriores recusados com 406/PGRST106 e readiness anônimo negado com 401/42501. Cadastro público e métodos retornados permanecem desligados. A mesma autorização privada continua ativa, RLS ligado, sem grants de escrita ou dados financeiros; protocolo posterior ausente. [Resultados e limites](VERIFICACAO_DATA_API_I3.md). Agente somente verificou; não alterou configuração remota nesta etapa. Próxima proposta preparada: habilitar Google com cliente Web existente e campos privados no painel, aguardando autorização específica, sem aplicação remota ou login pelo agente.
+
 ## Fundação inicial e autorização aplicadas com aprovação — 27/10/2026
 
 Usuário autorizou expressamente somente a fundação inicial e sua conta pré-cadastrada. Projeto/plano e UUID exato foram reconfirmados contra registro privado, com igualdade entre identidade Email e cadastro, sem inferência por GitHub/organização. Aplicada primeira migração (versão remota `20261027152920`) e criada uma autorização ativa; sete tabelas privadas permanecem vazias, oito tabelas com RLS e sem DML financeiro ao cliente. Doze verificações SQL reais com identidade simulada aprovadas; perfis Atlas recusados por HTTP 406/PGRST106. Cadastro e todos os métodos retornados continuam desligados. Nenhum segredo, novo serviço, recurso pago ou publicação. [Evidência, advisors e limites](RESULTADO_FUNDACAO_REMOTA_I3.md). Mudança futura da exposição HTTP para somente `api` ainda não aprovada/executada; Google e protocolo posterior permanecem separados.

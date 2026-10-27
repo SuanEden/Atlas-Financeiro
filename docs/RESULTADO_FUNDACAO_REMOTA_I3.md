@@ -1,5 +1,7 @@
 # I3 — fundação privada inicial aplicada
 
+**Atualização posterior:** o usuário concluiu a alteração de Exposed schemas e o agente confirmou somente `api` exposto, com anônimo e schemas privados negados. [Verificação atual](VERIFICACAO_DATA_API_I3.md). A seção final abaixo preserva a proposta anterior; não repetir essa configuração.
+
 Executado em 27/10/2026, após autorização específica do usuário para a fundação inicial e a conta pré-cadastrada no projeto existente. Base local anterior: `e2b416c7ce2db9197fa070087b693691d18dc540`, branch `codex/incremento-3-local-foundation`.
 
 ## Projeto e conta conferidos antes da escrita

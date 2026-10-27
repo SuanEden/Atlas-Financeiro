@@ -1,5 +1,9 @@
 # Estado atual
 
+## Data API restrita conferida — 27/10/2026
+
+Após salvamento relatado pelo usuário, leituras HTTP confirmaram somente `api` exposto. Perfis privados, `public` e `graphql_public` recusados com 406/PGRST106; POST anônimo de readiness negado com 401/42501. Projeto ativo/Free, autorização única exata e oito tabelas com RLS preservados; sete tabelas privadas vazias. Cadastro e todos os métodos retornados continuam desligados; readiness por SQL com identidade simulada mantém escrita financeira falsa. [Evidência e limites](VERIFICACAO_DATA_API_I3.md). Próxima proposta preparada: habilitar somente Google com cliente existente, mediante autorização específica; Google e aplicativo remoto continuam desligados. Sem nova migração, publicação ou custo habilitado pelo agente.
+
 ## Fundação privada e autorização única aplicadas — 27/10/2026
 
 Após autorização específica, projeto existente ativo/Free e UUID privado exato reconfirmados, com identidade Email correspondente. Primeira fundação aplicada (versão remota `20261027152920`, conteúdo do arquivo local `20261026164923`), e uma autorização ativa criada para a conta pré-cadastrada. Oito tabelas com RLS, sem DML financeiro ao cliente; sete tabelas privadas vazias. Doze verificações no banco hospedado aprovadas com papéis reais/claims simulados; HTTP privado recusado com 406/PGRST106. Google, cadastro e escrita financeira continuam desligados, protocolo posterior ausente, sem publicação ou recurso pago. [Resultado e limites](RESULTADO_FUNDACAO_REMOTA_I3.md). Próxima configuração proposta: expor somente `api` na Data API, mediante aprovação própria; atualmente expostos `public, graphql_public`. I3 incompleto.

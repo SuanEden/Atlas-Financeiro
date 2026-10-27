@@ -1,10 +1,30 @@
 # I3 — roteiro completo dos campos Google OAuth
 
+**Estado atual após Data API em 27/10/2026:** fundação inicial, autorização única e exposição somente `api` já foram concluídas e verificadas. [Evidência](VERIFICACAO_DATA_API_I3.md). O cliente Google existente deve ser reutilizado. Próxima proposta é habilitar apenas o provedor Google no Supabase com os campos da seção 5, após autorização específica; ainda não habilitado. Preservar cadastro fechado, outros métodos, vinculação manual e escrita financeira desligados. O aplicativo remoto segue disabled; preparar a ativação do provedor não comprova login nem autoriza configurar a integração real local/publicação por consequência.
+
 Preparado em 27/10/2026 a pedido do usuário, que solicitou todos os campos juntos. **Roteiro não equivale a configuração executada.** Na preparação inicial, a captura mostrava Auth Platform ainda não configurada; o marco posterior está descrito a seguir. Projeto Google sem conta de faturamento conforme relato, Supabase existente e usuário pré-cadastrado preservados. [Estado externo](CONFIGURACAO_EXTERNA_I3.md).
 
 **Marco posterior e decisão vigente:** captura confirmou cliente OAuth criado e incluiu segredo ativo. A substituição foi recomendada, mas o usuário recusou explicitamente e pediu continuidade com o segredo atual. Não repetir a exigência/confirmação de troca nem tratá-la como bloqueio geral. Nenhuma rotação/revogação ocorreu ou foi presumida. Valor/identificadores não transcritos para este roteiro e não solicitar segredos pelo chat. [Recomendação de substituição registrada](https://support.google.com/cloud/answer/15549257?hl=en). Próxima etapa autorizada como orientação: preparar URLs de retorno no Supabase; ativação segue condicionada à revisão técnica da autorização do UUID/backend e às autorizações de alteração remota combinadas.
 
 Este documento contém placeholders. Obter a URL real pelo conector, identificando o projeto Supabase existente pelo nome, antes de preencher os valores operacionais privadamente. Não versionar email, referências operacionais, Client ID ou Client Secret reais. O agente não aplicou configurações remotas nesta preparação.
+
+## Próxima alteração proposta — somente Google no Supabase
+
+Preparada após a conferência da Data API; **não autorizada nem executada ainda**. Usar o projeto Supabase existente e o cliente Web Google já criado. O conector atual não oferece configuração do provedor; preencher diretamente no painel oficial, sem enviar valores ao chat.
+
+| Campo no provedor Google | Valor proposto após aprovação |
+|---|---|
+| Enable Sign in with Google | Ligado, somente quando o usuário aprovar esta etapa. |
+| Client IDs | ID do cliente Web existente, copiado privadamente do Google. |
+| Client Secret | Segredo do mesmo cliente, inserido diretamente no painel Supabase. |
+| Skip nonce checks, se aparecer | Desligado. |
+| Allow users without an email, se aparecer | Desligado. |
+
+Antes de salvar, conferir que o callback mostrado no provedor corresponde ao retorno Google → Supabase do cliente existente; os dois retornos da seção 5 continuam distintos. Preservar cadastro público, Email/OTP, anônimo, vinculação manual e demais provedores desligados. Salvar somente a configuração Google aprovada; não habilitar OAuth Server, criar outro cliente/projeto, adicionar escopos, mexer em faturamento, aplicar SQL ou publicar.
+
+Após o salvamento autorizado, verificar por leitura que somente Google passou a habilitado, cadastro continua fechado, usuário/UUID/autorização permanecem únicos, nenhuma identidade Google existe antes do primeiro login e readiness mantém escrita financeira falsa. Isso verifica configuração, sem declarar o primeiro vínculo ou um JWT real aprovados. O teste de entrada no aplicativo requer preparar separadamente a integração local; o app ainda está em disabled.
+
+Fonte oficial reconsultada para esta proposta: [Google no Supabase](https://supabase.com/docs/guides/auth/social-sign-in/auth-google). As seções abaixo preservam os campos e o histórico da criação já realizada; não repetir criação.
 
 ## 1. Assistente inicial — Vamos começar
 
