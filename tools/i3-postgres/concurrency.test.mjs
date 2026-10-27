@@ -1,7 +1,7 @@
 import { before, after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:net';
@@ -105,8 +105,9 @@ before(async () => {
     create schema auth; create table auth.users(id uuid primary key);
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     grant usage on schema auth to authenticated; grant execute on function auth.uid() to authenticated;`);
-  for (const name of ['20261026164923_i3_private_foundation.sql', '20261026171659_i3_transaction_protocol.sql']) {
-    await admin.query(await readFile(new URL('../../supabase/migrations/' + name, import.meta.url), 'utf8'));
+  const migrations = new URL('../../supabase/migrations/', import.meta.url);
+  for (const name of (await readdir(migrations)).filter(name => name.endsWith('.sql')).sort()) {
+    await admin.query(await readFile(new URL(name, migrations), 'utf8'));
   }
   assert.equal((await admin.query('select writes_enabled from atlas_security.integration_control')).rows[0].writes_enabled, false);
   // The only write switch change is in this disposable local synthetic cluster.
@@ -124,6 +125,11 @@ test('database switch remains administrative and disabled rejects all financial 
   const id = await owner();
   await admin.query('update atlas_security.integration_control set writes_enabled=false');
   try {
+    await admin.query("select set_config('atlas_i3.expected_user_id',$1,false)", [id]);
+    const checks = await admin.query(await readFile(new URL('../../scripts/sql/i3-verify-protocol-disabled.sql', import.meta.url), 'utf8'));
+    const verification = checks.at(-1).rows[0].verification;
+    assert.equal(Object.keys(verification).length, 24);
+    assert.ok(Object.values(verification).every(value => value === true));
     await pair(id, async (a) => {
       await assert.rejects(apply(a, account(id)), e => e.code === '42501' && /REMOTE_WRITES_DISABLED/.test(e.message));
       assert.deepEqual(await counts(id), { accounts: 0, events: 0, settlements: 0, postings: 0, receipts: 0, head: null });

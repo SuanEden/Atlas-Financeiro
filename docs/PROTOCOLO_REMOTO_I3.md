@@ -1,6 +1,6 @@
 # I3 — proposta de protocolo remoto com escrita bloqueada
 
-Preparada em 27/10/2026 após [provas de acesso e concorrência](CONCORRENCIA_E_ACESSO_I3.md). **Ainda não autorizada nem aplicada remotamente.** As aprovações anteriores cobriram fundação inicial, conta, Data API e Google; não esta migração.
+Preparada em 27/10/2026 após [provas de acesso e concorrência](CONCORRENCIA_E_ACESSO_I3.md). **Atualização: aplicação autorizada pelo pedido de prosseguimento e executada, com gate false.** [Resultado e correção do índice de apoio](RESULTADO_PROTOCOLO_REMOTO_I3.md). As seções abaixo preservam a proposta original; não repetir aplicação nem pedir autorização novamente.
 
 ## Ação concreta proposta
 

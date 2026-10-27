@@ -1,5 +1,9 @@
 # Próxima etapa — continuar I3 local
 
+## Prioridade após instalação do protocolo — 27/10/2026
+
+[Protocolo/índice aplicados e verificados](RESULTADO_PROTOCOLO_REMOTO_I3.md), gate false preservado. Não repetir pedido de aprovação/aplicação. Vinte e quatro checks de acesso SQL hospedado, dez testes de concorrência nativa e check completo aprovados. Próxima conferência pessoal: recarregar a tela local e confirmar mensagem de sessão verificada/envio bloqueado após a nova readiness. Não associar, abrir escrita ou publicar; continuar pelos casos autenticados/operacionais pendentes com evidência distinta de simulação.
+
 ## Prioridade após testes de acesso e concorrência — 27/10/2026
 
 [Recarga/reentrada, conta negativa e dez testes nativos de concorrência](CONCORRENCIA_E_ACESSO_I3.md) registrados. A proposta concreta seguinte é [aplicar exclusivamente segunda migração com gate financeiro false](PROTOCOLO_REMOTO_I3.md), sujeita à aprovação específica. Procedimento já preparado, sem alterações remotas por consequência dos testes. Não repetir primeiro login ou fechar o banco local preexistente; a ferramenta encerrou somente seus clusters temporários. Escrita, associação, piloto/publicação e provas restantes não estão aprovados.

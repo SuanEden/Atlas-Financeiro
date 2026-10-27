@@ -12,7 +12,7 @@ Requer Windows x64 e Node >=22.12, como a VM de desenvolvimento. Aproximadamente
 
 O teste cria seu próprio cluster em `%TEMP%/atlas-i3-pg-*`, escolhe uma porta livre e escuta **somente `127.0.0.1`**. Não aceita URL de banco remoto, `DATABASE_URL` ou credencial de produção. Usa somente fixtures sintéticas, com autenticação trust limitada ao cluster local temporário. Não colocar dados pessoais nesse banco.
 
-Cria papéis/auth.uid de teste, aplica as duas migrações locais e habilita escrita **apenas nesse cluster descartável**. Duas ou três conexões reais, com processos PostgreSQL distintos, exercitam o protocolo como authenticated. `pg_blocking_pids` confirma contenção real; não depende de uma fila JS ou de sleeps presumidos para afirmar concorrência.
+Cria papéis/auth.uid de teste, aplica todas as migrações locais ordenadas e habilita escrita **apenas nesse cluster descartável**. O primeiro teste também exercita o script de 24 verificações do protocolo com gate false. Duas ou três conexões reais, com processos PostgreSQL distintos, exercitam o protocolo como authenticated. `pg_blocking_pids` confirma contenção real; não depende de uma fila JS ou de sleeps presumidos para afirmar concorrência.
 
 Ao terminar, fecha clientes e encerra seu próprio cluster. Conserva logs/dados temporários fora do Git para diagnóstico, sem remover recursivamente caminhos calculados. Se a VM cair durante o teste, conferir caminho e PID do cluster antes de pará-lo; não encerrar processos PostgreSQL genéricos nem um serviço preexistente.
 

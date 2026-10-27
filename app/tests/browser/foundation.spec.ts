@@ -15,7 +15,7 @@ test('dashboard local renderiza, alterna tema e mantém o primeiro uso vazio', a
   });
 
   await page.goto('/');
-  await expect(page).toHaveURL('http://127.0.0.1:5173/');
+  await expect(page).toHaveURL(new URL('/', testInfo.project.use.baseURL!).href);
   await expect(page).toHaveTitle('Atlas Financeiro');
   await expect(page.getByRole('heading', { level: 1, name: 'Visão geral' })).toBeVisible();
   await expect(page.getByText('Comece criando sua primeira conta')).toBeVisible();

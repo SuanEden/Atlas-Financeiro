@@ -1,5 +1,9 @@
 # Estado atual
 
+## Protocolo remoto instalado e verificado, sem abertura financeira — 27/10/2026
+
+Usuário autorizou prosseguir e executar o necessário em resposta à segunda migração. Protocolo aplicado (versão remota `20261027163903`), seguido de índice de apoio da FK (`20261027164301`); sem nova conta, serviço, pagamento ou publicação. Onze tabelas com RLS, três RPCs invoker, gate false e nove tabelas privadas vazias; mesmo usuário/Google/autorização. **24 verificações SQL hospedadas aprovadas**, com papéis reais/identidades simuladas, negativas HTTP e advisors conferidos. **10 testes nativos e check completo 201/1 ignorado +24 navegador/+3 PWA aprovados**. [Resultado, mapeamento e limites](RESULTADO_PROTOCOLO_REMOTO_I3.md). Não reaplicar migrações ou pedir aprovação repetida; associação/escrita continuam bloqueadas. Próxima conferência pessoal: recarregar a tela local, mantendo login verificado/envio aguardando liberação. I3 incompleto.
+
 ## Recarga/reentrada, conta negativa e concorrência local — 27/10/2026
 
 Usuário confirmou F5 bloqueado e nova entrada na mesma conta; outra conta em teste foi recusada. Leituras preservam usuário/UUID/autorização únicos, uma identidade Google e tabelas financeiras vazias. Logs agregados mostram cadastro fechado na tentativa. Ferramenta local Windows PostgreSQL 17.10, isolada de app/servidor, passou **10 testes com conexões independentes**; clusters próprios encerrados. [Evidências e limites](CONCORRENCIA_E_ACESSO_I3.md). Próxima alteração concreta preparada: [aplicar somente segunda migração mantendo escrita false](PROTOCOLO_REMOTO_I3.md), ainda aguardando aprovação específica. Nenhuma migração, abertura financeira, serviço pago ou publicação remota nesta etapa.

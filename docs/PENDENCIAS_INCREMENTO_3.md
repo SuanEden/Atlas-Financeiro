@@ -1,5 +1,7 @@
 # Incremento 3 — decisões e ações do usuário
 
+**Prioridade vigente após execução — 27/10/2026:** protocolo e índice de apoio já autorizados, aplicados e verificados com gate false. [Resultado](RESULTADO_PROTOCOLO_REMOTO_I3.md). Não pedir novamente autorização ou reaplicar. Próxima conferência pessoal é recarregar a tela e confirmar login verificado/envio aguardando liberação; associação e escrita seguem bloqueadas. Matriz JWT autenticada completa, sessão/isolamento restantes, proteção operacional e dois aparelhos ainda pendentes. Não publicar, contratar ou iniciar piloto por consequência da autorização de prosseguimento.
+
 **Prioridade vigente — 27/10/2026:** recarga/reentrada relatadas e conta negativa recusada sem usuário adicional. Dez testes PostgreSQL nativo local com conexões independentes aprovados. [Evidência](CONCORRENCIA_E_ACESSO_I3.md). Próxima ação remota preparada para aprovação: [somente a segunda migração mantendo gate false](PROTOCOLO_REMOTO_I3.md). Não repetir login/logout ou teste negativo já registrados; não liberar escrita, associar base ou publicar. Testes com usuário cadastrado/revogado, expiração e dois aparelhos continuam pendentes.
 
 **Passo de sessão vigente — 27/10/2026:** aviso de bloqueio após saída relatado. Faltam F5 com bloqueio preservado e nova entrada na mesma conta; não repetir logout. [Registro e limites](RESULTADO_PRIMEIRO_LOGIN_I3.md). Associação/escrita continuam bloqueadas; não presumir revogação de JWT a partir do aviso visual.

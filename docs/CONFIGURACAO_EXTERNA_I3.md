@@ -1,5 +1,9 @@
 # I3 — início da configuração externa
 
+## Protocolo e índice de apoio aplicados com escrita false — 27/10/2026
+
+Pedido de prosseguimento do usuário autoriza a segunda migração e verificações/correções de apoio no mesmo recorte. Projeto existente ativo/Free, conta exata e estado inicial conferidos antes de executar. Histórico remoto agora: fundação `20261027152920`, protocolo `20261027163903`, índice de apoio `20261027164301`. O índice resolveu aviso de FK sem cobertura e não muda gate/permissões. Onze tabelas com RLS e nove privadas vazias; três RPCs invoker, gate false; mesmo usuário/Google/autorização. Cadastro fechado, somente Google e API somente api preservados. [Evidências e limites](RESULTADO_PROTOCOLO_REMOTO_I3.md). Sem novos recursos, segredos, `.env` real, associação, abertura financeira ou publicação. Não repetir alterações já executadas.
+
 ## Recarga/reentrada e conta não cadastrada — 27/10/2026
 
 Usuário confirmou persistência do bloqueio após F5 e nova entrada na mesma conta. Em janela anônima orientada, outra conta controlada retornou erro seguro de callback. SELECTs posteriores: um usuário/UUID original, uma identidade Google original, autorização única preservada, zero finanças. Logs Auth agregados da janela da tentativa registraram mensagem Signups not allowed for this instance, sem conteúdo bruto ou dados pessoais retornados. Cadastro fechado/somente Google preservados. [Resultado e limites](CONCORRENCIA_E_ACESSO_I3.md). Nenhuma nova alteração remota; próxima proposta de segunda migração com gate false ainda depende de aprovação.

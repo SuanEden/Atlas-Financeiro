@@ -1,5 +1,17 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Protocolo remoto com gate false, índice e regressão completa — 27/10/2026
+
+Autorizado prosseguimento pelo usuário; preflight projeto ativo/Free, fundação única, mesmo UUID/autorização, cadastro fechado/Google exclusivo, API somente api e tabelas vazias. Aplicado protocolo original inalterado (remoto `20261027163903`). Advisor apontou FK sem índice em incorporated_operations; migração local gerada pela CLI, validada nativamente e aplicada como `20261027164301`, sem alterar gate/dados/grants. Histórico e checksums em [RESULTADO_PROTOCOLO_REMOTO_I3.md](RESULTADO_PROTOCOLO_REMOTO_I3.md).
+
+Catálogo: onze tabelas com RLS, três RPCs invoker, INSERT interno autenticado nas nove privadas e UPDATE somente revision em sync_heads, sem DML nos controles e sem privilégios anônimos. Papéis sem login/superuser/bypass. Script novo `i3-verify-protocol-disabled.sql`: **24 verificações true** no banco hospedado, com identidade simulada e sem inserir seed. Proprietário lê readiness false/pull vazio e apply é negada pelo gate; autoativação/autoautorização/cursor inválido e identidades ausentes/estranhas/anônimas recusados. Inventário final: mesmo usuário/Google/autorização, nove tabelas privadas vazias, gate false e índice válido.
+
+HTTP anônimo nas três RPCs: 401/42501. Perfis privados: 406/PGRST106, somente api exposto. GET Auth permanece cadastro fechado/somente Google. Advisor de FK resolvido; quatro INFO de índices sem uso e WARN anterior de proteção de senhas vazadas mantidos, sem contratação ou ativação de recursos.
+
+Ferramenta nativa atualizada para carregar todas as migrações e conferir também os 24 checks com gate false: **10 testes aprovados**. `ATLAS_BROWSER_TEST_PORT=5174`, modo de teste disabled, `npm run check`: **201 aprovados/1 ignorado, build/typecheck, 24 navegador, 3 PWA**. O ignorado depende do manifesto privado original ausente. Browser plugin ausente, Playwright/Edge isolado; servidor pessoal 5173 preservado e preview 4173 encerrado após testes. Ajuste de config/teste usa origem configurada e strictPort; nenhum componente/código financeiro/dependência do app alterado. Clusters nativos próprios encerrados.
+
+Não confundir claims simulados com JWT real nem declarar escrita, associação, recuperação operacional ou dois aparelhos aprovados. Sem novo serviço, cobrança, dado financeiro ou publicação. Próxima observação pessoal: recarga autenticada mantendo envio bloqueado.
+
 ## Recarga/reentrada, recusa e concorrência independente — 27/10/2026
 
 Usuário confirmou o roteiro F5 bloqueado/nova entrada; interface validada por relato. SELECTs reconfirmaram usuário/UUID/autorização originais e identidade Google única, sete tabelas vazias; GET cadastro fechado/somente Google. Outra conta controlada tentou entrar em janela anônima e recebeu erro seguro. Inventário posterior permaneceu igual. Logs somente agregados em janela de vinte minutos: duas ocorrências de Signups not allowed for this instance; não são contagem de tentativas/pessoas. Sem tokens, email ou conteúdo bruto extraídos.
