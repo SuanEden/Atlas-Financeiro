@@ -1,5 +1,9 @@
 # Estado atual
 
+## Google sem conta de faturamento vinculada — 27/10/2026
+
+Usuário relatou mensagem explícita do painel: projeto Google não tem conta de faturamento. Confirmação por relato, sem API independente; não comprova ausência de cartões na conta nem gratuidade permanente de recursos futuros. Próxima etapa é abrir Google Auth Platform e conferir formulário antes de salvar configuração OAuth. [Registro vigente](CONFIGURACAO_EXTERNA_I3.md). Sem trial/serviço pago pelo agente; Supabase e pré-cadastro preservados, Google login pendente e I3 incompleto.
+
 ## Projeto Google criado pelo usuário — 27/10/2026
 
 Captura confirma projeto Google `Atlas Financeiro` correspondente ao formulário preparado, em Nenhuma organização, criado pelo usuário após orientação condicionada à autorização específica. Vínculo de faturamento ainda não verificado: seção cortada na captura. Próxima etapa é leitura desse trecho antes de OAuth. [Evidência e limites](CONFIGURACAO_EXTERNA_I3.md). Supabase e pré-cadastro preservados, Google login ainda desabilitado; sem configuração paga ou OAuth pelo agente, I3 incompleto.

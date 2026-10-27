@@ -2,6 +2,12 @@
 
 Atualizado em 27/10/2026. Complementa [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md). As seções de 26/10 abaixo preservam o marco anterior; a consulta desta retomada está registrada a seguir.
 
+## Projeto Google sem conta de faturamento, conforme painel relatado — 27/10/2026
+
+Após abrir a consulta de faturamento do projeto Google criado, o usuário informou a mensagem explícita: `Este projeto não tem uma conta de faturamento`. Evidência classificada como relato específico do texto do painel, sem consulta independente à API Google. Isso resolve a pendência anterior de vínculo para esse projeto naquele momento; não inventaria cartões/contas de pagamento do usuário nem garante gratuidade permanente de outros recursos. Não vincular faturamento, ativar trial ou recursos pagos.
+
+**Próxima etapa reversível:** abrir a visão geral Google Auth Platform com o projeto já criado selecionado. Se houver Começar na área de configuração de autenticação, abrir o formulário e conferir os campos antes de salvar/criar configuração. Não inferir que OAuth já está configurado. Supabase e pré-cadastro único permanecem preservados; login Google continua pendente. Nenhum cliente OAuth, provedor Google ou configuração de consentimento foi executado pelo agente. A autorização de criação do projeto não é autorização genérica para outras alterações remotas.
+
 ## Projeto Google criado pelo usuário; faturamento ainda não conferido — 27/10/2026
 
 Após a orientação de criação condicionada à concordância específica, o usuário enviou captura das configurações do novo projeto `Atlas Financeiro`. Nome e identificador correspondem ao formulário preparado; a tela também mostra número de projeto e indicação de Nenhuma organização. Registrar criação feita pelo usuário e evidência por captura, sem alegar consulta independente à API Google. Identificador/número operacionais e captura ficam fora do Git. O Supabase existente e seu único pré-cadastro permanecem preservados.

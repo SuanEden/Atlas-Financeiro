@@ -1,5 +1,9 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Vínculo de faturamento Google conforme relato — 27/10/2026
+
+Usuário informou texto explícito após consulta do projeto Google: `Este projeto não tem uma conta de faturamento`. Evidência de relato específico do painel, sem API independente; vínculo ausente naquele momento conforme relato. Não é inspeção de cartões/contas de pagamento ou garantia de gratuidade de outros serviços. [Registro e próxima preparação de Auth](CONFIGURACAO_EXTERNA_I3.md). Nenhuma configuração OAuth, pagamento/trial ou cliente Google executados pelo agente. Código inalterado; testes não repetidos para o checkpoint documental.
+
 ## Criação Google observada por captura — 27/10/2026
 
 Usuário enviou configurações do novo projeto `Atlas Financeiro`; nome/identificador correspondem ao formulário preparado, com número de projeto e Nenhuma organização visíveis. Evidência de criação pelo usuário via captura, sem consulta independente à API Google. A seção Conta de faturamento está cortada: vínculo não verificado, custo/configuração de faturamento não presumidos. Próxima etapa é leitura desse trecho antes de OAuth. [Registro](CONFIGURACAO_EXTERNA_I3.md). Captura/IDs fora do Git; nenhum cliente OAuth, serviço pago ou faturamento configurados pelo agente. Código inalterado; testes não repetidos para este checkpoint documental.
