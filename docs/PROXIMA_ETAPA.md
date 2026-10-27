@@ -1,5 +1,9 @@
 # Próxima etapa — continuar I3 local
 
+## Prioridade após habilitação Google conferida — 27/10/2026
+
+Google exclusivo habilitado, cadastro fechado e bloqueio financeiro verificados. [Primeiro login preparado](PRIMEIRO_LOGIN_GOOGLE_I3.md). Servidor local loopback com integração somente no processo e QA desktop/celular aprovados; OAuth foi interceptado, sem autenticação. Próxima ação remota concreta para aprovação é o primeiro login pessoal, vinculando Google ao cadastro existente e preservando o UUID. Após retorno, conferir identidade/login por leitura e mensagem de envio ainda bloqueado. Não pedir novamente autorização do provedor, criar `.env` com segredos, associar base, abrir escrita, aplicar segunda migração ou publicar.
+
 ## Prioridade após autorização de Google — 27/10/2026
 
 Google especificamente autorizado pelo usuário; não pedir novamente. Fornecer o [roteiro completo de campos](ROTEIRO_GOOGLE_OAUTH_I3.md) para salvamento privado no painel, pois o conector não configura o provedor. Última prévia: projeto ativo/Free, cadastro fechado, todos os métodos desligados, autorização única exata e tabelas privadas vazias. Depois do relato de conclusão, verificar por leitura a ativação exclusiva de Google e os bloqueios preservados. Não presumir login ou autorização de `.env` real, protocolo posterior, escrita financeira ou publicação.

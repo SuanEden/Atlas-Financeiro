@@ -1,5 +1,13 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Google exclusivo confirmado e tela de login preparada — 27/10/2026
+
+GET Auth após PRONTO: 200, `disable_signup: true`, somente Google true. Projeto ativo/Free e migração inicial única. SQL confirmou mesmo UUID/autorização, um usuário confirmado, zero logins/identidades Google, oito tabelas com RLS, zero grants DML ao cliente e sete tabelas privadas vazias. Readiness com identidade simulada permanece versão 1/escrita falsa. HTTP privado 406/PGRST106 e readiness anônimo 401/42501.
+
+Preparação local somente por variáveis no processo Vite em `127.0.0.1:5173`, sem `.env` real ou mudança do padrão disabled. Primeira chamada npm/PowerShell perdeu flags e falhou antes de iniciar; CLI Vite local direta iniciou corretamente. Browser plugin ausente: Playwright/Edge isolado, 1280×900 e 390×844, título/URL/conteúdo/botão corretos, sem overlay, console limpo e sem overflow; capturas temporárias inspecionadas, sem controles de associação. Clique interceptado antes do servidor conferiu Google, callback exato e PKCE S256, sem iniciar login remoto ou receber token/código. [Relatório QA e limites](PRIMEIRO_LOGIN_GOOGLE_I3.md).
+
+Sem alteração de código/dependências/migrações e sem suíte completa repetida. Credenciais fornecidas na conversa não foram copiadas para arquivos/Git ou usadas pelo agente. Primeiro login/JWT real ainda pendentes; próxima ação deve preservar UUID e bloqueio financeiro. Nenhum serviço pago/publicação ou operação financeira executados.
+
 ## Prévia após autorização somente Google — 27/10/2026
 
 Usuário respondeu `vamos` à ativação específica de Google já proposta. `get_project`/organização reconfirmaram projeto existente ativo/Free. GET Auth: 200, `disable_signup: true`, Google false e nenhum método retornado habilitado. SQL confirmou um usuário, autorização única ativa para o UUID privado exato, zero logins/identidades Google, protocolo posterior ausente e sete tabelas privadas vazias. Uma consulta SELECT inicial falhou por sintaxe; corrigida e repetida somente a leitura, sem escrita remota.

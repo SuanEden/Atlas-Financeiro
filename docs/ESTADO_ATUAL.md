@@ -1,5 +1,9 @@
 # Estado atual
 
+## Google habilitado; primeiro login preparado — 27/10/2026
+
+Após PRONTO do usuário, GET confirmou somente Google habilitado e cadastro fechado. Projeto ativo/Free, UUID/autorização única preservados, nenhum login/identidade Google ainda; oito tabelas com RLS, sem DML de cliente e sete tabelas privadas vazias. Readiness continua com escrita financeira falsa; HTTP privado/anônimo bloqueado. [Evidência e próximo teste](PRIMEIRO_LOGIN_GOOGLE_I3.md). Servidor local preparado em loopback com integration somente no processo e chave publicável, sem `.env` real/publicação ou mudança do padrão disabled. QA Edge desktop/celular aprovada; clique OAuth interceptado localmente, sem login remoto. Próxima ação para aprovação: primeiro login pessoal que vincule Google ao usuário existente, preservando UUID e bloqueio financeiro.
+
 ## Ativação somente Google autorizada, salvamento pendente — 27/10/2026
 
 Usuário autorizou a proposta específica com `vamos`; não pedir novamente. Prévia por leituras: projeto ativo/Free, cadastro fechado, Google e todos os métodos retornados ainda desligados, autorização única exata, zero login/identidade Google e sete tabelas privadas vazias. [Roteiro completo e limites](ROTEIRO_GOOGLE_OAUTH_I3.md). Conector não configura o provedor: usuário deve preencher credenciais diretamente no painel e salvar; nenhuma ativação ou login comprovados ainda. Cadastro, métodos extras e escrita financeira permanecem desligados; aplicativo remoto disabled, sem `.env` real/publicação/protocolo posterior.

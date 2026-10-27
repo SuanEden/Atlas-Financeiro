@@ -1,5 +1,9 @@
 # I3 — início da configuração externa
 
+## Google salvo pelo usuário e habilitação exclusiva conferida — 27/10/2026
+
+Depois de fornecer JSON do cliente e pedir tabela preenchida, usuário relatou PRONTO no salvamento. Credenciais/JSON não foram incluídos em arquivos/Git ou utilizados pelo agente em requisições. GET atual: somente Google habilitado, cadastro fechado. Projeto ativo/Free; mesmo UUID/autorização, zero logins/identidades Google, RLS e sete tabelas privadas vazias. Readiness com escrita falsa e negativas HTTP privado/anônimo preservadas. [Validação e preparação do primeiro login](PRIMEIRO_LOGIN_GOOGLE_I3.md). Processo local integration preparado com chave publicável, sem `.env` persistente, autenticação ou publicação. QA com OAuth interceptado aprovada; primeiro vínculo real continua pendente de aprovação/ação pessoal, sem novos recursos ou cobrança habilitada.
+
 ## Somente Google autorizado; preenchimento privado no painel — 27/10/2026
 
 Resposta `vamos` autoriza a proposta específica anterior: configurar/habilitar somente Google com cliente Web existente. Não repetir pedido de aprovação. Leitura de Auth após autorização ainda informa cadastro fechado e todos os métodos retornados desligados. Projeto ativo/Free; UUID/autorização exatos preservados, um usuário, nenhum login/identidade Google e sete tabelas privadas vazias. [Roteiro completo](ROTEIRO_GOOGLE_OAUTH_I3.md), com Client ID/Secret inseridos somente no painel oficial pelo usuário; ferramenta conectada não configura provedor. Nenhum segredo obtido ou ativação/salvamento/login comprovados pelo agente. Cadastro, Email, anônimo, vinculação manual, métodos extras e escrita financeira seguem com orientação de permanecer desligados. Sem novo serviço, cobrança, SQL de alteração, `.env` real ou publicação.
