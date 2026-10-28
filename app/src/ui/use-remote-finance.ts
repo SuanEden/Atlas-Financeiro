@@ -36,6 +36,6 @@ export function useRemoteFinance(controller:RemoteController) {
     catch {setError('Não foi possível salvar. Confira o acesso e o armazenamento antes de tentar novamente.');throw new Error('Não foi possível salvar.');}
     finally {executing.current=false;setBusy(false);}
   },[controller,readState]);
-  const recover=async(_json:string)=>{throw new Error('Este contexto exige uma cópia I3 com metadados; não aceita recuperação I2.');};
+  const recover=async(json:string)=>{await controller.recoverBackup(json);setState(await readState());};
   return {state,loading,busy,error,clearError:()=>setError(undefined),execute,recover,readState,context,userId};
 }

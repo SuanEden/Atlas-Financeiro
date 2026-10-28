@@ -1,3 +1,4 @@
+import { jsonDigest } from './protocol';
 import { serializeFinancialDataset } from '../serialization';
 import type { LocalSyncStore } from './local-sync-store';
 
@@ -5,11 +6,13 @@ import type { LocalSyncStore } from './local-sync-store';
 export async function exportSyncBackup(store:LocalSyncStore,serverId:string):Promise<string> {
   if(serverId!==store.serverId) throw new TypeError('O servidor da cópia deve corresponder à base local.');
   const state=await store.read();
-  return JSON.stringify({
+  const copy = {
     format:'atlas-financeiro-sync-backup',schemaVersion:1,protocolVersion:1,
     exportedAt:new Date().toISOString(),userId:store.userId,serverId,
     confirmed:JSON.parse(serializeFinancialDataset(state.confirmed,store.userId)),
     projection:JSON.parse(serializeFinancialDataset(state.projection,store.userId)),
     pending:state.pending,receipts:state.receipts,meta:state.meta,
-  },null,2);
+  };
+  const {exportedAt: _date, ...contents} = copy;
+  return JSON.stringify({...copy, integritySha256: await jsonDigest(contents)}, null, 2);
 }

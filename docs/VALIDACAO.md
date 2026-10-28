@@ -1,5 +1,11 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Recuperação JSON I3 neste ambiente — 28/10/2026
+
+`npm run test -- --maxWorkers=2`: **269 aprovados, 1 ignorado, 20 arquivos**; `npm run build` incluindo typecheck: aprovado. O ignorado continua sendo o manifesto privado original ausente. São 17 casos unitários adicionais (16 de recuperação/arquivo e um de controle de acesso) em relação à base de 252. Configurações e dependências do projeto preservadas. Rodada anterior concorrente teve SIGKILL de worker e não foi aprovada; a rodada final acima concluiu sem erro.
+
+Playwright foi tentado: dois casos HTTP passaram, 24 cenários dependentes de navegador não iniciaram por bloqueio de socket do Chrome neste ambiente. Nenhuma validação visual, PWA de produção ou teste físico é declarado aprovado neste lote. O novo cenário E2E de recuperação em perfil vazio permanece para executar em ambiente compatível. [Mudanças, evidências e limites](ENTREGA_RECUPERACAO_I3_CHAT.md). O runner PostgreSQL nativo Windows não foi executado; testes SQL embarcados integram a suíte aprovada. Nenhuma escrita remota/publicação foi feita.
+
 ## Recuperação da VM e compatibilidade — 28/10/2026
 
 `npm ci` e check da base: **223 aprovados/1 ignorado, typecheck/build, 24 navegador/3 PWA**. Após correções: **252 aprovados/1 ignorado, typecheck/build, 24 navegador/3 PWA**. São 29 casos novos: 21 de compatibilidade local, dois SDK e seis SQL. Primeiro check modificado parou no typecheck de cast da fixture; corrigido e check completo repetido com sucesso. Ignorado continua manifesto privado original ausente. **Runner PostgreSQL `test:all`: 30 aprovados na mesma rodada**, sem mudança do SQL. [Casos, QA e limites](COMPATIBILIDADE_I3.md).

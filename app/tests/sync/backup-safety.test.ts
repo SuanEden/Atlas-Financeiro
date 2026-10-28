@@ -179,7 +179,7 @@ describe('proteção operacional da cópia I3 — sem importador I3/I4',()=>{
     const {store}=await associated();const getItem=vi.fn(()=>{throw new Error('Auth storage must not be read');});
     vi.stubGlobal('localStorage',{getItem});vi.stubGlobal('sessionStorage',{getItem});
     const archive=await stableCopy(store);expect(getItem).not.toHaveBeenCalled();
-    expect(Object.keys(archive).sort()).toEqual(['format','schemaVersion','protocolVersion','userId','serverId','confirmed','projection','pending','receipts','meta'].sort());
+    expect(Object.keys(archive).sort()).toEqual(['format','schemaVersion','protocolVersion','userId','serverId','confirmed','projection','pending','receipts','meta','integritySha256'].sort());
     const before=await store.read();await expect(exportSyncBackup(store,'synthetic-other-server')).rejects.toThrow(/servidor/);
     expect(await store.read()).toEqual(before);
   });
@@ -195,4 +195,74 @@ describe('proteção operacional da cópia I3 — sem importador I3/I4',()=>{
     expect(await stableCopy(store)).toEqual(before);
     expect(serializeFinancialDataset((await store.read()).projection,store.userId)).toBe(JSON.stringify(before.projection));
   });
+});
+
+describe('recuperação I3 em outro namespace vazio', () => {
+  it('recupera histórico e pendência; resposta perdida não causa reenvio', async () => {
+    const {owner,store} = await associated(); const packet = await income(store,12345n); await store.enqueue(packet);
+    await port(owner).apply(packet);
+    const target = open(owner,'recovered'); await target.recoverBackup(await copy(store),()=>true);
+    expect(await stableCopy(target)).toEqual(await stableCopy(store));
+    const apply = vi.fn(port(owner).apply);
+    expect(await engine(target,{...port(owner),apply}).run()).toBe('synced');
+    expect(apply).not.toHaveBeenCalled(); expect((await target.read()).pending).toEqual([]);
+    expect((await server.counts(owner)).sync_batches).toBe('2');
+  });
+  it('repetição idêntica não duplica; base mais recente não é substituída', async () => {
+    const {owner,store} = await associated(); const json = await copy(store); const target = open(owner,'retry');
+    await target.recoverBackup(json,()=>true); await target.recoverBackup(json,()=>true);
+    await target.enqueue(await income(target)); const before = await stableCopy(target);
+    await expect(target.recoverBackup(json,()=>true)).rejects.toThrow(/base diferente/);
+    expect(await stableCopy(target)).toEqual(before);
+  });
+  it('recupera ACK adiantado preservando recibo', async () => {
+    const {owner,store} = await associated(); const packet = await income(store); await store.enqueue(packet);
+    await store.acknowledge(packet.operationId,await port(owner).apply(packet));
+    const target = open(owner,'ack'); await target.recoverBackup(await copy(store),()=>true);
+    expect(await stableCopy(target)).toEqual(await stableCopy(store));
+    await engine(target).run(); expect((await target.read()).pending).toEqual([]);
+  });
+  it('mantém conflito resolvido fora da projeção', async () => {
+    const {owner,store} = await associated(); const packet = await income(store); await store.enqueue(packet);
+    await store.markConflict(packet.operationId,'SYNTHETIC_CONFLICT'); await store.resolveConflict(packet.operationId);
+    const target = open(owner,'conflict'); await target.recoverBackup(await copy(store),()=>true);
+    expect(await stableCopy(target)).toEqual(await stableCopy(store));
+  });
+  it('associação interrompida não é promovida a ativa', async () => {
+    const {owner,store} = await prepared(); const target = open(owner,'bootstrap');
+    await target.recoverBackup(await copy(store),()=>true);
+    expect((await target.read()).meta.binding).toBe('bootstrap');
+    expect(await stableCopy(target)).toEqual(await stableCopy(store));
+  });
+  it.each(['owner','server','version','payload','projection','receipt','cursor','ordinal','extra'])(
+    'arquivo inválido (%s) não grava parcialmente', async mutation => {
+      const {owner,store} = await associated(); await store.enqueue(await income(store)); const root = JSON.parse(await copy(store)); delete root.integritySha256;
+      if(mutation==='owner')root.userId=crypto.randomUUID();
+      if(mutation==='server')root.serverId='another-server';
+      if(mutation==='version')root.protocolVersion=99;
+      if(mutation==='payload')root.pending[0].envelope.operation.payload.events[0].description='changed';
+      if(mutation==='projection')root.projection.accounts[0].name='changed';
+      if(mutation==='receipt')root.receipts[0].userId=crypto.randomUUID();
+      if(mutation==='cursor')root.meta.cursor='3';
+      if(mutation==='ordinal')root.pending[0].ordinal=999;
+      if(mutation==='extra')root.access_token='not-a-real-token';
+      const target=open(owner,`invalid-${mutation}`);const before=await stableCopy(target);
+      await expect(target.recoverBackup(JSON.stringify(root),()=>true)).rejects.toThrow();
+      expect(await stableCopy(target)).toEqual(before);
+    });
+  it('mudança de sessão aborta a transação inteira',async()=>{
+    const {owner,store}=await associated();const target=open(owner,'rollback');const before=await stableCopy(target);let checks=0;
+    await expect(target.recoverBackup(await copy(store),()=>++checks===1)).rejects.toThrow(/sessão mudou/);
+    expect(checks).toBe(2);expect(await stableCopy(target)).toEqual(before);
+  });
+});
+
+// New files detect accidental edits across both projections; legacy exports retain structural checks.
+it('checksum recusa alteração coerente da base e projeção; legado sem checksum continua recuperável',async()=>{
+  const {owner,store}=await associated();const raw=JSON.parse(await copy(store));
+  const target=open(owner,'checksum');raw.confirmed.accounts[0].name='Changed';raw.projection.accounts[0].name='Changed';
+  await expect(target.recoverBackup(JSON.stringify(raw),()=>true)).rejects.toThrow(/diverge/);
+  const legacy=JSON.parse(await copy(store));delete legacy.integritySha256;
+  await target.recoverBackup(JSON.stringify(legacy),()=>true);
+  expect((await target.read()).confirmed).toEqual((await store.read()).confirmed);
 });

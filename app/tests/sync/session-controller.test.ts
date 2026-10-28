@@ -106,3 +106,20 @@ describe('controlador local de sessão com SQL e identidades simuladas',()=>{
     expect((await f.controller.getSnapshot().store!.read()).confirmed.accounts).toHaveLength(2);
   });
 });
+
+describe('recuperação I3 não concede autenticação nem escrita remota',()=>{
+  it('exige login, restaura no aparelho novo com gate falso e conserva bloqueio remoto',async()=>{
+    const f=await setup();await associate(f);
+    const {exportSyncBackup}=await import('../../src/sync/export-backup');
+    const json=await exportSyncBackup(f.controller.getSnapshot().store!,'synthetic-controller');
+    const identity={userId:f.owner,expiresAt:2000,writesEnabled:false};
+    const auth:AuthPort={...f.auth,verify:async()=>identity};const saved=storage();
+    const other=new RemoteController('synthetic-controller',auth,f.transport,saved,f.source,'new-device',()=>1000);controllers.push(other);
+    await expect(other.recoverBackup(json)).rejects.toThrow(/Entre/);
+    await other.start();await other.recoverBackup(json);
+    expect(other.getSnapshot().session).toMatchObject({canView:true,canTransmit:false,onlineVerified:true});
+    expect((await other.getSnapshot().store!.read()).projection).toEqual((await f.controller.getSnapshot().store!.read()).projection);
+    await other.logout();await expect(other.recoverBackup(json)).rejects.toThrow(/Entre/);
+    expect(other.getSnapshot().session.canView).toBe(false);
+  });
+});

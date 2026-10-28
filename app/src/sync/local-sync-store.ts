@@ -164,6 +164,28 @@ export class LocalSyncStore {
       return {meta,confirmed,projection:projection.data,pending:projection.pending,receipts:await this.#db.receipts.toArray()};
     });
   }
+  /** Restore only into an empty namespace (or recognize an identical retry). No network/Auth writes. */
+  async recoverBackup(json: string, stillAuthorized: () => boolean): Promise<void> {
+    const backup = await validateSyncBackup(json, this.userId, this.serverId);
+    await this.#db.transaction('rw', ALL, async () => {
+      if (!stillAuthorized()) throw new Error('Entre com a mesma conta antes de recuperar.');
+      const occupied = (await this.#db.confirmed.count()) + (await this.#db.pending.count())
+        + (await this.#db.receipts.count()) + (await this.#db.meta.count());
+      if (occupied) {
+        const current = { meta: await this.meta(), confirmed: await this.confirmed(),
+          pending: await this.#db.pending.orderBy('ordinal').toArray(), receipts: await this.#db.receipts.toArray() };
+        if (snapshotKey(current, this.userId) === snapshotKey(backup, this.userId)) return;
+        throw new Error('Este navegador já contém uma base diferente. Use um perfil vazio; nada foi substituído.');
+      }
+      await this.#db.confirmed.put({ id: 'confirmed', json: serializeFinancialDataset(backup.confirmed, this.userId) });
+      await this.#db.pending.bulkAdd(backup.pending);
+      await this.#db.receipts.bulkAdd(backup.receipts);
+      await this.#db.meta.put(backup.meta);
+      // Auth can change while IndexedDB requests yield. Throwing aborts all four tables.
+      if (!stillAuthorized()) throw new Error('A sessão mudou durante a recuperação. Nada foi gravado.');
+    });
+  }
+
   close() { this.#db.close(); }
   private assertOwner(envelope: SyncEnvelope) { assertEnvelope(envelope); if(envelope.userId!==this.userId) throw new TypeError('Operação de outro contexto.'); }
   private async meta(): Promise<SyncMeta> {
@@ -174,14 +196,7 @@ export class LocalSyncStore {
     }
     if(rows.length!==1) throw new TypeError('Contexto de sincronização incompatível. Preserve esta base para conferência.');
     const meta=rows[0]!;
-    assertKnownFields(meta,['id','cursor','ordinal','binding'],['version','associationId','sourceDigest','sourceOwnerId','sourceMode']);
-    if(meta.id!=='context'||('version' in meta&&meta.version!==1)||!Number.isSafeInteger(meta.ordinal)||meta.ordinal<0||!['unbound','bootstrap','verifying_source','join','active'].includes(meta.binding)) throw new TypeError('Contexto de sincronização incompatível. Preserve esta base para conferência.');
-    assertRevision(meta.cursor);
-    if('associationId' in meta) assertEntityId(meta.associationId);
-    if('sourceOwnerId' in meta) assertEntityId(meta.sourceOwnerId);
-    if('sourceDigest' in meta&&(typeof meta.sourceDigest!=='string'||!/^[0-9a-f]{64}$/.test(meta.sourceDigest))) throw new TypeError('Proveniência incompatível.');
-    if('sourceMode' in meta&&!['empty','i2'].includes(meta.sourceMode!)) throw new TypeError('Origem de sincronização incompatível.');
-    // Known legacy v1 records need no rewrite/migration. Unknown versions never reach a put().
+    validateMeta(meta);
     return meta;
   }
   private async confirmed(): Promise<FinancialDataset> { const row=await this.#db.confirmed.get('confirmed'); return row?deserializeFinancialDataset(row.json,this.userId):emptyDataset(); }
@@ -254,4 +269,98 @@ async function validatePage(page: ChangePage,owner: string) {
   }
   if(BigInt(page.cursor)!==expected-1n||(!page.batches.length&&page.cursor!==page.through)) throw new TypeError('Cursor não corresponde à página persistida.');
   return acks;
+}
+
+function validateMeta(meta: SyncMeta): void {
+    assertKnownFields(meta,['id','cursor','ordinal','binding'],['version','associationId','sourceDigest','sourceOwnerId','sourceMode']);
+    if(meta.id!=='context'||('version' in meta&&meta.version!==1)||!Number.isSafeInteger(meta.ordinal)||meta.ordinal<0||!['unbound','bootstrap','verifying_source','join','active'].includes(meta.binding)) throw new TypeError('Contexto de sincronização incompatível. Preserve esta base para conferência.');
+    assertRevision(meta.cursor);
+    if('associationId' in meta) assertEntityId(meta.associationId);
+    if('sourceOwnerId' in meta) assertEntityId(meta.sourceOwnerId);
+    if('sourceDigest' in meta&&(typeof meta.sourceDigest!=='string'||!/^[0-9a-f]{64}$/.test(meta.sourceDigest))) throw new TypeError('Proveniência incompatível.');
+    if('sourceMode' in meta&&!['empty','i2'].includes(meta.sourceMode!)) throw new TypeError('Origem de sincronização incompatível.');
+    // Known legacy v1 records need no rewrite/migration. Unknown versions never reach a put().
+}
+
+export const MAX_SYNC_BACKUP_BYTES = 10 * 1024 * 1024;
+interface SyncCopy {
+  meta: SyncMeta; confirmed: FinancialDataset; projection: FinancialDataset;
+  pending: PendingDelivery[]; receipts: StoredReceipt[];
+}
+
+/** Strict file boundary. File contents never establish an authenticated identity or transmission grant. */
+export async function validateSyncBackup(json: string, owner: string, serverId: string): Promise<SyncCopy> {
+  if (new TextEncoder().encode(json).byteLength > MAX_SYNC_BACKUP_BYTES) throw new RangeError('O arquivo excede o limite de 10 MiB.');
+  const root = JSON.parse(json);
+  assertKnownFields(root, ['format','schemaVersion','protocolVersion','exportedAt','userId','serverId','confirmed','projection','pending','receipts','meta'], ['integritySha256']);
+  if ('integritySha256' in root) {
+    const {exportedAt: _date, integritySha256, ...contents} = root;
+    if (typeof integritySha256 !== 'string' || integritySha256 !== await jsonDigest(contents)) throw new TypeError('O arquivo diverge da cópia exportada. Preserve o original.');
+  }
+  if (root.format !== 'atlas-financeiro-sync-backup' || root.schemaVersion !== 1 || root.protocolVersion !== 1)
+    throw new TypeError('Selecione uma cópia de sincronização I3 compatível.');
+  if (root.userId !== owner || root.serverId !== serverId) throw new TypeError('A cópia pertence a outra conta ou servidor.');
+  if (typeof root.exportedAt !== 'string' || !Number.isFinite(Date.parse(root.exportedAt))
+    || new Date(root.exportedAt).toISOString() !== root.exportedAt) throw new TypeError('Data de exportação inválida.');
+  validateMeta(root.meta);
+  if (!Array.isArray(root.pending) || !Array.isArray(root.receipts)) throw new TypeError('Pendências ou recibos ausentes.');
+  const confirmed = deserializeFinancialDataset(JSON.stringify(root.confirmed), owner);
+  const projection = deserializeFinancialDataset(JSON.stringify(root.projection), owner);
+  if (DATA_TABLES.reduce((n, key) => n + confirmed[key].length + projection[key].length, 0)
+    + root.pending.length + root.receipts.length > 50_000) throw new RangeError('A cópia excede 50 mil registros.');
+  const pending = root.pending as PendingDelivery[];
+  const ids = new Set<string>(); const ordinals = new Set<number>();
+  for (const row of pending) {
+    assertDelivery(row, owner);
+    if (ids.has(row.id) || ordinals.has(row.ordinal) || row.ordinal > root.meta.ordinal) throw new TypeError('Ordem ou identidade de pendência inválida.');
+    ids.add(row.id); ordinals.add(row.ordinal);
+    if (await jsonDigest(row.envelope) !== row.digest || (row.operationDigest !== undefined
+      && (row.envelope.kind === 'bootstrap' || await jsonDigest(row.envelope.operation) !== row.operationDigest)))
+      throw new TypeError('Conteúdo da pendência diverge do digest.');
+  }
+  const receipts = root.receipts as StoredReceipt[];
+  const receiptIds = new Set<string>(); const revisions = new Set<string>();
+  for (const row of receipts) {
+    assertFields(row, ['id','protocolVersion','userId','operationId','revision','digest','coveredOperations']);
+    assertEntityId(row.operationId); assertRevision(row.revision);
+    if (row.id !== row.operationId || row.userId !== owner || row.protocolVersion !== 1 || row.revision === '0'
+      || receiptIds.has(row.id) || revisions.has(row.revision) || typeof row.digest !== 'string'
+      || !/^[0-9a-f]{64}$/.test(row.digest) || !Array.isArray(row.coveredOperations)) throw new TypeError('Recibo incompatível.');
+    const coveredIds = new Set<string>();
+    for (const covered of row.coveredOperations) {
+      assertFields(covered, ['id','digest']); assertEntityId(covered.id);
+      if (coveredIds.has(covered.id) || typeof covered.digest !== 'string' || !/^[0-9a-f]{64}$/.test(covered.digest)) throw new TypeError('Cobertura de recibo inválida.');
+      coveredIds.add(covered.id);
+    }
+    receiptIds.add(row.id); revisions.add(row.revision);
+    if (BigInt(row.revision) > BigInt(root.meta.cursor)) {
+      const command = pending.find(item => item.id === row.id && item.status === 'acknowledged');
+      const {id: _id, ...receipt} = row;
+      if (!command || !await receiptAcknowledges(command.envelope, receipt)) throw new TypeError('Recibo adiantado sem pendência confirmada.');
+    }
+  }
+  const confirmedRevisions = receipts.filter(row => BigInt(row.revision) <= BigInt(root.meta.cursor)).map(row => BigInt(row.revision)).sort((a,b) => a < b ? -1 : 1);
+  if (BigInt(confirmedRevisions.length) !== BigInt(root.meta.cursor)
+    || confirmedRevisions.some((revision, i) => revision !== BigInt(i + 1))) throw new TypeError('Há uma lacuna no histórico de recibos.');
+  for (const command of pending.filter(row => row.status === 'acknowledged')) {
+    const saved = receipts.find(row => row.id === command.id);
+    if (!saved) throw new TypeError('Pendência confirmada sem recibo.');
+    const {id: _id, ...receipt} = saved;
+    if (!await receiptAcknowledges(command.envelope, receipt)) throw new TypeError('Recibo diverge da operação.');
+  }
+  if (root.meta.binding === 'unbound' && (pending.length || receipts.length || root.meta.cursor !== '0'
+    || DATA_TABLES.some(key => confirmed[key].length))) throw new TypeError('Base sem associação contém registros.');
+  if (['bootstrap','verifying_source'].includes(root.meta.binding) && (!root.meta.associationId || !root.meta.sourceDigest || !root.meta.sourceOwnerId || !root.meta.sourceMode))
+    throw new TypeError('Proveniência da associação ausente.');
+  if (root.meta.binding === 'active' && root.meta.cursor === '0') throw new TypeError('Associação ativa sem revisão confirmada.');
+  if (root.meta.cursor === '0' && DATA_TABLES.some(key => confirmed[key].length)) throw new TypeError('Base confirmada sem revisão de origem.');
+  const calculated = project(confirmed, pending, owner);
+  if (serializeFinancialDataset(calculated.data, owner) !== serializeFinancialDataset(projection, owner)
+    || canonicalJson(calculated.pending) !== canonicalJson(pending)) throw new TypeError('A projeção não corresponde à base e às pendências.');
+  return { meta: root.meta, confirmed, projection, pending, receipts };
+}
+
+function snapshotKey(state: {meta: SyncMeta; confirmed: FinancialDataset; pending: PendingDelivery[]; receipts: StoredReceipt[]}, owner: string): string {
+  return canonicalJson({meta: state.meta, confirmed: JSON.parse(serializeFinancialDataset(state.confirmed, owner)),
+    pending: [...state.pending].sort((a,b) => a.ordinal-b.ordinal), receipts: [...state.receipts].sort((a,b) => a.id.localeCompare(b.id))});
 }

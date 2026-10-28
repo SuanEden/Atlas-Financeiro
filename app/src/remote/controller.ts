@@ -23,6 +23,7 @@ export class RemoteController {
   #generation=0;
   #syncing:Promise<SyncResult>|undefined;
   #disposed=false;
+  #recovering=false;
   readonly #unsubscribeAuth:()=>void;
   constructor(readonly serverId:string,private readonly auth:AuthPort,private readonly transport:SyncTransport,storage:Storage,private readonly source:SourcePort,private readonly deviceNamespace='default',private readonly now=()=>Date.now()) {
     this.policy=new SessionPolicy(serverId,storage,now);
@@ -107,6 +108,7 @@ export class RemoteController {
     this.requireOnline();await this.#store!.prepareJoin();await this.sync();
   }
   async sync():Promise<SyncResult> {
+    if(this.#recovering) return 'retry_later';
     if(this.#syncing) return this.#syncing;
     this.#syncing=(async()=>{
       if(!this.policy.snapshot.canTransmit||!this.#engine)return 'login_required';
@@ -145,6 +147,24 @@ export class RemoteController {
     await store.enqueue(commandEnvelope(command.operation,state.meta.cursor));
     if(epoch===this.policy.snapshot.epoch)this.publish({dataRevision:this.#snapshot.dataRevision+1});
   }
+  async recoverBackup(json: string) {
+    if (this.#syncing || this.#recovering) throw new Error('Aguarde a operação em andamento antes de recuperar.');
+    const session = this.policy.snapshot; const store = this.#store;
+    if (!session.onlineVerified || session.blocked || !store || store.userId !== session.userId)
+      throw new Error('Entre com a mesma conta Google antes de recuperar a cópia.');
+    const authorized = () => { const current = this.policy.snapshot; return current.onlineVerified && !current.blocked
+      && current.userId === store.userId && current.epoch === session.epoch && store === this.#store; };
+    this.#recovering = true;
+    try {
+    await store.recoverBackup(json, authorized);
+    if (!authorized()) throw new Error('A sessão mudou. Entre novamente; os dados recuperados foram preservados.');
+    const state = await store.read();
+    if (state.meta.binding === 'active') this.policy.markAssociated(store.userId);
+    this.publish({dataRevision: this.#snapshot.dataRevision + 1,
+      notice: 'Cópia recuperada localmente. Nenhuma operação foi enviada; confira os dados antes de sincronizar.'});
+    } finally { this.#recovering = false; }
+  }
+
   async acceptRemoteConflict(id:string) {
     if(!this.policy.snapshot.canView||!this.#store)throw new Error('Entre novamente antes de revisar conflitos.');
     await this.#store.resolveConflict(id);this.publish({dataRevision:this.#snapshot.dataRevision+1});

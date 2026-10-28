@@ -86,3 +86,37 @@ test('logout na segunda aba remove a visão da primeira sem apagar o namespace',
   const names=await page.evaluate(async()=> (await indexedDB.databases()).map(db=>db.name));
   expect(names.some(name=>name?.startsWith('atlas-financeiro:sync:v1:synthetic-browser:'))).toBe(true);
 });
+
+test('perda do IndexedDB: arquivo I3 recupera pendência em perfil vazio e sincroniza uma vez',async({page,context})=>{
+  await syntheticApp(page);await page.getByRole('button',{name:'Entrar com Google',exact:true}).click();
+  await page.getByRole('checkbox',{name:/Conferi a conta/}).check();await page.getByRole('button',{name:'Iniciar uma base vazia'}).click();
+  await page.getByRole('button',{name:'Criar minha primeira conta'}).click();
+  await page.getByLabel('Nome da conta').fill('Conta a recuperar');
+  await page.getByRole('dialog').getByRole('button',{name:'Criar conta',exact:true}).click();
+  await expect(page.getByText('Conta a recuperar',{exact:true})).toBeVisible();await navigateBackup(page);
+  const download=page.waitForEvent('download');await page.getByRole('button',{name:'Baixar backup'}).click();
+  const json=readFileSync((await (await download).path())!,'utf8');const original=JSON.parse(json);
+  const browser=context.browser()!;const fresh=await browser.newContext({viewport:page.viewportSize()!});
+  try {
+    const target=await fresh.newPage();const errors:string[]=[];target.on('pageerror',error=>errors.push(error.message));
+    await syntheticApp(target);
+    // Preserve only the synthetic SERVER snapshot, never local access/IndexedDB.
+    const remote=await page.evaluate(()=>localStorage.getItem('synthetic-remote-batches'));
+    await target.evaluate(value=>localStorage.setItem('synthetic-remote-batches',value!),remote);
+    await target.getByRole('button',{name:'Entrar com Google',exact:true}).click();
+    await expect(target.getByRole('heading',{name:'Recuperar cópia de sincronização I3'})).toBeVisible();
+    await target.getByLabel('Arquivo JSON de I3').setInputFiles({name:'synthetic-i3.json',mimeType:'application/json',buffer:Buffer.from(json)});
+    await target.getByRole('checkbox',{name:/Conferi a cópia/}).check();await target.getByRole('button',{name:'Recuperar cópia I3',exact:true}).click();
+    await expect(target.getByRole('heading',{name:'Visão geral'})).toBeVisible();
+    await expect(target.getByText('Conta a recuperar',{exact:true})).toBeVisible();await target.reload();
+    await expect(target.getByText('Conta a recuperar',{exact:true})).toBeVisible();
+    const state=await target.evaluate(async()=>{const path='/tests/auth-browser-entry.tsx';return (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).inspect();});
+    expect(state.pending).toEqual(original.pending);expect(state.meta).toEqual(original.meta);
+    await target.getByRole('button',{name:'Sincronizar agora'}).click();
+    await expect(target.getByRole('region',{name:'Sincronização'})).toContainText('Alterações confirmadas');
+    const after=await target.evaluate(async()=>{const path='/tests/auth-browser-entry.tsx';return (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).inspect();});
+    expect(after.pending).toEqual([]);expect(after.confirmed!.accounts).toHaveLength(1);
+    expect(after.meta!.cursor).toBe('2');expect(errors).toEqual([]);
+    await target.screenshot({path:join(tmpdir(),`atlas-recovery-${process.pid}-${page.viewportSize()!.width}.png`),fullPage:true});
+  } finally {await fresh.close();}
+});

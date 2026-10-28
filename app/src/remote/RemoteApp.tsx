@@ -1,3 +1,4 @@
+import { SyncRecoveryPanel } from '../ui/SyncRecoveryPanel';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { FinancialWorkspace } from '../App';
 import { useRemoteFinance } from '../ui/use-remote-finance';
@@ -47,6 +48,7 @@ function AccessGate({controller}:{controller:RemoteController}) {
       {preview?<div><p>{preview.accounts} contas, {preview.events} lançamentos e {preview.pending} operações locais. A origem será preservada. Feche abas antigas de I2 antes de copiar.</p><button className="button button--secondary" disabled={busy||!confirmed} onClick={()=>void run(()=>controller.associateLocal(preview.digest))}>Confirmar cópia da base conferida</button></div>:null}
       <button className="text-button" disabled={busy||snapshot.syncing} onClick={()=>void run(()=>controller.sync())}>Retomar associação pendente</button>
     </section>:null}
+    {snapshot.session.onlineVerified ? <SyncRecoveryPanel userId={snapshot.session.userId} serverId={controller.serverId} onRecover={json => controller.recoverBackup(json)} disabled={busy || snapshot.syncing} /> : null}
     <p className="warning-copy">Sair bloqueia a visualização neste perfil sem apagar pendências. Esta proteção local não é criptografia. O envio exige sessão verificada e liberação do servidor.</p>
   </section></main>;
 }
@@ -61,7 +63,7 @@ function RemoteWorkspace({controller}:{controller:RemoteController}) {
     if(!controller.getSnapshot().session.canView||controller.getSnapshot().session.userId!==store.userId)throw new Error('A sessão mudou.');
     return json;
   }
-  return <FinancialWorkspace finance={finance} integration exportJson={exportJson} sessionControls={<section className="sync-panel" aria-label="Sincronização">
+  return <FinancialWorkspace finance={finance} integration serverId={controller.serverId} exportJson={exportJson} sessionControls={<section className="sync-panel" aria-label="Sincronização">
     <div><strong>{snapshot.session.onlineVerified?'Acesso verificado':'Acesso offline'}</strong><p role="status">{snapshot.notice||snapshot.session.message}</p></div>
     <div className="sync-actions"><button className="button button--secondary" disabled={!snapshot.session.canTransmit||snapshot.syncing} onClick={()=>void controller.sync()}>{snapshot.syncing?'Conferindo envio…':'Sincronizar agora'}</button>
       {!snapshot.session.onlineVerified?<button className="text-button" onClick={()=>void controller.login()}>Entrar novamente</button>:null}

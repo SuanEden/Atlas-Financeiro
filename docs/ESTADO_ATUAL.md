@@ -1,5 +1,7 @@
 # Estado atual
 
+**Checkpoint posterior, 28/10/2026:** [recuperação JSON I3 implementada localmente, limites e pendências](ENTREGA_RECUPERACAO_I3_CHAT.md). Arquivamento/P03, revisão de navegador e sincronização física permanecem abertos; escrita remota bloqueada. Os marcos seguintes são históricos.
+
 ## VM recuperada e compatibilidade local reforçada — 28/10/2026
 
 Recuperado HEAD remoto `2b7d87f`, sem commit posterior nessa consulta; checkpoint de retomada `0ab5c86` com push confirmado. [Inventário](RETOMADA_2026_10_28.md). Leituras: ativo/Free, único usuário/Google/autorização, três migrações, onze tabelas RLS, nove privadas vazias, gate false, cadastro fechado/Google exclusivo e HTTP somente api. Cliente recusa metadados/envelopes desconhecidos ou divergentes sem envio/descarte; legados conhecidos preservados e paginação fixada. **252/1 ignorado, 24 navegador/3 PWA**, mais **30 testes nativos conjuntos** aprovados. [Evidências e ações futuras](COMPATIBILIDADE_I3.md). Sem mutação/publicação remota. Login anterior comprovado; escrita hospedada e aparelhos físicos não. Arquivamento, recuperação após perda total I3 e demais critérios continuam abertos; envio bloqueado.
