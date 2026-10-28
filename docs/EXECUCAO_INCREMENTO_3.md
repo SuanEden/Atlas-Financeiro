@@ -1,5 +1,7 @@
 # Execução local do Incremento 3
 
+**Atualização vigente — 28/10/2026:** [retomada do HEAD remoto atual](RETOMADA_2026_10_28.md), seguida de [compatibilidade local corrigida e validada](COMPATIBILIDADE_I3.md). 252 testes/1 ignorado, typecheck/build, 24 navegador/3 PWA; 30 SQL nativos na mesma rodada. Escrita continua false. Sem migração/configuração/publicação remota adicional; autorizações anteriores preservadas. Arquivamento/P03, recuperação total I3/hospedada e provas físicas continuam abertos. As primeiras seções de implementação abaixo preservam o histórico de I3, não substituem o resumo atual.
+
 **Estado vigente:** runtime/controlador ligados à interface e exportação I3 distinta, com testes sintéticos de navegador. Ver [STATUS_I3_LOCAL.md](STATUS_I3_LOCAL.md) e o resultado final em [VALIDACAO.md](VALIDACAO.md). As exclusões e totais nos registros seguintes são históricos, não o inventário atual.
 
 **Retomada em 26/10/2026:** recuperado o checkpoint `34b6566`, posterior ao registro inicial abaixo. Protocolo SQL/motor presentes e revalidados; Auth/controlador parciais e compilação quebrada. Ver [RECUPERACAO_I3.md](RECUPERACAO_I3.md). Os números e exclusões de implementação abaixo são históricos do primeiro checkpoint, não o inventário atual.

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { adapterFromClient, mapRemoteError, readRemoteConfig } from './supabase-adapter';
 import { consumeAuthReturn } from './callback';
+import type { SyncEnvelope } from '../sync/protocol';
 
 function sdk() {
   const user={id:crypto.randomUUID(),is_anonymous:false,identities:[{provider:'google'}]};
@@ -31,6 +32,10 @@ describe('fronteira Auth local sem acesso a serviços',()=>{
   it('sessão que troca de proprietário durante verificação é recusada',async()=>{
     const f=sdk();f.client.auth.getSession.mockResolvedValue({data:{session:{user:{...f.user,id:crypto.randomUUID()},expires_at:2000}},error:null});
     await expect(f.auth.verify()).rejects.toMatchObject({reason:'login_required'});
+  });
+  it.each([0,2])('protocolo incompatível %i é recusado antes de chamar a API',async protocolVersion=>{
+    const f=sdk();await expect(f.transport.apply({protocolVersion} as unknown as SyncEnvelope)).rejects.toThrow();
+    expect(f.rpc).not.toHaveBeenCalled();
   });
   it('login usa somente Google e callback exato; falha de signout ainda limpa sessão local',async()=>{
     const f=sdk();await f.auth.login();

@@ -1,5 +1,9 @@
 # Próxima etapa — continuar I3 local
 
+## Prioridade após retomada e compatibilidade — 28/10/2026
+
+[Recuperação da VM](RETOMADA_2026_10_28.md) concluída e [correções locais validadas](COMPATIBILIDADE_I3.md). Próximo trabalho técnico: fechar contrato de versões/arquivamento e recorte de recuperação, com fixtures isoladas; não repetir login ou abrir escrita. Check 252/1 ignorado, 24 navegador/3 PWA e 30 nativos conjuntos. Publicação HTTPS futura, retorno OAuth exato e isolamento para provas físicas estão descritos como ações concretas ainda não autorizadas; nenhum serviço/conta deve ser recriado. I3 continua incompleto.
+
 ## Prioridade após proteção operacional — 27/10/2026
 
 [Cópia/retomada e dump administrativo sintético ensaiados](PROTECAO_OPERACIONAL_I3.md): 12 testes novos, 7 nativos de recuperação; check 223/1 ignorado, 24 navegador/3 PWA. Não repetir conferência pessoal ou ativar escrita. Avançar na revisão local de versões incompatíveis e arquivamento/tombstones, preparando contratos/testes e eventual proposta remota concreta. Recuperação do JSON I3 após perda total ainda indisponível; B02 hospedado e dois aparelhos não comprovados. Não ampliar para importador completo/gerações I4, promover fixtures, publicar ou iniciar uso pessoal.

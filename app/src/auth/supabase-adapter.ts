@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { assertEntityId } from '../domain';
 import { SyncFailure, type SyncTransport } from '../sync/engine';
 import type { ChangePage, Receipt, SyncEnvelope } from '../sync/protocol';
+import { assertEnvelope } from '../sync/protocol';
 
 export interface AuthIdentity { userId:string; expiresAt:number; writesEnabled:boolean }
 export interface AuthPort {
@@ -66,7 +67,7 @@ export function adapterFromClient(client:ApiClient,origin:string,clearLocalSessi
     async logout() {try {const {error}=await client.auth.signOut({scope:'local'});if(error) throw mapRemoteError(error);}finally {clearLocalSession();}},
     onChange(callback) {const {data}=client.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>callback(session?.user.id),0);});return ()=>data.subscription.unsubscribe();},
   };
-  return {auth,transport:{apply:(envelope:SyncEnvelope)=>rpc<Receipt>('i3_apply',{p_envelope:envelope}),pull:(after:string,through:string|null)=>rpc<ChangePage>('i3_pull',{p_after:after,p_through:through,p_limit:10})}};
+  return {auth,transport:{apply:async(envelope:SyncEnvelope)=>{assertEnvelope(envelope);return rpc<Receipt>('i3_apply',{p_envelope:envelope});},pull:(after:string,through:string|null)=>rpc<ChangePage>('i3_pull',{p_after:after,p_through:through,p_limit:10})}};
 }
 
 /** Never expose raw PostgreSQL/Auth messages (which can contain submitted data or URLs). */

@@ -8,7 +8,7 @@ export interface PendingDelivery {
   id: string; envelope: SyncEnvelope; digest: string; operationDigest?: string; ordinal: number;
   status: 'pending' | 'acknowledged' | 'conflict' | 'blocked' | 'resolved'; error?: string;
 }
-interface SyncMeta { id: 'context'; cursor: string; ordinal: number; binding: 'unbound' | 'bootstrap' | 'verifying_source' | 'join' | 'active'; associationId?: string; sourceDigest?: string; sourceOwnerId?:string; sourceMode?:'empty'|'i2' }
+interface SyncMeta { id: 'context'; version?: 1; cursor: string; ordinal: number; binding: 'unbound' | 'bootstrap' | 'verifying_source' | 'join' | 'active'; associationId?: string; sourceDigest?: string; sourceOwnerId?:string; sourceMode?:'empty'|'i2' }
 interface ConfirmedRow { id: 'confirmed'; json: string }
 interface StoredReceipt extends Receipt { id: string }
 class SyncDatabase extends Dexie {
@@ -59,7 +59,7 @@ export class LocalSyncStore {
 
   async activateJoin(through: string): Promise<void> {
     assertRevision(through);
-    await this.#db.transaction('rw',this.#db.meta,async()=>{
+    await this.#db.transaction('rw',ALL,async()=>{
       const meta=await this.meta();
       if(meta.binding!=='join'||meta.cursor!==through) throw new Error('A leitura inicial ainda não foi confirmada por inteiro.');
       await this.#db.meta.put({...meta,binding:'active'});
@@ -67,7 +67,7 @@ export class LocalSyncStore {
   }
 
   async activateAssociation(currentSourceDigest: string): Promise<void> {
-    await this.#db.transaction('rw',this.#db.meta,async()=>{
+    await this.#db.transaction('rw',ALL,async()=>{
       const meta=await this.meta();
       if(meta.binding!=='verifying_source'||meta.sourceDigest!==currentSourceDigest) throw new Error('A origem mudou ou o recibo ainda não foi conferido. A origem e a cópia remota foram preservadas; não reenviar como nova associação.');
       await this.#db.meta.put({...meta,binding:'active'});
@@ -95,25 +95,31 @@ export class LocalSyncStore {
   async acknowledge(id: string, receipt: Receipt): Promise<void> {
     const pending=await this.#db.pending.get(id);
     if(!pending||!await receiptAcknowledges(pending.envelope,receipt)) throw new Error('Recibo não comprova esta operação.');
-    await this.#db.transaction('rw',this.#db.pending,this.#db.receipts,async()=>{
+    await this.#db.transaction('rw',ALL,async()=>{
+      await this.meta();
       const current=await this.#db.pending.get(id);
       if(!current||current.digest!==pending.digest) throw new Error('A pendência mudou durante a confirmação.');
+      assertDelivery(current,this.userId);
       await this.#db.pending.put({...current,status:'acknowledged'});
       await this.putReceipt(receipt);
     });
   }
 
   async markConflict(id: string, code: string): Promise<void> {
-    await this.#db.transaction('rw',this.#db.pending,async()=>{
+    await this.#db.transaction('rw',ALL,async()=>{
+      await this.meta();
       const row=await this.#db.pending.get(id);
+      if(row) assertDelivery(row,this.userId);
       if(row) await this.#db.pending.put({...row,status:'conflict',error:code});
     });
   }
 
   /** Keep the losing command as evidence; acceptance never deletes history or retries it. */
   async resolveConflict(id:string):Promise<void> {
-    await this.#db.transaction('rw',this.#db.pending,async()=>{
+    await this.#db.transaction('rw',ALL,async()=>{
+      await this.meta();
       const row=await this.#db.pending.get(id);
+      if(row) assertDelivery(row,this.userId);
       if(!row||row.status!=='conflict') throw new Error('O conflito precisa estar disponível para conferência.');
       await this.#db.pending.put({...row,status:'resolved'});
     });
@@ -125,6 +131,14 @@ export class LocalSyncStore {
       const meta=await this.meta();
       if(meta.cursor!==page.after) throw new Error('O cursor mudou em outra aba. Repetir a leitura a partir da revisão atual.');
       let confirmed=await this.confirmed();
+      // Validate even resolved/conflicting rows before a feed can acknowledge/remove anything.
+      const pendingBefore=await this.#db.pending.toArray();
+      project(confirmed,pendingBefore,this.userId);
+      // Keep the transaction alive while hashing: another tab cannot change a row
+      // between this check and receipt-driven removal in the same transaction.
+      await Dexie.waitFor(Promise.all(pendingBefore.map(async row=>{
+        if(await jsonDigest(row.envelope)!==row.digest||(row.operationDigest!==undefined&&(row.envelope.kind==='bootstrap'||await jsonDigest(row.envelope.operation)!==row.operationDigest))) throw new TypeError('Pendência divergente da cópia original.');
+      })));
       for(const batch of page.batches) {
         confirmed=mergeAppendOnly(confirmed,envelopeData(batch.envelope),this.userId);
         await this.putReceipt(batch.receipt);
@@ -152,7 +166,24 @@ export class LocalSyncStore {
   }
   close() { this.#db.close(); }
   private assertOwner(envelope: SyncEnvelope) { assertEnvelope(envelope); if(envelope.userId!==this.userId) throw new TypeError('Operação de outro contexto.'); }
-  private async meta(): Promise<SyncMeta> { return await this.#db.meta.get('context')??{id:'context',cursor:'0',ordinal:0,binding:'unbound'}; }
+  private async meta(): Promise<SyncMeta> {
+    const rows=await this.#db.meta.toArray();
+    if(rows.length===0) {
+      if(await this.#db.confirmed.count()||await this.#db.pending.count()||await this.#db.receipts.count()) throw new TypeError('Contexto de sincronização ausente. Preserve esta base para conferência.');
+      return {id:'context',version:1,cursor:'0',ordinal:0,binding:'unbound'};
+    }
+    if(rows.length!==1) throw new TypeError('Contexto de sincronização incompatível. Preserve esta base para conferência.');
+    const meta=rows[0]!;
+    assertKnownFields(meta,['id','cursor','ordinal','binding'],['version','associationId','sourceDigest','sourceOwnerId','sourceMode']);
+    if(meta.id!=='context'||('version' in meta&&meta.version!==1)||!Number.isSafeInteger(meta.ordinal)||meta.ordinal<0||!['unbound','bootstrap','verifying_source','join','active'].includes(meta.binding)) throw new TypeError('Contexto de sincronização incompatível. Preserve esta base para conferência.');
+    assertRevision(meta.cursor);
+    if('associationId' in meta) assertEntityId(meta.associationId);
+    if('sourceOwnerId' in meta) assertEntityId(meta.sourceOwnerId);
+    if('sourceDigest' in meta&&(typeof meta.sourceDigest!=='string'||!/^[0-9a-f]{64}$/.test(meta.sourceDigest))) throw new TypeError('Proveniência incompatível.');
+    if('sourceMode' in meta&&!['empty','i2'].includes(meta.sourceMode!)) throw new TypeError('Origem de sincronização incompatível.');
+    // Known legacy v1 records need no rewrite/migration. Unknown versions never reach a put().
+    return meta;
+  }
   private async confirmed(): Promise<FinancialDataset> { const row=await this.#db.confirmed.get('confirmed'); return row?deserializeFinancialDataset(row.json,this.userId):emptyDataset(); }
   private async putReceipt(receipt: Receipt) {
     const prior=await this.#db.receipts.get(receipt.operationId);
@@ -170,6 +201,7 @@ async function prepareDelivery(envelope: SyncEnvelope): Promise<Omit<PendingDeli
 }
 
 function project(confirmed: FinancialDataset, input: PendingDelivery[], owner: string) {
+  for(const row of input) assertDelivery(row,owner);
   let data=structuredClone(confirmed); const pending=structuredClone(input); let remaining=pending.filter((row)=>row.status!=='conflict'&&row.status!=='resolved');
   while(remaining.length) {
     let progressed=false; const next:PendingDelivery[]=[];
@@ -184,6 +216,18 @@ function project(confirmed: FinancialDataset, input: PendingDelivery[], owner: s
     remaining=next;
   }
   return {data,pending};
+}
+
+function assertKnownFields(value: unknown,required: readonly string[],optional: readonly string[]) {
+  if(!value||typeof value!=='object'||Array.isArray(value)||required.some(key=>!Object.hasOwn(value,key))||Object.keys(value).some(key=>!required.includes(key)&&!optional.includes(key))) throw new TypeError('Formato local incompatível. Preserve os dados e use uma versão compatível.');
+}
+
+function assertDelivery(row: PendingDelivery,owner: string) {
+  assertKnownFields(row,['id','envelope','digest','ordinal','status'],['operationDigest','error']);
+  assertEnvelope(row.envelope);
+  if(row.id!==row.envelope.operationId||row.envelope.userId!==owner||!Number.isSafeInteger(row.ordinal)||row.ordinal<1||!['pending','acknowledged','conflict','blocked','resolved'].includes(row.status)||typeof row.digest!=='string'||!/^[0-9a-f]{64}$/.test(row.digest)) throw new TypeError('Pendência local incompatível. Nada foi enviado ou descartado.');
+  if('operationDigest' in row&&(typeof row.operationDigest!=='string'||!/^[0-9a-f]{64}$/.test(row.operationDigest))) throw new TypeError('Digest de operação incompatível.');
+  if('error' in row&&typeof row.error!=='string') throw new TypeError('Estado de pendência incompatível.');
 }
 
 function referencesPresent(base: FinancialDataset,incoming: FinancialDataset): boolean {

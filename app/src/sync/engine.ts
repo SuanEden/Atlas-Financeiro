@@ -1,4 +1,5 @@
 import type { ChangePage, Receipt, SyncEnvelope } from './protocol';
+import { jsonDigest } from './protocol';
 import { LocalSyncStore } from './local-sync-store';
 
 export interface TransmissionGrant { userId: string; epoch: number; canTransmit: boolean }
@@ -28,12 +29,18 @@ export class SyncEngine {
       try {
         let state=await this.store.read();
         if(state.meta.binding==='unbound') return 'unassociated';
+        // A persisted envelope may come from another app version. Never send changed bytes
+        // under an existing operation ID/digest, or reinterpret an unsupported local record.
+        for(const row of state.pending) {
+          if(await jsonDigest(row.envelope)!==row.digest||(row.operationDigest!==undefined&&(row.envelope.kind==='bootstrap'||await jsonDigest(row.envelope.operation)!==row.operationDigest))) throw new TypeError('Pendência divergente da cópia original.');
+        }
         // Pull first: dependencies/conflicts are evaluated against the latest confirmed graph.
         let through:string|null=null;
         for(let pageCount=0;pageCount<100;pageCount++) {
           if(!current()) return 'login_required';
           const page=await this.transport.pull(state.meta.cursor,through);
           if(!current()) return 'login_required';
+          if(through!==null&&page.through!==through) throw new TypeError('O limite da leitura mudou durante a paginação.');
           await this.store.applyPage(page);
           through=page.through; state=await this.store.read();
           if(page.cursor===through) break;
@@ -42,9 +49,12 @@ export class SyncEngine {
         if(state.meta.binding==='join'&&through!==null) { if(through==='0') return 'unassociated'; if(!current()) return 'login_required'; await this.store.activateJoin(through); }
         for(const delivery of state.pending.filter((row)=>row.status==='pending').slice(0,50)) {
           if(!current()) return 'login_required';
-          if((await this.store.read()).pending.find((row)=>row.id===delivery.id)?.status!=='pending') continue;
+          const pending=(await this.store.read()).pending.find((row)=>row.id===delivery.id);
+          if(pending?.status!=='pending') continue;
+          if(pending.digest!==delivery.digest||await jsonDigest(pending.envelope)!==pending.digest) throw new TypeError('A pendência mudou antes do envio.');
+          if(!current()) return 'login_required';
           try {
-            const receipt=await this.transport.apply(delivery.envelope);
+            const receipt=await this.transport.apply(pending.envelope);
             if(!current()) return 'login_required';
             await this.store.acknowledge(delivery.id,receipt);
           } catch(reason) {
@@ -59,6 +69,7 @@ export class SyncEngine {
           if(!current()) return 'login_required';
           const page=await this.transport.pull(state.meta.cursor,through);
           if(!current()) return 'login_required';
+          if(through!==null&&page.through!==through) throw new TypeError('O limite da leitura mudou durante a paginação.');
           await this.store.applyPage(page); through=page.through; state=await this.store.read();
           if(page.cursor===through) break;
           if(pageCount===99) return 'retry_later';

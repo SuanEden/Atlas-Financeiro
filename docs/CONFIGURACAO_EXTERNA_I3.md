@@ -1,5 +1,9 @@
 # I3 — início da configuração externa
 
+## Reconfirmação após perda da VM — 28/10/2026
+
+[Leituras](RETOMADA_2026_10_28.md): projeto existente ativo/sa-east-1/PostgreSQL 17.11, organização Free, vínculo único entre autorização ativa e Google, três migrações preservadas, gate false, onze tabelas RLS e nove privadas vazias. GET Auth: cadastro fechado/somente Google. GET REST com identidade anônima e chaves públicas existentes: api aceita perfil e recusa tabela inexistente com 404/PGRST205; perfis privados/public/graphql_public retornam 406/PGRST106. Sem login novo, criação, alteração de Auth/SQL, abertura financeira ou publicação. Não reaplicar migrações/recriar contas. [Correções locais e futura ação HTTPS ainda não autorizada](COMPATIBILIDADE_I3.md).
+
 ## Protocolo e índice de apoio aplicados com escrita false — 27/10/2026
 
 Pedido de prosseguimento do usuário autoriza a segunda migração e verificações/correções de apoio no mesmo recorte. Projeto existente ativo/Free, conta exata e estado inicial conferidos antes de executar. Histórico remoto agora: fundação `20261027152920`, protocolo `20261027163903`, índice de apoio `20261027164301`. O índice resolveu aviso de FK sem cobertura e não muda gate/permissões. Onze tabelas com RLS e nove privadas vazias; três RPCs invoker, gate false; mesmo usuário/Google/autorização. Cadastro fechado, somente Google e API somente api preservados. [Evidências e limites](RESULTADO_PROTOCOLO_REMOTO_I3.md). Sem novos recursos, segredos, `.env` real, associação, abertura financeira ou publicação. Não repetir alterações já executadas.

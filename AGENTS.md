@@ -1,5 +1,7 @@
 # Continuidade do Atlas Financeiro
 
+- Retomada mais recente: `docs/RETOMADA_2026_10_28.md` e `docs/COMPATIBILIDADE_I3.md`. Buscar sempre o HEAD remoto atual de I3. Compatibilidade local reforçada; gate false, arquivamento/recuperação total I3/provas físicas continuam abertos.
+
 - Para I3, o resumo vigente após recuperação da VM está em `docs/STATUS_I3_LOCAL.md`. Conferir o HEAD remoto mais recente; `6a7c308`, `34b6566` e números antigos nas seções históricas não são pontos para retroceder. Estado/execução/validação preservam histórico; ler primeiro suas seções atuais.
 
 - Ajustes de interface devem seguir [docs/DIRETRIZES_UI_UX.md](docs/DIRETRIZES_UI_UX.md), preservando a linguagem visual e o escopo de I2.

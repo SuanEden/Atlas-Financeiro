@@ -137,4 +137,25 @@ describe('protocolo I3 em SQL embarcado com identidade simulada', () => {
     await expect(server.asUser(owner,()=>server.db.query('insert into atlas_private.accounts values ($1,$2,$3,$4,$5)',[envelope.userId,crypto.randomUUID(),'Cruzada','cash','free']))).rejects.toThrow(/row-level security/);
     expect(Object.values(await server.counts(owner)).every((value)=>value==='0')).toBe(true);
   });
+
+  it.each(['old-protocol','future-protocol','future-schema','archive','tombstone'])('contrato incompatível %s não deixa efeito, recibo ou revisão parcial',async fault=>{
+    const {owner,envelope}=await initial();const before=await server.counts(owner);
+    const broken=structuredClone(envelope) as unknown as Record<string,unknown>;broken.operationId=crypto.randomUUID();
+    if(fault==='old-protocol')broken.protocolVersion=0;
+    if(fault==='future-protocol')broken.protocolVersion=2;
+    if(fault==='future-schema')(broken.data as Record<string,unknown>).schemaVersion=3;
+    if(fault==='archive')broken.kind='archive_account';
+    if(fault==='tombstone')broken.tombstones=[{id:envelope.operationId,version:1}];
+    await expect(server.apply(owner,broken as unknown as SyncEnvelope)).rejects.toThrow();
+    expect(await server.counts(owner)).toEqual(before);expect((await server.pull(owner)).cursor).toBe('0');
+  });
+
+  it('cliente atrasado não substitui conta existente usando o mesmo ID em uma nova operação',async()=>{
+    const {owner,envelope}=await initial();await server.apply(owner,envelope);const before=await server.counts(owner);
+    const command=createAccountCommand({name:'Nome atrasado sintético',kind:'cash',availability:'free',openingDate:'2026-10-28'},context(owner));
+    const wire=commandEnvelope(command.operation,'0');
+    (wire.operation.payload.accounts as {id:string}[])[0]!.id=(envelope.data.accounts as {id:string}[])[0]!.id;
+    await expect(server.apply(owner,wire)).rejects.toThrow();expect(await server.counts(owner)).toEqual(before);
+    expect((await server.pull(owner)).batches[0]!.envelope).toEqual(envelope);
+  });
 });

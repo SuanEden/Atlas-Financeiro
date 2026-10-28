@@ -1,5 +1,7 @@
 # Atlas Financeiro
 
+**Retomada de 28/10/2026:** [fonte recuperada e estado externo](docs/RETOMADA_2026_10_28.md), [compatibilidade corrigida, testes e pendências](docs/COMPATIBILIDADE_I3.md). Check final: 252 aprovados/1 ignorado, 24 navegador/3 PWA; runner SQL com 30 aprovados juntos. Login anterior comprovado, envio financeiro bloqueado. Recuperação total I3, arquivamento suportado e uso entre aparelhos físicos ainda pendentes; I3 incompleto.
+
 Aplicação pessoal de gestão financeira com prioridade para celular Android, interface em português brasileiro, valores em BRL e datas financeiras no fuso `America/Fortaleza`.
 
 Os **Incrementos 1 e 2** entregam uma aplicação financeira local verificável: domínio em centavos exatos, persistência Dexie, contas, categorias, receitas, despesas, transferências, reservas simples, edição/estorno imutáveis, dashboard, histórico, outbox, backup JSON e PWA offline. Autenticação, envio remoto e restauração completa pertencem aos incrementos seguintes.

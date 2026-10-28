@@ -1,5 +1,11 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Recuperação da VM e compatibilidade — 28/10/2026
+
+`npm ci` e check da base: **223 aprovados/1 ignorado, typecheck/build, 24 navegador/3 PWA**. Após correções: **252 aprovados/1 ignorado, typecheck/build, 24 navegador/3 PWA**. São 29 casos novos: 21 de compatibilidade local, dois SDK e seis SQL. Primeiro check modificado parou no typecheck de cast da fixture; corrigido e check completo repetido com sucesso. Ignorado continua manifesto privado original ausente. **Runner PostgreSQL `test:all`: 30 aprovados na mesma rodada**, sem mudança do SQL. [Casos, QA e limites](COMPATIBILIDADE_I3.md).
+
+Edge/Playwright, Browser plugin ausente, 1280×900 e 390×844, loopback 5173/4173, perfis sintéticos. Capturas desktop/mobile inspecionadas; URL/título/conteúdo, overlay, console e interação conferidos. Sem prova física/Google PWA real. [Leituras externas e checkpoint](RETOMADA_2026_10_28.md): vínculo único, gate false, nove tabelas vazias e schemas privados recusados; nenhuma mutação remota. Dependências/lockfiles inalterados.
+
 ## Proteção operacional: navegador e cópia administrativa sintética — 27/10/2026
 
 `npx vitest run tests/sync/backup-safety.test.ts`: **12 aprovados**; typecheck aprovado. Reabertura da origem, bootstrap interrompido/origem divergente, offline/centavos, commit com resposta perdida, ACK antes do feed, rollback de página, exportação concorrente, conflitos/dependências/resolução, destino novo sem operação offline, recusa I2, isolamento de Auth/servidor e erro de leitura. Exportador passou a recusar servidor divergente do namespace, sem mudar formato/schema. [Matriz e limites](PROTECAO_OPERACIONAL_I3.md).
