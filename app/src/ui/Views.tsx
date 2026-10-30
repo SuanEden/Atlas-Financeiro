@@ -107,7 +107,7 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
       </section>
 
       <div className="dashboard-columns">
-        <section aria-labelledby="accounts-title"><div className="section-heading"><h2 id="accounts-title">Contas</h2><button className="text-button" onClick={() => onNavigate('accounts')}>Ver todas</button></div>{state.accounts.length === 0 ? <CompactEmpty text="Nenhuma conta criada." /> : <div className="plain-list">{state.accounts.slice(0, 4).map((account) => <div className="account-row" key={account.id}><span className="account-icon"><WalletCards size={19} /></span><span><strong>{account.name}</strong><small>{availabilityLabels[account.availability]} · {reconciled(account.id) ? 'Saldo conciliado' : 'Saldo a conciliar'}</small></span><b>{reconciled(account.id) ? formatBRL(balanceFor(account.id)) : 'A conciliar'}</b></div>)}</div>}</section>
+        <section aria-labelledby="accounts-title"><div className="section-heading"><h2 id="accounts-title">Contas</h2><button className="text-button" onClick={() => onNavigate('accounts')}>Ver todas</button></div>{state.accounts.length === 0 ? <CompactEmpty text="Nenhuma conta criada." /> : <div className="plain-list">{state.accounts.slice(0, 4).map((account) => <div className="account-row" key={account.id}><span className="account-icon"><WalletCards size={19} /></span><span><strong>{account.name}</strong><small>{availabilityLabels[account.availability]} · {reconciled(account.id) ? 'Saldo conciliado' : 'Saldo a conciliar'}</small></span><b>{accountBalanceLabel(state, account.id)}</b></div>)}</div>}</section>
         <section aria-labelledby="recent-title"><div className="section-heading"><h2 id="recent-title">Movimentações recentes</h2><button className="text-button" onClick={() => onNavigate('movements')}>Ver todas</button></div>{recent.length === 0 ? <CompactEmpty text="Nenhum lançamento realizado ou previsto." /> : <div className="plain-list">{recent.map((event) => <MovementRow event={event} state={state} key={event.id} />)}</div>}</section>
       </div>
       {state.accounts.length === 0 ? <EmptyPanel icon={<WalletCards />} title="Comece criando sua primeira conta" description="Depois, concilie o saldo atual para habilitar o saldo disponível e o saldo projetado." action="Criar minha primeira conta" onAction={onAddAccount} /> : null}
@@ -150,7 +150,7 @@ export function AccountsView({ state, onAdd, onReconcile, onTransfer }: { state:
         const confirmed = opening?.status === 'confirmed' && opening.certainty === 'confirmed';
         const estimated = opening?.status === 'planned' && opening.certainty === 'estimated';
         const openingAmount = opening === undefined ? 0n : opening.adjustmentDirection === 'decrease' ? -opening.amountCents : opening.amountCents;
-        return <article className="account-card" key={account.id}><div className="account-card__top"><span className="account-icon"><WalletCards size={20} /></span><span className={`availability availability--${account.availability}`}>{availabilityLabels[account.availability]}</span></div><h2>{account.name}</h2><p>{accountKindLabels[account.kind]}</p><strong>{confirmed ? formatBRL(calculateAccountBalance(state, account.id)) : estimated ? `Estimado: ${formatBRL(openingAmount)}` : 'A conciliar'}</strong><p>{confirmed ? `Saldo confirmado em ${formatFinancialDate(opening.competenceDate)}` : estimated ? 'Saldo informado como estimativa' : 'Saldo inicial ainda não informado'}</p>{confirmed ? null : <button className="text-button" onClick={() => onReconcile(account)}>{estimated ? 'Confirmar saldo' : 'Conciliar saldo'}</button>}</article>;
+        return <article className="account-card" key={account.id}><div className="account-card__top"><span className="account-icon"><WalletCards size={20} /></span><span className={`availability availability--${account.availability}`}>{availabilityLabels[account.availability]}</span></div><h2>{account.name}</h2><p>{accountKindLabels[account.kind]}</p><strong>{confirmed ? formatBRL(calculateAccountBalance(state, account.id)) : estimated ? `Estimado: ${formatBRL(openingAmount)}` : 'A conciliar'}</strong><p>{confirmed ? `Saldo confirmado em ${formatFinancialDate(opening?.competenceDate ?? '0001-01-01')}` : estimated ? 'Saldo informado como estimativa' : 'Saldo inicial ainda não informado'}</p>{confirmed ? null : <button className="text-button" onClick={() => onReconcile(account)}>{estimated ? 'Confirmar saldo' : 'Conciliar saldo'}</button>}</article>;
       })}</div>}
       {state.accounts.length > 1 ? <button className="button button--secondary reserve-action" onClick={onTransfer}><ArrowLeftRight size={18} />Transferir ou separar reserva</button> : null}
     </div>
@@ -221,6 +221,16 @@ function MovementRow({ event, state, detailed = false }: { event: FinancialEvent
   const category = state.categories.find((item) => item.id === event.categoryId);
   const Icon = event.kind === 'income' ? ArrowDownLeft : event.kind === 'expense' ? ArrowUpRight : ArrowLeftRight;
   return <div className="movement-row"><span className={`movement-icon movement-icon--${event.kind}`}><Icon size={18} /></span><span className="movement-main"><strong>{event.description}</strong><small>{eventLabel(event)} · {account?.name ?? 'Conta'}{category === undefined ? '' : ` · ${category.name}`}{detailed ? ` · ${formatFinancialDate(event.competenceDate)}${event.dueDate === undefined ? '' : ` · Vence ${formatFinancialDate(event.dueDate)}`}` : ''}</small></span><span className={`movement-amount movement-amount--${event.kind}`}>{eventAmountSign(event)}{formatBRL(event.amountCents)}</span><span className={`status-text status-text--${event.status}`}>{eventStatusLabel(event)}</span></div>;
+}
+
+function accountBalanceLabel(state: LocalFinancialState, accountId: string): string {
+  const opening = accountOpeningEvent(state, accountId);
+  if (opening?.status === 'confirmed' && opening.certainty === 'confirmed') return formatBRL(calculateAccountBalance(state, accountId));
+  if (opening?.status === 'planned' && opening.certainty === 'estimated') {
+    const amount = opening.adjustmentDirection === 'decrease' ? -opening.amountCents : opening.amountCents;
+    return 'Estimado: ' + formatBRL(amount);
+  }
+  return 'A conciliar';
 }
 
 function accountOpeningEvent(state: LocalFinancialState, accountId: string): FinancialEvent | undefined {
