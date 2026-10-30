@@ -289,7 +289,7 @@ export function TransactionForm({ accounts, categories, recurrenceRules = [], in
           </div>
           <p className="form-note">A regra cria previsões mensais. Nenhuma ocorrência é marcada como paga automaticamente. Se o dia não for informado, a previsão fica apenas no mês.</p>
         </div> : null}
-        {recurrenceRules.length > 0 && !recurring ? <label>Vincular a recorrência <span className="field-hint">opcional; registra o histórico da cobrança</span><select value={recurrenceRuleId} onChange={(event) => setRecurrenceRuleId(event.target.value)}><option value="">Não vincular</option>{recurrenceRules.filter((rule) => rule.kind === kind && rule.id !== initial?.id).map((rule) => <option key={rule.id} value={rule.id}>{rule.description}</option>)}</select></label> : null}
+        {recurrenceRules.length > 0 && !recurring ? <label>Vincular a recorrência <span className="field-hint">opcional; registra o histórico da cobrança</span><select value={recurrenceRuleId} onChange={(event) => setRecurrenceRuleId(event.target.value)}><option value="">Não vincular</option>{recurrenceRules.filter((rule) => rule.kind === kind && rule.id !== initial?.id && parseMonthlyRecurrenceRule(rule.recurrenceJson)?.status === 'active').map((rule) => <option key={rule.id} value={rule.id}>{rule.description}</option>)}</select></label> : null}
       </details>
       <p className="form-note">Salvo somente neste dispositivo. A sincronização remota ainda não está ativa.</p>
       <FormError message={error} />
