@@ -245,7 +245,7 @@ function accountBalanceLabel(state: LocalFinancialState, accountId: string): str
 
 function accountOpeningEvent(state: LocalFinancialState, accountId: string): FinancialEvent | undefined {
   const opening = state.events.filter((event) => event.accountId === accountId && event.source === 'opening_balance');
-  const replaced = new Set(opening.flatMap((event) => event.replacesEventId === undefined ? [] : [event.replacesEventId]));
+  const replaced = new Set(opening.flatMap((event) => [event.replacesEventId, event.reversesEventId].filter((id): id is string => id !== undefined)));
   return opening.find((event) => !replaced.has(event.id) && event.status !== 'cancelled');
 }
 
