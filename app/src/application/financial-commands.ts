@@ -109,14 +109,11 @@ export function createAccountCommand(input: CreateAccountInput, context: Command
 export function reconcileAccountCommand(dataset: FinancialDataset, input: AccountReconciliationInput, context: CommandContext): LocalCommand {
   const account = dataset.accounts.find((item) => item.id === input.accountId);
   if (!account) throw new TypeError('Conta não encontrada.');
-  if (dataset.events.some((event) => event.accountId === input.accountId && event.source === 'opening_balance')) {
-    throw new TypeError('Esta conta já possui um saldo inicial registrado. Use um ajuste para corrigir diferenças posteriores.');
-  }
   assertIsoDate(input.referenceDate);
-  if (typeof input.balanceCents !== 'bigint' || input.balanceCents > 99_999_999_999n || input.balanceCents < -99_999_999_999n) {
-    throw new RangeError('O saldo deve estar dentro do limite permitido.');
-  }
+  if (typeof input.balanceCents !== 'bigint' || input.balanceCents > 99_999_999_999n || input.balanceCents < -99_999_999_999n) throw new RangeError('O saldo deve estar dentro do limite permitido.');
   if (input.sourceDescription.trim().length === 0) throw new TypeError('Informe a origem do saldo.');
+  const previous = dataset.events.find((event) => event.accountId === input.accountId && event.source === 'opening_balance' && event.status !== 'cancelled' && !dataset.events.some((other) => other.replacesEventId === event.id));
+  if (previous?.status === 'confirmed') throw new TypeError('Esta conta já possui um saldo inicial confirmado. Diferenças posteriores devem ser registradas como ajustes, sem substituir o histórico.');
   const amount = input.balanceCents < 0n ? -input.balanceCents : input.balanceCents;
   if (amount > 0n) assertEntryAmount(amount);
   const event: FinancialEvent = {
@@ -125,12 +122,12 @@ export function reconcileAccountCommand(dataset: FinancialDataset, input: Accoun
     amountCents: amount, accountId: account.id,
     description: 'Saldo inicial ' + (input.certainty === 'confirmed' ? 'confirmado' : 'estimado') + ' · Origem: ' + input.sourceDescription.trim(),
     competenceDate: input.referenceDate, adjustmentDirection: input.balanceCents < 0n ? 'decrease' : 'increase',
+    ...(previous === undefined ? {} : { replacesEventId: previous.id }),
   };
   const aggregate: FinancialAggregate = { events: [event] };
   if (event.status === 'confirmed' && amount > 0n) Object.assign(aggregate, settledAggregate(event, context, input.referenceDate));
-  return command('record_event', aggregate, context);
+  return command(previous === undefined ? 'record_event' : 'replace_event', aggregate, context);
 }
-
 export function createCategoryCommand(input: CreateCategoryInput, context: CommandContext): LocalCommand {
   const category: Category = {
     id: context.nextId(),
