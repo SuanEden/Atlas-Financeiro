@@ -33,6 +33,7 @@ export class SyncEngine {
         // under an existing operation ID/digest, or reinterpret an unsupported local record.
         for(const row of state.pending) {
           if(await jsonDigest(row.envelope)!==row.digest||(row.operationDigest!==undefined&&(row.envelope.kind==='bootstrap'||await jsonDigest(row.envelope.operation)!==row.operationDigest))) throw new TypeError('Pendência divergente da cópia original.');
+          if(row.status==='pending'&&!isI3SchemaCompatible(row.envelope)) return 'retry_later';
         }
         // Pull first: dependencies/conflicts are evaluated against the latest confirmed graph.
         let through:string|null=null;
