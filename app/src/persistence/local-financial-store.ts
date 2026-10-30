@@ -152,7 +152,7 @@ export class LocalFinancialStore {
       this.#db.postings.toArray(),
       this.#db.accountReconciliations.toArray(),
     ]);
-    return { accounts, categories, events, settlements, postings, accountReconciliations };
+    return { accounts, categories, events, settlements, postings, ...(accountReconciliations.length === 0 ? {} : { accountReconciliations }) };
   }
 
   async #insertAggregate(input: FinancialDataset): Promise<void> {
