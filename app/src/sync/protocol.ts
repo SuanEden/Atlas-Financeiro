@@ -34,6 +34,20 @@ export async function jsonDigest(value: unknown): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+/** The current remote SQL schema predates local recurrence metadata and zero-balance markers. */
+export function isI3SchemaCompatible(envelope: SyncEnvelope): boolean {
+  const data = envelope.kind === 'bootstrap' ? envelope.data : envelope.operation.payload;
+  const events = Array.isArray(data.events) ? data.events : [];
+  return !events.some((value) => {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) return true;
+    const event = value as Record<string, unknown>;
+    if (event.recurrenceJson !== undefined || event.recurrenceRuleId !== undefined || event.recurrenceMonth !== undefined) return true;
+    if (event.source === 'opening_balance' && event.amountCents === '0') return true;
+    if (envelope.kind !== 'bootstrap' && envelope.kind === 'record_event' && event.source === 'opening_balance') return true;
+    return false;
+  });
+}
+
 export function wireOperation(operation: PendingOperation): WireOperation {
   assertPendingOperation(operation, operation.userId);
   return { id: operation.id, userId: operation.userId, kind: operation.kind, createdAt: operation.createdAt, payload: JSON.parse(operation.payloadJson) as JsonRecord };
