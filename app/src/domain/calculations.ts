@@ -1,7 +1,7 @@
 import { sumCents } from './money';
 import type { AvailabilityBalances, DatePeriod, FinancialDataset, FinancialTotals, IsoDate } from './models';
 import { assertIsoDate } from './validation';
-import { addMonths, monthDistance, parseMonthlyRecurrenceRule } from './recurrence';
+import { addMonths, parseMonthlyRecurrenceRule } from './recurrence';
 
 function assertPeriod(period: DatePeriod): void {
   assertIsoDate(period.start);
@@ -91,7 +91,7 @@ export interface FinancialForecast {
 
 /** Planned items and recurring rules are forecasts only; none creates a settlement. */
 export function calculateFinancialForecast(dataset: FinancialDataset, startMonth: string, monthCount = 6): FinancialForecast {
-  if (!/^\\d{4}-(0[1-9]|1[0-2])$/.test(startMonth)) throw new TypeError('O período deve usar AAAA-MM.');
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(startMonth)) throw new TypeError('O período deve usar AAAA-MM.');
   if (!Number.isSafeInteger(monthCount) || monthCount < 1 || monthCount > 24) throw new RangeError('O horizonte deve conter de 1 a 24 meses.');
   const endMonth = addMonths(startMonth, monthCount - 1);
   const covered = new Set(dataset.events.filter((event) => event.recurrenceRuleId !== undefined && event.recurrenceMonth !== undefined)
@@ -106,7 +106,7 @@ export function calculateFinancialForecast(dataset: FinancialDataset, startMonth
     items: [],
   };
   for (const event of dataset.events) {
-    if (event.status !== 'planned' || event.recurrenceJson !== undefined || event.recurrenceRuleId !== undefined) continue;
+    if (event.status !== 'planned' || event.recurrenceJson !== undefined) continue;
     const month = event.competenceDate.slice(0, 7);
     if (month < startMonth || month > endMonth || (event.kind !== 'income' && event.kind !== 'expense')) continue;
     const obligation = event.kind === 'expense' && event.certainty === 'confirmed';
@@ -128,7 +128,7 @@ export function calculateFinancialForecast(dataset: FinancialDataset, startMonth
       const month = addMonths(startMonth, offset);
       if (month < firstMonth || month < rule.startMonth || covered.has(`${ruleEvent.id}:${month}`)) continue;
       if (rule.firstOccurrence === 'prorated_unknown' && rule.firstOccurrenceMonth === month) continue;
-      const date = rule.dueDayOfMonth === undefined ? undefined : `${month}-${String(rule.dueDayOfMonth).padStart(2, '0')}`;
+      const date = rule.dueDayOfMonth === undefined ? undefined : recurrenceDate(month, rule.dueDayOfMonth);
       const item: FinancialForecastItem = {
         eventId: ruleEvent.id, month, ...(date === undefined ? {} : { date }),
         kind: ruleEvent.kind, amountCents: ruleEvent.amountCents, description: ruleEvent.description,
@@ -152,4 +152,12 @@ export function calculateFinancialForecast(dataset: FinancialDataset, startMonth
 /** An account is not a confirmed balance until the user records its opening position. */
 export function hasReconciledOpeningBalance(dataset: FinancialDataset, accountId: string): boolean {
   return dataset.events.some((event) => event.accountId === accountId && event.source === 'opening_balance' && event.status === 'confirmed' && event.certainty === 'confirmed');
+}
+
+function recurrenceDate(month: string, day: number): IsoDate {
+  const [yearText, monthText] = month.split('-');
+  const year = Number(yearText);
+  const monthNumber = Number(monthText);
+  const lastDay = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
+  return `${month}-${String(Math.min(day, lastDay)).padStart(2, '0')}`;
 }
