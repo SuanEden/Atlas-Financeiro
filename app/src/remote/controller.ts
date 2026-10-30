@@ -141,6 +141,8 @@ export class RemoteController {
     })().finally(()=>{this.#syncing=undefined;});return this.#syncing;
   }
   async enqueue(command:LocalCommand) {
+    // A recovery must own the local dataset exclusively until its transaction settles.
+    if(this.#recovering) throw new Error('Aguarde a recuperação da cópia antes de registrar.');
     if(!this.policy.snapshot.canWriteLocal||command.operation.userId!==this.policy.snapshot.userId||!this.#store) throw new Error('Entre com a conta correta antes de registrar.');
     const store=this.#store;const epoch=this.policy.snapshot.epoch;const state=await store.read();
     if(epoch!==this.policy.snapshot.epoch||!this.policy.snapshot.canWriteLocal) throw new Error('A sessão mudou. Seus dados anteriores foram preservados.');
