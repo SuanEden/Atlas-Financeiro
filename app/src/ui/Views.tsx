@@ -64,7 +64,7 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
   const transportBalance = transportAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
   const available = freeAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
   const reservedBalance = reservedAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
-  const projectedBalance = freeComplete ? available + forecast.projectedCashChangeCents : undefined;
+  const projectedBalance = freeComplete && selectedMonth === today.slice(0, 7) ? available + forecast.projectedCashChangeCents : undefined;
   const obligations = forecast.items.filter((item) => item.obligation).slice(0, 5);
   const grossForecast = forecast.recurringGrossIncomeCents > 0n ? forecast.recurringGrossIncomeCents : forecast.grossIncomeReferenceCents;
   const grossLabel = forecast.recurringGrossIncomeCents > 0n ? 'Salário bruto previsto (6 meses)' : 'Salário bruto de referência';
@@ -107,7 +107,7 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
           <MoneyStat label="Obrigações pendentes" value={formatBRL(forecast.obligationCents)} />
           <MoneyStat label="Despesas recorrentes futuras" value={formatBRL(forecast.recurringExpenseCents)} />
           <MoneyStat label={grossLabel} value={grossForecast > 0n ? formatBRL(grossForecast) : '—'} />
-          <MoneyStat label="Saldo projetado" value={projectedBalance === undefined ? 'Concilie as contas' : formatBRL(projectedBalance)} />
+          <MoneyStat label="Saldo projetado" value={projectedBalance === undefined ? (freeComplete ? 'Selecione o mês atual' : 'Concilie as contas') : formatBRL(projectedBalance)} />
         </div>
         {grossForecast > 0n ? <p className="form-note">Valor bruto de referência/projeção; não é dinheiro recebido nem entra no saldo projetado. O primeiro pagamento proporcional e o valor líquido permanecem separados até confirmação.</p> : null}
         {proratedUnknown.map((item) => <p className="form-note" key={item.description}>Primeira ocorrência de {item.description}: competência {monthLabel(item.month + '-01')}; valor proporcional ainda não informado.</p>)}
