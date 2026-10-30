@@ -266,6 +266,7 @@ export function TransactionForm({ accounts, categories, recurrenceRules = [], in
           ? <label>Conta de destino<select value={transferAccountId} onChange={(event) => setTransferAccountId(event.target.value)}><option value="">Selecione o destino</option>{accounts.filter((account) => account.id !== accountId).map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label>
           : <label>Categoria <span className="field-hint">opcional</span><select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}><option value="">Sem categoria</option>{compatibleCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>}
       </div>
+      {kind === 'transfer' ? <p className="form-note">Pagamento de fatura de cartão deve ser registrado como transferência para a conta do cartão, não como uma segunda despesa. Assim, o pagamento não duplica as compras já lançadas.</p> : null}
       <label>Descrição <span className="field-hint">opcional</span><input value={description} onChange={(event) => setDescription(event.target.value)} maxLength={500} placeholder="Adicione uma descrição" /></label>
       <label>Data<input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label>
       <details className="form-details"><summary>Mais detalhes</summary>
