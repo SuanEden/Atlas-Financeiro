@@ -17,6 +17,7 @@ import {
   calculateCashTotals,
   calculateFinancialForecast,
   hasReconciledOpeningBalance,
+  getAccountReconciliation,
   parseMonthlyRecurrenceRule,
   formatBRL,
   type FinancialEvent,
@@ -186,11 +187,11 @@ export function AccountsView({ state, onAdd, onReconcile, onTransfer }: { state:
     <div className="page-content">
       <PageHeading title="Contas" subtitle="Organize o dinheiro disponível, reservado e restrito." action={<button className="button button--primary" onClick={onAdd}><Plus size={18} />Nova conta</button>} />
       {state.accounts.length === 0 ? <EmptyPanel icon={<WalletCards />} title="Crie sua primeira conta" description="Informe apenas os dados que você deseja manter neste dispositivo." action="Criar conta" onAction={onAdd} /> : <div className="account-grid">{state.accounts.map((account) => {
-        const opening = accountOpeningEvent(state, account.id);
-        const confirmed = opening?.status === 'confirmed' && opening.certainty === 'confirmed';
-        const estimated = opening?.status === 'planned' && opening.certainty === 'estimated';
-        const openingAmount = opening === undefined ? 0n : opening.adjustmentDirection === 'decrease' ? -opening.amountCents : opening.amountCents;
-        return <article className="account-card" key={account.id}><div className="account-card__top"><span className="account-icon"><WalletCards size={20} /></span><span className={`availability availability--${account.availability}`}>{availabilityLabels[account.availability]}</span></div><h2>{account.name}</h2><p>{accountKindLabels[account.kind]}</p><strong>{confirmed ? formatBRL(calculateAccountBalance(state, account.id)) : estimated ? `Estimado: ${formatBRL(openingAmount)}` : 'A conciliar'}</strong><p>{confirmed ? `Saldo confirmado em ${formatFinancialDate(opening?.competenceDate ?? '0001-01-01')}` : estimated ? 'Saldo informado como estimativa' : 'Saldo inicial ainda não informado'}</p>{confirmed ? null : <button className="text-button" onClick={() => onReconcile(account)}>{estimated ? 'Confirmar saldo' : 'Conciliar saldo'}</button>}</article>;
+        const opening = getAccountReconciliation(state, account.id);
+        const confirmed = opening?.certainty === 'confirmed';
+        const estimated = opening?.certainty === 'estimated';
+        const openingAmount = opening?.balanceCents ?? 0n;
+        return <article className="account-card" key={account.id}><div className="account-card__top"><span className="account-icon"><WalletCards size={20} /></span><span className={`availability availability--${account.availability}`}>{availabilityLabels[account.availability]}</span></div><h2>{account.name}</h2><p>{accountKindLabels[account.kind]}</p><strong>{confirmed ? formatBRL(calculateAccountBalance(state, account.id)) : estimated ? `Estimado: ${formatBRL(openingAmount)}` : 'A conciliar'}</strong><p>{confirmed ? `Saldo confirmado em ${formatFinancialDate(opening?.referenceDate ?? '0001-01-01')}` : estimated ? 'Saldo informado como estimativa' : 'Saldo inicial ainda não informado'}</p>{confirmed ? null : <button className="text-button" onClick={() => onReconcile(account)}>{estimated ? 'Confirmar saldo' : 'Conciliar saldo'}</button>}</article>;
       })}</div>}
       {state.accounts.length > 1 ? <button className="button button--secondary reserve-action" onClick={onTransfer}><ArrowLeftRight size={18} />Transferir ou separar reserva</button> : null}
     </div>
@@ -264,19 +265,10 @@ function MovementRow({ event, state, detailed = false }: { event: FinancialEvent
 }
 
 function accountBalanceLabel(state: LocalFinancialState, accountId: string): string {
-  const opening = accountOpeningEvent(state, accountId);
-  if (opening?.status === 'confirmed' && opening.certainty === 'confirmed') return formatBRL(calculateAccountBalance(state, accountId));
-  if (opening?.status === 'planned' && opening.certainty === 'estimated') {
-    const amount = opening.adjustmentDirection === 'decrease' ? -opening.amountCents : opening.amountCents;
-    return 'Estimado: ' + formatBRL(amount);
-  }
+  const opening = getAccountReconciliation(state, accountId);
+  if (opening?.certainty === 'confirmed') return formatBRL(calculateAccountBalance(state, accountId));
+  if (opening?.certainty === 'estimated') return 'Estimado: ' + formatBRL(opening.balanceCents);
   return 'A conciliar';
-}
-
-function accountOpeningEvent(state: LocalFinancialState, accountId: string): FinancialEvent | undefined {
-  const opening = state.events.filter((event) => event.accountId === accountId && event.source === 'opening_balance');
-  const replaced = new Set(opening.flatMap((event) => [event.replacesEventId, event.reversesEventId].filter((id): id is string => id !== undefined)));
-  return opening.find((event) => !replaced.has(event.id) && event.status !== 'cancelled');
 }
 
 function monthLabel(today: string): string {
