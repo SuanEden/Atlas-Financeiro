@@ -1,5 +1,6 @@
 import { assertEntryAmount, assertPostingAmount, sumCents } from './money';
 import type { FinancialDataset, OwnedEntity } from './models';
+import { parseMonthlyRecurrenceRule } from './recurrence';
 
 function fail(message: string): never {
   throw new TypeError(message);
@@ -105,8 +106,25 @@ export function assertFinancialDataset(dataset: FinancialDataset, expectedUserId
     }
     if (event.reversesEventId !== undefined) assertEntityId(event.reversesEventId, 'Evento estornado');
     if (event.replacesEventId !== undefined) assertEntityId(event.replacesEventId, 'Evento substituído');
+    if (event.recurrenceJson !== undefined) {
+      parseMonthlyRecurrenceRule(event.recurrenceJson);
+      if (event.status !== 'planned' || (event.kind !== 'income' && event.kind !== 'expense') || event.recurrenceRuleId !== undefined || event.recurrenceMonth !== undefined) {
+        fail('Uma regra recorrente deve ser um modelo previsto de receita ou despesa.');
+      }
+    }
+    if (event.recurrenceRuleId !== undefined) {
+      assertEntityId(event.recurrenceRuleId, 'Regra recorrente');
+      if (event.recurrenceMonth === undefined || !/^\\d{4}-(0[1-9]|1[0-2])$/.test(event.recurrenceMonth)) fail('Ocorrência recorrente exige competência AAAA-MM.');
+    } else if (event.recurrenceMonth !== undefined) fail('Competência recorrente exige uma regra vinculada.');
     if (event.reversesEventId !== undefined && event.replacesEventId !== undefined) {
       fail('Um evento não pode ser estorno e substituição ao mesmo tempo.');
+    }
+  }
+
+  for (const event of events.values()) {
+    if (event.recurrenceRuleId !== undefined) {
+      const rule = events.get(event.recurrenceRuleId);
+      if (!rule || rule.recurrenceJson === undefined || rule.kind !== event.kind || rule.id === event.id) fail('A ocorrência deve apontar para uma regra recorrente compatível.');
     }
   }
 
