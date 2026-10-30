@@ -1,7 +1,7 @@
 import { X } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { parseBRL, type Account, type Category, type FinancialEvent } from '../domain';
-import type { CreateAccountInput, CreateCategoryInput, TransactionInput } from '../application';
+import type { AccountReconciliationInput, CreateAccountInput, CreateCategoryInput, TransactionInput } from '../application';
 import { accountKindLabels, availabilityLabels } from './financial-view';
 import { parseMonthlyRecurrenceRule, serializeMonthlyRecurrenceRule, type MonthlyRecurrenceRule } from '../domain';
 
@@ -64,6 +64,8 @@ export function AccountForm({ today, busy, onCancel, onSave }: AccountFormProps)
   const [kind, setKind] = useState<Account['kind']>('checking');
   const [availability, setAvailability] = useState<Account['availability']>('free');
   const [openingBalance, setOpeningBalance] = useState('');
+  const [openingBalanceSource, setOpeningBalanceSource] = useState('');
+  const [openingBalanceCertainty, setOpeningBalanceCertainty] = useState<'confirmed' | 'estimated'>('confirmed');
   const [error, setError] = useState<string>();
 
   async function submit(event: FormEvent) {
@@ -77,7 +79,7 @@ export function AccountForm({ today, busy, onCancel, onSave }: AccountFormProps)
         kind,
         availability: kind === 'transport' ? 'restricted' : availability,
         openingDate: today,
-        ...(cents === undefined ? {} : { openingBalanceCents: cents }),
+        ...(cents === undefined ? {} : { openingBalanceCents: cents, openingBalanceSource, openingBalanceCertainty }),
       });
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Não foi possível criar a conta.');
@@ -91,14 +93,52 @@ export function AccountForm({ today, busy, onCancel, onSave }: AccountFormProps)
         <label>Tipo<select value={kind} onChange={(event) => setKind(event.target.value as Account['kind'])}>{Object.entries(accountKindLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label>Disponibilidade<select disabled={kind === 'transport'} value={kind === 'transport' ? 'restricted' : availability} onChange={(event) => setAvailability(event.target.value as Account['availability'])}>{Object.entries(availabilityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       </div>
-      <label>Saldo inicial <span className="field-hint">opcional, pode ser negativo</span><input inputMode="decimal" value={openingBalance} onChange={(event) => setOpeningBalance(event.target.value)} placeholder="R$ 0,00" /></label>
-      <p className="form-note">O saldo inicial será registrado como ajuste, nunca como renda.</p>
+      <label>Saldo inicial <span className="field-hint">opcional; aceite zero ou valor negativo</span><input inputMode="decimal" value={openingBalance} onChange={(event) => setOpeningBalance(event.target.value)} placeholder="R$ 0,00" /></label>
+      {openingBalance.trim() === '' ? null : <div className="form-grid"><label>Origem do saldo<input value={openingBalanceSource} onChange={(event) => setOpeningBalanceSource(event.target.value)} placeholder="Ex.: aplicativo do banco" /></label><label>Condição<select value={openingBalanceCertainty} onChange={(event) => setOpeningBalanceCertainty(event.target.value as 'confirmed' | 'estimated')}><option value="confirmed">Confirmado</option><option value="estimated">Estimado</option></select></label></div>}
+      <p className="form-note">O saldo inicial será registrado como ajuste, nunca como renda. Estimativas não entram no saldo conciliado.</p>
       <FormError message={error} />
       <footer className="dialog-actions"><button className="button button--ghost" type="button" onClick={onCancel}>Cancelar</button><button className="button button--primary" disabled={busy} type="submit">{busy ? 'Salvando…' : 'Criar conta'}</button></footer>
     </form>
   );
 }
 
+interface AccountReconciliationFormProps {
+  account: Account;
+  today: string;
+  busy: boolean;
+  onCancel: () => void;
+  onSave: (input: AccountReconciliationInput) => Promise<void>;
+}
+
+export function AccountReconciliationForm({ account, today, busy, onCancel, onSave }: AccountReconciliationFormProps) {
+  const [balance, setBalance] = useState('');
+  const [referenceDate, setReferenceDate] = useState(today);
+  const [sourceDescription, setSourceDescription] = useState('');
+  const [certainty, setCertainty] = useState<'confirmed' | 'estimated'>('confirmed');
+  const [error, setError] = useState<string>();
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setError(undefined);
+    try {
+      if (balance.trim() === '') throw new TypeError('Informe o saldo atual, inclusive R$ 0,00 se esse for o valor.');
+      if (sourceDescription.trim() === '') throw new TypeError('Informe de onde veio a informação do saldo.');
+      await onSave({ accountId: account.id, balanceCents: parseBRL(balance), referenceDate, sourceDescription, certainty });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Não foi possível conciliar a conta.');
+    }
+  }
+
+  return <form className="stack-form" onSubmit={submit}>
+    <p className="form-note">Conta: <strong>{account.name}</strong>. O saldo informado será a posição inicial na data de referência. Um valor estimado não será tratado como dinheiro confirmado.</p>
+    <label>Saldo atual<input autoFocus inputMode="decimal" value={balance} onChange={(event) => setBalance(event.target.value)} placeholder="R$ 0,00" /></label>
+    <label>Data de referência<input type="date" value={referenceDate} onChange={(event) => setReferenceDate(event.target.value)} /></label>
+    <label>Origem da informação<input value={sourceDescription} onChange={(event) => setSourceDescription(event.target.value)} placeholder="Ex.: saldo exibido no aplicativo do banco" maxLength={300} /></label>
+    <label>Condição<select value={certainty} onChange={(event) => setCertainty(event.target.value as 'confirmed' | 'estimated')}><option value="confirmed">Saldo confirmado</option><option value="estimated">Saldo estimado</option></select></label>
+    <FormError message={error} />
+    <footer className="dialog-actions"><button className="button button--ghost" type="button" onClick={onCancel}>Cancelar</button><button className="button button--primary" disabled={busy} type="submit">{busy ? 'Conciliando…' : 'Registrar saldo inicial'}</button></footer>
+  </form>;
+}
 interface CategoryFormProps {
   categories: Category[];
   busy: boolean;
