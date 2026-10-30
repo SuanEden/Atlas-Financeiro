@@ -85,6 +85,7 @@ export interface FinancialForecast {
   obligationCents: MoneyCents;
   recurringExpenseCents: MoneyCents;
   recurringGrossIncomeCents: MoneyCents;
+  grossIncomeReferenceCents: MoneyCents;
   projectedCashChangeCents: MoneyCents;
   items: FinancialForecastItem[];
 }
@@ -104,6 +105,7 @@ export function calculateFinancialForecast(dataset: FinancialDataset, startMonth
     obligationCents: 0n,
     recurringExpenseCents: 0n,
     recurringGrossIncomeCents: 0n,
+    grossIncomeReferenceCents: 0n,
     projectedCashChangeCents: 0n,
     items: [],
   };
@@ -112,13 +114,15 @@ export function calculateFinancialForecast(dataset: FinancialDataset, startMonth
     const month = event.competenceDate.slice(0, 7);
     if (month < startMonth || month > endMonth || (event.kind !== 'income' && event.kind !== 'expense')) continue;
     const obligation = event.kind === 'expense' && event.certainty === 'confirmed';
-    if (event.kind === 'income') result.plannedIncomeCents += event.amountCents;
+    const grossSalaryReference = event.kind === 'income' && /sal[aá]rio.*bruto|bruto.*sal[aá]rio/i.test(event.description);
+    if (grossSalaryReference) result.grossIncomeReferenceCents += event.amountCents;
+    else if (event.kind === 'income') result.plannedIncomeCents += event.amountCents;
     else if (obligation) result.obligationCents += event.amountCents;
     else result.plannedExpenseCents += event.amountCents;
     result.items.push({
       eventId: event.id, month, ...(event.dueDate === undefined ? {} : { date: event.dueDate }), kind: event.kind,
       amountCents: event.amountCents, description: event.description, source: 'planned',
-      amountBasis: 'cash', obligation,
+      amountBasis: grossSalaryReference ? 'gross' : 'cash', obligation,
     });
   }
   for (const ruleEvent of activeEvents) {
