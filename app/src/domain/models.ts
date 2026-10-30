@@ -37,6 +37,11 @@ export interface FinancialEvent extends OwnedEntity {
   reversesEventId?: string;
   /** An edit appends a replacement instead of overwriting the original event. */
   replacesEventId?: string;
+  /** JSON-encoded monthly rule; a template is not a cash movement. */
+  recurrenceJson?: string;
+  /** Links a real or planned occurrence to its recurring template. */
+  recurrenceRuleId?: string;
+  recurrenceMonth?: string;
 }
 
 /** Only effective settlements are recorded here; forecasts remain events. */
