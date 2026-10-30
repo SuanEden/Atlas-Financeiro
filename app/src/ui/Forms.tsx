@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import { parseBRL, type Account, type Category, type FinancialEvent } from '../domain';
 import type { CreateAccountInput, CreateCategoryInput, TransactionInput } from '../application';
 import { accountKindLabels, availabilityLabels } from './financial-view';
+import { parseMonthlyRecurrenceRule, serializeMonthlyRecurrenceRule, type MonthlyRecurrenceRule } from '../domain';
 
 interface DialogFrameProps {
   title: string;
@@ -138,6 +139,7 @@ export function CategoryForm({ categories, busy, onCancel, onSave }: CategoryFor
 interface TransactionFormProps {
   accounts: Account[];
   categories: Category[];
+  recurrenceRules?: FinancialEvent[];
   initial?: FinancialEvent;
   defaultKind?: TransactionInput['kind'];
   today: string;
@@ -146,7 +148,7 @@ interface TransactionFormProps {
   onSave: (input: TransactionInput) => Promise<void>;
 }
 
-export function TransactionForm({ accounts, categories, initial, defaultKind = 'expense', today, busy, onCancel, onSave }: TransactionFormProps) {
+export function TransactionForm({ accounts, categories, recurrenceRules = [], initial, defaultKind = 'expense', today, busy, onCancel, onSave }: TransactionFormProps) {
   const initialKind = initial?.kind === 'income' || initial?.kind === 'transfer' ? initial.kind : defaultKind;
   const [kind, setKind] = useState<TransactionInput['kind']>(initialKind);
   const [amount, setAmount] = useState(initial === undefined ? '' : centsForInput(initial.amountCents));
@@ -155,6 +157,19 @@ export function TransactionForm({ accounts, categories, initial, defaultKind = '
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [date, setDate] = useState(initial?.competenceDate ?? today);
+  const [dueDate, setDueDate] = useState(initial?.dueDate ?? '');
+  const initialRule = parseMonthlyRecurrenceRule(initial?.recurrenceJson);
+  const [recurring, setRecurring] = useState(initialRule !== undefined);
+  const [recurrenceStatus, setRecurrenceStatus] = useState<MonthlyRecurrenceRule['status']>(initialRule?.status ?? 'active');
+  const [recurrenceStartMonth, setRecurrenceStartMonth] = useState(initialRule?.startMonth ?? (initial?.competenceDate ?? today).slice(0, 7));
+  const [recurrenceStartDate, setRecurrenceStartDate] = useState(initialRule?.startDate ?? '');
+  const [recurrenceNextMonth, setRecurrenceNextMonth] = useState(initialRule?.nextOccurrenceMonth ?? (initial?.competenceDate ?? today).slice(0, 7));
+  const [recurrenceDueDay, setRecurrenceDueDay] = useState(initialRule?.dueDayOfMonth?.toString() ?? '');
+  const [recurrenceNecessity, setRecurrenceNecessity] = useState<MonthlyRecurrenceRule['necessity']>(initialRule?.necessity ?? 'unknown');
+  const [recurrenceAmountBasis, setRecurrenceAmountBasis] = useState<MonthlyRecurrenceRule['amountBasis']>(initialRule?.amountBasis ?? 'fixed');
+  const [firstOccurrence, setFirstOccurrence] = useState<MonthlyRecurrenceRule['firstOccurrence']>(initialRule?.firstOccurrence ?? 'normal');
+  const [firstOccurrenceMonth, setFirstOccurrenceMonth] = useState(initialRule?.firstOccurrenceMonth ?? '');
+  const [recurrenceRuleId, setRecurrenceRuleId] = useState(initial?.recurrenceRuleId ?? '');
   const [realized, setRealized] = useState(initial?.status !== 'planned');
   const [estimated, setEstimated] = useState(initial?.certainty === 'estimated');
   const [error, setError] = useState<string>();
@@ -169,6 +184,18 @@ export function TransactionForm({ accounts, categories, initial, defaultKind = '
       const amountCents = parseBRL(amount);
       if (amountCents <= 0n) throw new TypeError('Informe um valor positivo.');
       if (kind === 'transfer' && (transferAccountId === '' || transferAccountId === accountId)) throw new TypeError('Selecione uma conta de destino diferente.');
+      if (recurring && realized) throw new TypeError('Uma regra recorrente é uma previsão; registre cada cobrança separadamente quando ela ocorrer.');
+      if (recurring && kind === 'transfer') throw new TypeError('Transferências recorrentes ainda não são suportadas.');
+      if (recurring && recurrenceRuleId !== '') throw new TypeError('Um lançamento não pode ser modelo e ocorrência ao mesmo tempo.');
+      const recurrenceJson = recurring ? serializeMonthlyRecurrenceRule({
+        frequency: 'monthly', status: recurrenceStatus, startMonth: recurrenceStartMonth,
+        ...(recurrenceStartDate === '' ? {} : { startDate: recurrenceStartDate }),
+        nextOccurrenceMonth: recurrenceNextMonth,
+        ...(recurrenceDueDay === '' ? {} : { dueDayOfMonth: Number(recurrenceDueDay) }),
+        necessity: recurrenceNecessity, amountBasis: kind === 'income' ? recurrenceAmountBasis : 'fixed',
+        firstOccurrence, ...(firstOccurrenceMonth === '' ? {} : { firstOccurrenceMonth }),
+      }) : undefined;
+      if (recurrenceRuleId !== '' && recurring) throw new TypeError('Desative o modelo antes de vincular uma ocorrência.');
       await onSave({
         kind,
         amountCents,
@@ -176,6 +203,9 @@ export function TransactionForm({ accounts, categories, initial, defaultKind = '
         description,
         date,
         realized,
+        ...(dueDate === '' ? {} : { dueDate }),
+        ...(recurrenceJson === undefined ? {} : { recurrenceJson }),
+        ...(recurrenceRuleId === '' ? {} : { recurrenceRuleId, recurrenceMonth: date.slice(0, 7) }),
         ...(realized ? {} : { estimated }),
         ...(kind === 'transfer' ? { transferAccountId } : {}),
         ...(kind !== 'transfer' && categoryId !== '' ? { categoryId } : {}),
@@ -197,7 +227,29 @@ export function TransactionForm({ accounts, categories, initial, defaultKind = '
       </div>
       <label>Descrição <span className="field-hint">opcional</span><input value={description} onChange={(event) => setDescription(event.target.value)} maxLength={500} placeholder="Adicione uma descrição" /></label>
       <label>Data<input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label>
-      <details className="form-details"><summary>Mais detalhes</summary><div className="form-grid"><label>Status<select value={realized ? 'realized' : 'planned'} onChange={(event) => setRealized(event.target.value === 'realized')}><option value="realized">Realizado</option><option value="planned">Previsto</option></select></label>{realized ? null : <label>Certeza<select value={estimated ? 'estimated' : 'confirmed'} onChange={(event) => setEstimated(event.target.value === 'estimated')}><option value="confirmed">Confirmado</option><option value="estimated">Estimado</option></select></label>}</div></details>
+      <details className="form-details"><summary>Mais detalhes</summary>
+        <div className="form-grid">
+          <label>Status<select value={realized ? 'realized' : 'planned'} onChange={(event) => setRealized(event.target.value === 'realized')}><option value="realized">Realizado</option><option value="planned">Previsto / pendente</option></select></label>
+          {realized ? null : <label>Certeza<select value={estimated ? 'estimated' : 'confirmed'} onChange={(event) => setEstimated(event.target.value === 'estimated')}><option value="confirmed">Valor confirmado</option><option value="estimated">Estimativa</option></select></label>}
+          <label>Vencimento <span className="field-hint">opcional</span><input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} /></label>
+        </div>
+        {recurrenceRuleId === '' ? <label className="check-field"><input type="checkbox" checked={recurring} onChange={(event) => setRecurring(event.target.checked)} /> Repetir mensalmente</label> : null}
+        {recurring ? <div className="recurrence-fields">
+          <div className="form-grid">
+            <label>Início da regra<input type="month" value={recurrenceStartMonth} onChange={(event) => setRecurrenceStartMonth(event.target.value)} /></label>
+            <label>Data exata de início <span className="field-hint">se conhecida</span><input type="date" value={recurrenceStartDate} onChange={(event) => setRecurrenceStartDate(event.target.value)} /></label>
+            <label>Próxima competência<input type="month" value={recurrenceNextMonth} onChange={(event) => setRecurrenceNextMonth(event.target.value)} /></label>
+            <label>Dia do vencimento <span className="field-hint">em branco se desconhecido</span><input type="number" min="1" max="31" value={recurrenceDueDay} onChange={(event) => setRecurrenceDueDay(event.target.value)} placeholder="Não informado" /></label>
+            <label>Necessidade<select value={recurrenceNecessity} onChange={(event) => setRecurrenceNecessity(event.target.value as MonthlyRecurrenceRule['necessity'])}><option value="unknown">Não classificada</option><option value="essential">Essencial</option><option value="important">Importante</option><option value="optional">Opcional</option></select></label>
+            {kind === 'income' ? <label>Base do valor<select value={recurrenceAmountBasis} onChange={(event) => setRecurrenceAmountBasis(event.target.value as MonthlyRecurrenceRule['amountBasis'])}><option value="fixed">Valor de caixa / líquido</option><option value="gross">Salário bruto (não soma ao caixa projetado)</option></select></label> : null}
+            <label>Primeira ocorrência<select value={firstOccurrence} onChange={(event) => setFirstOccurrence(event.target.value as MonthlyRecurrenceRule['firstOccurrence'])}><option value="normal">Valor integral</option><option value="prorated_unknown">Proporcional ainda desconhecido</option></select></label>
+            {firstOccurrence === 'prorated_unknown' ? <label>Mês da primeira ocorrência<input type="month" value={firstOccurrenceMonth} onChange={(event) => setFirstOccurrenceMonth(event.target.value)} /></label> : null}
+            <label>Situação da regra<select value={recurrenceStatus} onChange={(event) => setRecurrenceStatus(event.target.value as MonthlyRecurrenceRule['status'])}><option value="active">Ativa</option><option value="paused">Pausada</option><option value="ended">Encerrada</option></select></label>
+          </div>
+          <p className="form-note">A regra cria previsões mensais. Nenhuma ocorrência é marcada como paga automaticamente. Se o dia não for informado, a previsão fica apenas no mês.</p>
+        </div> : null}
+        {recurrenceRules.length > 0 && !recurring ? <label>Vincular a recorrência <span className="field-hint">opcional; registra o histórico da cobrança</span><select value={recurrenceRuleId} onChange={(event) => setRecurrenceRuleId(event.target.value)}><option value="">Não vincular</option>{recurrenceRules.filter((rule) => rule.kind === kind && rule.id !== initial?.id).map((rule) => <option key={rule.id} value={rule.id}>{rule.description}</option>)}</select></label> : null}
+      </details>
       <p className="form-note">Salvo somente neste dispositivo. A sincronização remota ainda não está ativa.</p>
       <FormError message={error} />
       <footer className="dialog-actions dialog-actions--sticky"><button className="button button--ghost" type="button" onClick={onCancel}>Cancelar</button><button className="button button--primary" disabled={busy} type="submit">{busy ? 'Salvando…' : initial === undefined ? 'Salvar lançamento' : 'Salvar correção'}</button></footer>
