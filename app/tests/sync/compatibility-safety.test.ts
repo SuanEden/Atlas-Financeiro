@@ -3,7 +3,8 @@ import Dexie from 'dexie';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { LocalSyncStore } from '../../src/sync/local-sync-store';
 import { SyncEngine, type SyncTransport } from '../../src/sync/engine';
-import { commandEnvelope, prepareBootstrap } from '../../src/sync/protocol';
+import { commandEnvelope, isI3SchemaCompatible, prepareBootstrap } from '../../src/sync/protocol';
+import { serializeMonthlyRecurrenceRule } from '../../src/domain';
 import { createAccountCommand } from '../../src/application';
 import { recoveryFixture } from '../recovery-fixture';
 import { sqlTestServer } from './sql-test-server';
@@ -100,5 +101,43 @@ describe('compatibilidade local preserva bytes/IDs e falha antes do envio',()=>{
     });
     expect(await new SyncEngine(store,{apply,pull},()=>({userId:owner,epoch:1,canTransmit:true})).run()).toBe('retry_later');
     expect((await store.read()).meta.cursor).toBe('1');expect((await store.read()).confirmed.accounts).toHaveLength(1);expect(apply).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('bloqueio seguro de recursos locais ainda não migrados no servidor', () => {
+  it('preserva bootstrap com recorrência sem chamar o transporte remoto', async () => {
+    const owner = await server.user();
+    const source = crypto.randomUUID();
+    const data = recoveryFixture(source);
+    data.events.push({
+      id: crypto.randomUUID(), userId: source, kind: 'expense', source: 'manual', status: 'planned', certainty: 'confirmed',
+      amountCents: 1_300n, accountId: data.accounts[0]!.id, categoryId: data.categories[0]!.id,
+      description: 'Recorrência sintética', competenceDate: '2026-11-01',
+      recurrenceJson: serializeMonthlyRecurrenceRule({
+        frequency: 'monthly', status: 'active', startMonth: '2026-11', nextOccurrenceMonth: '2026-11',
+        necessity: 'unknown', amountBasis: 'fixed', firstOccurrence: 'normal',
+      }),
+    });
+    const envelope = await prepareBootstrap(data, source, owner, crypto.randomUUID());
+    expect(isI3SchemaCompatible(envelope)).toBe(false);
+    const store = new LocalSyncStore(owner, 'synthetic-compatibility', crypto.randomUUID()); handles.push(store);
+    await store.prepareAssociation(envelope);
+    const transport: SyncTransport = { apply: vi.fn(), pull: vi.fn() };
+    const engine = new SyncEngine(store, transport, () => ({ userId: owner, epoch: 1, canTransmit: true }));
+    expect(await engine.run()).toBe('retry_later');
+    expect(transport.pull).not.toHaveBeenCalled();
+    expect(transport.apply).not.toHaveBeenCalled();
+    expect((await store.read()).pending).toHaveLength(1);
+  });
+
+  it('identifica saldo zero e conciliação de conta fora do contrato SQL atual', async () => {
+    const f = await fixture();
+    const envelope = { ...f.envelope, kind: 'record_event' as const, operation: {
+      ...f.envelope.coveredOperations[0]!,
+      kind: 'record_event' as const,
+      payload: { events: [{ id: crypto.randomUUID(), source: 'opening_balance', amountCents: '0', kind: 'adjustment' }] },
+    }};
+    expect(isI3SchemaCompatible(envelope)).toBe(false);
   });
 });
