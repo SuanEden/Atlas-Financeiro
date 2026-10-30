@@ -9,7 +9,7 @@ import { deserializeFinancialAggregate } from '../serialization/financial-json';
 export const SYNC_PROTOCOL_VERSION = 1 as const;
 export const MAX_COMMAND_BYTES = 128 * 1024;
 export const MAX_BOOTSTRAP_BYTES = 2 * 1024 * 1024;
-export const DATA_TABLES = ['accounts', 'categories', 'events', 'settlements', 'postings'] as const;
+export const DATA_TABLES = ['accounts', 'categories', 'events', 'settlements', 'postings', 'accountReconciliations'] as const;
 export type JsonRecord = Record<string, unknown>;
 export interface WireOperation { id: string; userId: string; kind: PendingOperation['kind']; createdAt: string; payload: JsonRecord }
 interface EnvelopeBase { protocolVersion: 1; operationId: string; userId: string; baseRevision: string }
@@ -34,15 +34,16 @@ export async function jsonDigest(value: unknown): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-/** The current remote SQL schema predates local recurrence metadata and zero-balance markers. */
+/** The current remote SQL schema predates local recurrence rules and account-reconciliation records. */
 export function isI3SchemaCompatible(envelope: SyncEnvelope): boolean {
   const data = envelope.kind === 'bootstrap' ? envelope.data : envelope.operation.payload;
+  if (envelope.kind === 'reconcile_account') return false;
+  if (Array.isArray(data.accountReconciliations) && data.accountReconciliations.length > 0) return false;
   const events = Array.isArray(data.events) ? data.events : [];
   return !events.some((value) => {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) return true;
     const event = value as Record<string, unknown>;
     if (event.recurrenceJson !== undefined || event.recurrenceRuleId !== undefined || event.recurrenceMonth !== undefined) return true;
-    if (event.source === 'opening_balance' && event.amountCents === '0') return true;
     if (envelope.kind !== 'bootstrap' && envelope.kind === 'record_event' && event.source === 'opening_balance') return true;
     return false;
   });
