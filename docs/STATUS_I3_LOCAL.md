@@ -1,5 +1,7 @@
 # I3 local — continuidade após a recuperação
 
+**Prioridade atual — 30/10/2026:** [versão inicial para uso local imediato](USAR_AGORA.md). O usuário pediu começar a usar antes de concluir I3. Dados ficam em cada navegador, sem sincronização automática; exportar backup. Arquivamento e I3 continuam pendentes. Não presumir que as bases pessoais ainda estejam vazias.
+
 **Checkpoint posterior, 28/10/2026:** [recuperação JSON I3 implementada localmente, limites e pendências](ENTREGA_RECUPERACAO_I3_CHAT.md). Arquivamento/P03, revisão de navegador e sincronização física permanecem abertos; escrita remota bloqueada. Os marcos seguintes são históricos.
 
 **Prioridade vigente — 28/10/2026:** [recuperado HEAD remoto mais recente](RETOMADA_2026_10_28.md), sem presumir alterações locais anteriores salvas. [Compatibilidade corrigida](COMPATIBILIDADE_I3.md): metadados/pendências desconhecidos ou alterados param sem envio/descarte; legados v1 conhecidos preservados, feed não apaga pendência incompatível e paginação mantém limite. Check final **252/1 ignorado, 24 navegador/3 PWA**; runner SQL **30 aprovados juntos**. Leituras preservam login/vínculo único, gate false e tabelas vazias. Arquivamento suportado/P03, recuperação I3 após perda total, critérios restantes e aparelhos físicos continuam pendentes. Não abrir escrita/publicar/associar fixtures ou repetir login. Seções antigas abaixo são históricas.

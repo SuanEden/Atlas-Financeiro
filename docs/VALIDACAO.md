@@ -1,5 +1,9 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Uso local imediato — 30/10/2026
+
+Build/typecheck aprovados; suíte final com **271 aprovados/1 ignorado, 21 arquivos**. Primeiro uso, conta sintética, despesa, saldo após reload e download do JSON verificados manualmente em Chrome/CUA na prévia gerenciada. Fluxo completo de navegador/PWA não repetido nesta rodada. [Ambiente, correção de UUID para HTTP, limites e uso](USAR_AGORA.md). Arquivamento e sincronização hospedada não foram declarados concluídos.
+
 ## Recuperação JSON I3 neste ambiente — 28/10/2026
 
 `npm run test -- --maxWorkers=2`: **269 aprovados, 1 ignorado, 20 arquivos**; `npm run build` incluindo typecheck: aprovado. O ignorado continua sendo o manifesto privado original ausente. São 17 casos unitários adicionais (16 de recuperação/arquivo e um de controle de acesso) em relação à base de 252. Configurações e dependências do projeto preservadas. Rodada anterior concorrente teve SIGKILL de worker e não foi aprovada; a rodada final acima concluiu sem erro.

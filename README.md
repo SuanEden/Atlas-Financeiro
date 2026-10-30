@@ -1,5 +1,7 @@
 # Atlas Financeiro
 
+**Prioridade atual — 30/10/2026:** [versão inicial para uso local imediato](docs/USAR_AGORA.md). O usuário pediu começar a usar antes de concluir I3. Dados ficam em cada navegador, sem sincronização automática; exportar backup. Arquivamento e I3 continuam pendentes. Não presumir que as bases pessoais ainda estejam vazias.
+
 **Checkpoint posterior, 28/10/2026:** [recuperação JSON I3 implementada localmente, limites e pendências](docs/ENTREGA_RECUPERACAO_I3_CHAT.md). Arquivamento/P03, revisão de navegador e sincronização física permanecem abertos; escrita remota bloqueada. Os marcos seguintes são históricos.
 
 **Retomada de 28/10/2026:** [fonte recuperada e estado externo](docs/RETOMADA_2026_10_28.md), [compatibilidade corrigida, testes e pendências](docs/COMPATIBILIDADE_I3.md). Check final: 252 aprovados/1 ignorado, 24 navegador/3 PWA; runner SQL com 30 aprovados juntos. Login anterior comprovado, envio financeiro bloqueado. Recuperação total I3, arquivamento suportado e uso entre aparelhos físicos ainda pendentes; I3 incompleto.

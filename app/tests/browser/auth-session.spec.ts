@@ -35,8 +35,8 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   await page.reload();await expect(page.getByRole('heading',{name:'Visão geral'})).toBeVisible();
   await expect(page.getByText('Conta sintética de sessão',{exact:true})).toBeVisible();
   await navigateBackup(page);
-  await expect(page.getByRole('heading',{name:'Cópia de sincronização I3'})).toBeVisible();
-  await expect(page.locator('.scope-panel').filter({has:page.getByRole('heading',{name:'Cópia de sincronização I3'})})).toContainText('O importador I2 não aceita este formato');
+  await expect(page.getByRole('heading',{name:'Cópia de sincronização I3',exact:true})).toBeVisible();
+  await expect(page.locator('.scope-panel').filter({has:page.getByRole('heading',{name:'Cópia de sincronização I3',exact:true})})).toContainText('O importador I2 não aceita este formato');
   await expect(page.locator('vite-error-overlay')).toHaveCount(0);
   await page.screenshot({path:join(tmpdir(),`atlas-i3-backup-safety-${info.project.name}.png`),fullPage:false});
   const download=page.waitForEvent('download');await page.getByRole('button',{name:'Baixar backup'}).click();

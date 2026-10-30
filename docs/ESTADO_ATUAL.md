@@ -1,5 +1,7 @@
 # Estado atual
 
+**Prioridade atual — 30/10/2026:** [versão inicial para uso local imediato](USAR_AGORA.md). O usuário pediu começar a usar antes de concluir I3. Dados ficam em cada navegador, sem sincronização automática; exportar backup. Arquivamento e I3 continuam pendentes. Não presumir que as bases pessoais ainda estejam vazias.
+
 **Checkpoint posterior, 28/10/2026:** [recuperação JSON I3 implementada localmente, limites e pendências](ENTREGA_RECUPERACAO_I3_CHAT.md). Arquivamento/P03, revisão de navegador e sincronização física permanecem abertos; escrita remota bloqueada. Os marcos seguintes são históricos.
 
 ## VM recuperada e compatibilidade local reforçada — 28/10/2026

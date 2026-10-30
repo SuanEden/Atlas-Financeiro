@@ -1,3 +1,4 @@
+import { newLocalId } from './local-id';
 import {
   assertEntryAmount,
   assertIsoDate,
@@ -54,7 +55,7 @@ export interface TransactionInput {
 export function createDefaultCommandContext(userId: string): CommandContext {
   return {
     userId,
-    nextId: () => crypto.randomUUID().toLowerCase(),
+    nextId: () => newLocalId(),
     now: () => new Date().toISOString(),
     today: () => financialToday(),
   };

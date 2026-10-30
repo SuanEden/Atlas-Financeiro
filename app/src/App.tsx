@@ -104,6 +104,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
       <section className="workspace">
         <header className="topbar"><div className="mobile-brand"><Brand /></div>{page === 'dashboard' ? null : <button className="button button--primary topbar-create" onClick={openTransaction} disabled={state.accounts.length === 0}><Plus size={17} />Novo lançamento</button>}<span className="device-status"><HardDrive size={16} />Salvo neste dispositivo</span><button className="icon-button" type="button" onClick={toggleTheme} aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'} aria-pressed={dark}>{dark ? <Sun size={19} /> : <Moon size={19} />}</button></header>
         {sessionControls}
+        {!integration&&page!=='backup'?<section className="local-status" aria-label="Modo de uso local"><span>Modo local · dados somente neste navegador</span><button className="text-button" onClick={()=>setPage('backup')}>Fazer backup</button></section>:null}
         {error === undefined ? null : <div className="error-banner" role="alert"><span>{error}</span><button onClick={clearError}>Fechar</button></div>}
         <div className="sr-only" role="status">{notice}</div>
         {loading ? <div className="loading-state"><span className="spinner" />Carregando dados locais…</div> : (
