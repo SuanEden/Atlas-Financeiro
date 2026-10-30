@@ -34,12 +34,14 @@ Saldo inicial é ajuste na data conferida pelo usuário, com origem `opening_bal
 
 As funções de cálculo pressupõem um conjunto previamente validado na fronteira de persistência. Datas do período são inclusivas e o início não pode ser posterior ao fim. Meses sem movimento têm fluxo zero, mas o saldo mantém as contrapartidas de períodos anteriores.
 
-No I1, `reserved` classifica uma conta inteira como reservada; é uma convenção provisória. Reservar somente parte de uma conta exige o modelo de reservas de I2. O adaptador I1 somente acrescenta agregados: não permite cancelar ou sobrescrever eventos já liquidados, apagando seu efeito no caixa.
+Em I2, `reserved` continua classificando uma conta inteira como reservada. Separar valor nela é uma transferência entre contas e preserva o patrimônio total. Reservas com finalidade, meta ou alocação parcial pertencem à fase de planejamento.
+
+Edição de evento liquidado acrescenta, atomicamente, um estorno integral de contrapartidas inversas e o evento substituto. Estorno simples acrescenta somente a correção inversa. O original nunca é apagado ou sobrescrito. Eventos previstos podem ser substituídos sem caixa; referências de substituição não podem formar ciclos ou versões concorrentes silenciosas.
 
 ## Contratos posteriores, ainda não implementados
 
 Saldo projetado até uma data parte do saldo atual e soma entradas/saídas ainda abertas previstas até ela; parcelas já liquidadas não entram novamente. Projeção exibirá horizonte, contas incluídas e estimativas separadas. Não confundir livre com sobra depois de todos os compromissos futuros.
 
-Reservar dinheiro entre contas é transferência, não despesa. Compra em cartão e pagamento de fatura terão vínculo de obrigação/liquidação, sem reconhecimento duplicado de despesa. Juros, multas, descontos e estornos serão explícitos. Reembolso pendente não é caixa recebido nem aumento salarial automático. Recorrências gerarão previsões identificáveis, sem presumir pagamentos e sem duplicação em reprocessamento.
+Compra em cartão e pagamento de fatura terão vínculo de obrigação/liquidação, sem reconhecimento duplicado de despesa. Juros, multas e descontos serão explícitos. Reembolso pendente não é caixa recebido nem aumento salarial automático. Recorrências gerarão previsões identificáveis, sem presumir pagamentos e sem duplicação em reprocessamento.
 
-Edição/estorno preservarão histórico e referências. Backup/importação manterão proveniência e não transformarão estimativa em informação confirmada. Cada extensão adicionará casos de teste antes de ser considerada entregue.
+Restauração/importação manterá proveniência e não transformará estimativa em informação confirmada. Cada extensão adicionará casos de teste antes de ser considerada entregue.

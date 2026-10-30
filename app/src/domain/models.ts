@@ -33,6 +33,10 @@ export interface FinancialEvent extends OwnedEntity {
   competenceDate: IsoDate;
   dueDate?: IsoDate;
   adjustmentDirection?: 'increase' | 'decrease';
+  /** A reversal is a new immutable event with the opposite posting effect. */
+  reversesEventId?: string;
+  /** An edit appends a replacement instead of overwriting the original event. */
+  replacesEventId?: string;
 }
 
 /** Only effective settlements are recorded here; forecasts remain events. */
@@ -73,4 +77,22 @@ export interface AvailabilityBalances {
   reservedCents: MoneyCents;
   restrictedCents: MoneyCents;
   totalCents: MoneyCents;
+}
+
+export type PendingOperationKind =
+  | 'create_account'
+  | 'create_category'
+  | 'record_event'
+  | 'reverse_event'
+  | 'replace_event';
+
+/** Durable local operation prepared for the future remote synchronization layer. */
+export interface PendingOperation extends OwnedEntity {
+  kind: PendingOperationKind;
+  createdAt: string;
+  payloadJson: string;
+}
+
+export interface LocalFinancialState extends FinancialDataset {
+  outbox: PendingOperation[];
 }

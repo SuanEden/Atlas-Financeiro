@@ -44,8 +44,9 @@ export function calculateCashTotals(dataset: FinancialDataset, period: DatePerio
   for (const settlement of dataset.settlements) {
     if (!inPeriod(settlement.settlementDate, period)) continue;
     const event = events.get(settlement.eventId);
-    if (event?.kind === 'income') incomeCents += settlement.amountCents;
-    if (event?.kind === 'expense') expenseCents += settlement.amountCents;
+    const direction = event?.reversesEventId === undefined ? 1n : -1n;
+    if (event?.kind === 'income') incomeCents += settlement.amountCents * direction;
+    if (event?.kind === 'expense') expenseCents += settlement.amountCents * direction;
   }
   return { incomeCents, expenseCents, resultCents: incomeCents - expenseCents };
 }
@@ -57,8 +58,9 @@ export function calculateAccrualTotals(dataset: FinancialDataset, period: DatePe
   let expenseCents = 0n;
   for (const event of dataset.events) {
     if (event.status !== 'confirmed' || event.certainty !== 'confirmed' || !inPeriod(event.competenceDate, period)) continue;
-    if (event.kind === 'income') incomeCents += event.amountCents;
-    if (event.kind === 'expense') expenseCents += event.amountCents;
+    const direction = event.reversesEventId === undefined ? 1n : -1n;
+    if (event.kind === 'income') incomeCents += event.amountCents * direction;
+    if (event.kind === 'expense') expenseCents += event.amountCents * direction;
   }
   return { incomeCents, expenseCents, resultCents: incomeCents - expenseCents };
 }

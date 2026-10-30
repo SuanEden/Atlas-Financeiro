@@ -103,6 +103,38 @@ export function assertFinancialDataset(dataset: FinancialDataset, expectedUserId
       if (event.kind !== 'income' && event.kind !== 'expense') fail('Transferências e ajustes não recebem categoria de renda ou despesa.');
       if (category.kind !== 'both' && category.kind !== event.kind) fail('Categoria incompatível com a natureza do evento.');
     }
+    if (event.reversesEventId !== undefined) assertEntityId(event.reversesEventId, 'Evento estornado');
+    if (event.replacesEventId !== undefined) assertEntityId(event.replacesEventId, 'Evento substituído');
+    if (event.reversesEventId !== undefined && event.replacesEventId !== undefined) {
+      fail('Um evento não pode ser estorno e substituição ao mesmo tempo.');
+    }
+  }
+
+  const reversed = new Set<string>();
+  const replaced = new Set<string>();
+  for (const event of events.values()) {
+    if (event.reversesEventId !== undefined) {
+      const original = events.get(event.reversesEventId);
+      if (!original || original.id === event.id) fail('Estorno exige evento original existente e distinto.');
+      if (original.reversesEventId !== undefined) fail('Não é permitido estornar um estorno.');
+      if (reversed.has(original.id)) fail('Um evento não pode receber dois estornos.');
+      if (event.status !== 'confirmed' || event.certainty !== 'confirmed' || original.status !== 'confirmed') {
+        fail('Estorno exige eventos confirmados.');
+      }
+      if (event.kind !== original.kind || event.amountCents !== original.amountCents || event.accountId !== original.accountId
+        || event.transferAccountId !== original.transferAccountId || event.categoryId !== original.categoryId
+        || event.adjustmentDirection !== original.adjustmentDirection) {
+        fail('Estorno deve preservar natureza, valor, contas e categoria do evento original.');
+      }
+      reversed.add(original.id);
+    }
+    if (event.replacesEventId !== undefined) {
+      const original = events.get(event.replacesEventId);
+      if (!original || original.id === event.id) fail('Substituição exige evento original existente e distinto.');
+      if (replaced.has(original.id)) fail('Um evento não pode receber duas substituições.');
+      if (event.reversesEventId !== undefined) fail('Um estorno não pode substituir outro evento.');
+      replaced.add(original.id);
+    }
   }
 
   const settledByEvent = new Map<string, bigint>();
@@ -117,6 +149,25 @@ export function assertFinancialDataset(dataset: FinancialDataset, expectedUserId
     const settled = (settledByEvent.get(event.id) ?? 0n) + settlement.amountCents;
     if (settled > event.amountCents) fail('Liquidações não podem ultrapassar o valor do evento.');
     settledByEvent.set(event.id, settled);
+  }
+  for (const originalId of reversed) {
+    const original = events.get(originalId);
+    const reversal = [...events.values()].find((event) => event.reversesEventId === originalId);
+    if (!original || !reversal || settledByEvent.get(originalId) !== original.amountCents || settledByEvent.get(reversal.id) !== reversal.amountCents) {
+      fail('Estorno exige liquidação integral do evento original e da contrapartida inversa.');
+    }
+  }
+  for (const event of events.values()) {
+    if (event.replacesEventId !== undefined && settledByEvent.has(event.replacesEventId) && !reversed.has(event.replacesEventId)) {
+      fail('Substituir evento liquidado exige estorno atômico do original.');
+    }
+    const chain = new Set([event.id]);
+    let previousId = event.replacesEventId;
+    while (previousId !== undefined) {
+      if (chain.has(previousId)) fail('Substituições de eventos não podem formar ciclos.');
+      chain.add(previousId);
+      previousId = events.get(previousId)?.replacesEventId;
+    }
   }
 
   const postingsBySettlement = new Map<string, typeof dataset.postings>();
@@ -137,13 +188,15 @@ export function assertFinancialDataset(dataset: FinancialDataset, expectedUserId
     if (event.kind === 'transfer') {
       const outgoing = postings.find((posting) => posting.accountId === event.accountId);
       const incoming = postings.find((posting) => posting.accountId === event.transferAccountId);
-      if (postings.length !== 2 || !outgoing || !incoming || outgoing.amountCents !== -settlement.amountCents || incoming.amountCents !== settlement.amountCents || sumCents(postings.map((posting) => posting.amountCents)) !== 0n) {
+      const direction = event.reversesEventId === undefined ? 1n : -1n;
+      if (postings.length !== 2 || !outgoing || !incoming || outgoing.amountCents !== -settlement.amountCents * direction || incoming.amountCents !== settlement.amountCents * direction || sumCents(postings.map((posting) => posting.amountCents)) !== 0n) {
         fail('Transferência exige exatamente duas contrapartidas opostas pelo valor liquidado.');
       }
     } else {
       const posting = postings[0];
       const positive = event.kind === 'income' || (event.kind === 'adjustment' && event.adjustmentDirection === 'increase');
-      const expected = positive ? settlement.amountCents : -settlement.amountCents;
+      const natural = positive ? settlement.amountCents : -settlement.amountCents;
+      const expected = event.reversesEventId === undefined ? natural : -natural;
       if (postings.length !== 1 || !posting || posting.accountId !== event.accountId || posting.amountCents !== expected) {
         fail('Contrapartida incompatível com a natureza e o valor da liquidação.');
       }

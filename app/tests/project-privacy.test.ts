@@ -33,9 +33,11 @@ describe('preservação dos documentos privados', () => {
     expect(tracked.some((path) => originalNames.includes(path) || path.startsWith('.private/'))).toBe(false);
   });
 
-  it('não coloca documentos originais na raiz pública da aplicação', () => {
+  it('mantém a pasta pública limitada a ativos sanitizados', () => {
     const appEntries = readdirSync(join(workspace, 'app'));
     expect(appEntries.some((name) => originalNames.includes(name) || name === '.private')).toBe(false);
-    expect(existsSync(join(workspace, 'app/public'))).toBe(false);
+    const publicEntries = readdirSync(join(workspace, 'app/public'), { recursive: true, encoding: 'utf8' });
+    expect(publicEntries.length).toBeGreaterThan(0);
+    expect(publicEntries.some((name) => originalNames.includes(name) || /(?:^|[\\/])(?:\.private|\.env|\.git)(?:[\\/]|$)/i.test(name))).toBe(false);
   });
 });

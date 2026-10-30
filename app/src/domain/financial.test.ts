@@ -64,6 +64,14 @@ describe('agregados e cálculos financeiros', () => {
     expect(calculateAccrualTotals(data, { start: '2026-01-01', end: '2026-01-31' }).incomeCents).toBe(5_000n);
   });
 
+  it('trata saldo inicial como ajuste de caixa, nunca como renda', () => {
+    const data = example();
+    const january = { start: '2026-01-01', end: '2026-01-31' };
+    expect(calculateAccountBalance(data, uuid(12))).toBe(1_000n);
+    expect(calculateCashTotals(data, january).incomeCents).toBe(5_000n);
+    expect(calculateAccrualTotals(data, january).incomeCents).toBe(5_000n);
+  });
+
   it('aceita liquidação parcial sem reconhecer o total como pago', () => {
     const data = example();
     data.settlements[1]!.amountCents = 600n;

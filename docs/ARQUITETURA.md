@@ -28,7 +28,29 @@ Essa validação completa é deliberadamente simples para a fundação. No cresc
 
 ## Evolução prevista
 
-I2 entrega o fluxo financeiro local e PWA; I3 integra Supabase; I4 completa recuperação e testes ponta a ponta. A interface lerá a base local e distinguirá valores com pendências dos confirmados remotamente. O servidor será a referência compartilhada entre dispositivos, sem apagar trabalho ainda não enviado.
+I2 entrega o fluxo financeiro local e PWA; I3 integrará Supabase; I4 completará recuperação e testes ponta a ponta. A interface lê a base local e já identifica pendências; no futuro distinguirá valores locais dos confirmados remotamente. O servidor será a referência compartilhada entre dispositivos, sem apagar trabalho ainda não enviado.
+
+## Uso financeiro local do Incremento 2
+
+I2 mantém o domínio independente de React e acrescenta uma camada de comandos. Cada comando constrói IDs estáveis, agregado financeiro e registro da outbox; `LocalFinancialStore.commitOperation` valida o estado resultante e grava as seis coleções na mesma transação Dexie.
+
+```text
+Formulário React → comando local → agregado + operação pendente
+                                  ↓ mesma transação
+          contas/eventos/liquidações/postings + outbox no IndexedDB
+                                  ↓
+                 snapshot → cálculos puros → dashboard/histórico
+```
+
+Edição não usa `put` sobre caixa liquidado: cria estorno integral de efeito inverso e evento substituto. Estorno isolado também acrescenta novo evento. Os vínculos `reversesEventId` e `replacesEventId` preservam a trilha; validação rejeita duplicidade, ciclos, divergência de valor/contas e substituição liquidada sem estorno atômico.
+
+A identidade local é um UUID anônimo persistido no `localStorage` apenas para escolher o namespace IndexedDB. Isso não é login ou autorização. A outbox indica operações locais pendentes e não simula sincronização.
+
+O PWA registra service worker somente no build de produção. O cache contém o shell estático; os dados financeiros permanecem no IndexedDB. O backup exporta JSON versionado, mas I2 não importa nem restaura arquivos.
+
+O build gera `dist/sw.js` a partir do template `public/sw.js`, com a lista completa de HTML, JS, CSS, manifesto e ícones e um hash do conteúdo. O worker pré-cacheia essa versão e não mistura ativos de builds diferentes. Não há `skipWaiting`: uma atualização espera o fechamento de todas as abas/janelas controladas. O cache antigo é retirado na ativação seguinte; IndexedDB, identidade local e outbox não são apagados. O template em `public/` não deve ser servido como build pronto.
+
+`commitOperation` confere que o payload canônico representa exatamente o agregado antes da transação. Na interface, uma trava síncrona impede gravações concorrentes na mesma instância, além do estado visual ocupado. Reutilizar IDs ou aplicar correções concorrentes continua sujeito à validação transacional, sem sobrescrita silenciosa. Isso não implementa coordenação de sincronização entre abas, prevista para I3.
 
 Separar módulos de interface, aplicação, domínio, persistência, sincronização, autenticação e exportação. Não introduzir SSR, backend permanente, ORM de servidor ou serviços de IA para suprir funções do navegador ou do PostgreSQL. O acesso remoto futuro usará SDK Supabase e RPCs SQL; a organização de schemas e permissões está em [segurança](SEGURANCA_RPC.md).
 

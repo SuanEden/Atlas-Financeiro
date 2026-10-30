@@ -1,6 +1,6 @@
 {
   "name": "atlas-financeiro",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -12,22 +12,27 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:browser": "playwright test",
+    "test:pwa": "npm run build && playwright test --config playwright.preview.config.ts",
     "build": "npm run typecheck && vite build",
     "preview": "vite preview",
-    "check": "npm run test && npm run build && npm run test:browser"
+    "check": "npm run test && npm run build && npm run test:browser && npm run test:pwa"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.118.0",
     "dexie": "4.4.7",
+    "lucide-react": "1.61.0",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.12",
     "@playwright/test": "1.64.1",
     "@types/node": "22.20.5",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.2",
     "fake-indexeddb": "6.2.6",
+    "supabase": "2.122.0",
     "typescript": "7.0.2",
     "vite": "8.3.5",
     "vitest": "5.0.5"

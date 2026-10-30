@@ -3,6 +3,47 @@
 import { MAX_ENTRY_CENTS, calculateAccountBalance, type FinancialDataset } from '../src/domain';
 import { createLocalFinancialStore } from '../src/persistence/local-financial-store';
 import { deserializeFinancialDataset, serializeFinancialDataset } from '../src/serialization/financial-json';
+import { recoveryFixture } from './recovery-fixture';
+import { serializeLocalBackup } from '../src/backup/local-backup';
+import { canonicalLocalState } from '../src/backup/validate-i2-backup';
+import { LOCAL_OWNER_KEY } from '../src/application/local-identity';
+
+export async function seedRecoveryFixture() {
+  const owner = localStorage.getItem(LOCAL_OWNER_KEY)!;
+  const store = createLocalFinancialStore(owner);
+  try {
+    await store.recoverI2Backup(serializeLocalBackup(recoveryFixture(owner), owner));
+    return canonicalLocalState(await store.readLocalState(), owner);
+  } finally { store.close(); }
+}
+
+export async function inspectRecoveryState() {
+  const owner = localStorage.getItem(LOCAL_OWNER_KEY)!;
+  const store = createLocalFinancialStore(owner);
+  try { return canonicalLocalState(await store.readLocalState(), owner); }
+  finally { store.close(); }
+}
+
+export async function proveNativeRecoveryRollback() {
+  const owner = crypto.randomUUID();
+  const store = createLocalFinancialStore(owner);
+  const backup = serializeLocalBackup(recoveryFixture(owner), owner);
+  const nativeAdd = IDBObjectStore.prototype.add;
+  let earlierWrites = 0;
+  let failed = false;
+  IDBObjectStore.prototype.add = function (this: IDBObjectStore, value: unknown, key?: IDBValidKey): IDBRequest<IDBValidKey> {
+    if (this.name === 'outbox') { failed = true; throw new DOMException('Synthetic recovery failure', 'DataCloneError'); }
+    earlierWrites++;
+    return key === undefined ? nativeAdd.call(this, value) : nativeAdd.call(this, value, key);
+  };
+  let rejected = false;
+  try { await store.recoverI2Backup(backup); }
+  catch { rejected = true; }
+  finally { IDBObjectStore.prototype.add = nativeAdd; store.close(); }
+  const reopened = createLocalFinancialStore(owner);
+  try { return { rejected, failed, earlierWrites, counts: Object.values(await reopened.readLocalState()).map((rows) => rows.length) }; }
+  finally { reopened.close(); }
+}
 
 const userId = '10000000-0000-4000-8000-000000000001';
 const id = (value: number) => `20000000-0000-4000-8000-${String(value).padStart(12, '0')}`;

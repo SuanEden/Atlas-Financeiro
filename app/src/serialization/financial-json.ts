@@ -10,7 +10,7 @@ import {
   type Settlement,
 } from '../domain';
 
-export const FINANCIAL_JSON_SCHEMA_VERSION = 1 as const;
+export const FINANCIAL_JSON_SCHEMA_VERSION = 2 as const;
 
 /**
  * A versioned data representation for the local foundation and its tests.
@@ -51,6 +51,8 @@ export function serializeFinancialDataset(dataset: FinancialDataset, userId: str
       dueDate: event.dueDate,
       certainty: event.certainty,
       adjustmentDirection: event.adjustmentDirection,
+      reversesEventId: event.reversesEventId,
+      replacesEventId: event.replacesEventId,
     })),
     settlements: dataset.settlements.map((settlement) => ({
       id: settlement.id,
@@ -75,7 +77,7 @@ export function deserializeFinancialDataset(json: string, expectedUserId: string
   const root = readObject(JSON.parse(json) as unknown, [
     'schemaVersion', 'userId', 'accounts', 'categories', 'events', 'settlements', 'postings',
   ]);
-  if (root.schemaVersion !== FINANCIAL_JSON_SCHEMA_VERSION) {
+  if (root.schemaVersion !== 1 && root.schemaVersion !== FINANCIAL_JSON_SCHEMA_VERSION) {
     throw new TypeError('Versão da representação financeira não suportada.');
   }
   if (readString(root, 'userId') !== expectedUserId) {
@@ -90,6 +92,19 @@ export function deserializeFinancialDataset(json: string, expectedUserId: string
   };
   assertFinancialDataset(dataset, expectedUserId);
   return dataset;
+}
+
+/** Decodes a command's rows without assuming its references are all in this packet. */
+export function deserializeFinancialAggregate(json: string, expectedUserId: string): FinancialDataset {
+  const root = readObject(JSON.parse(json) as unknown, ['schemaVersion', 'userId', 'accounts', 'categories', 'events', 'settlements', 'postings']);
+  if (root.schemaVersion !== 1 || readString(root, 'userId') !== expectedUserId) throw new TypeError('Schema ou proprietário de comando inválido.');
+  return {
+    accounts: root.accounts === undefined ? [] : readCollection(root, 'accounts', readAccount),
+    categories: root.categories === undefined ? [] : readCollection(root, 'categories', readCategory),
+    events: root.events === undefined ? [] : readCollection(root, 'events', readEvent),
+    settlements: root.settlements === undefined ? [] : readCollection(root, 'settlements', readSettlement),
+    postings: root.postings === undefined ? [] : readCollection(root, 'postings', readPosting),
+  };
 }
 
 type JsonObject = Record<string, unknown>;
@@ -158,6 +173,7 @@ function readEvent(value: unknown): FinancialEvent {
   const record = readObject(value, [
     'id', 'userId', 'kind', 'status', 'source', 'amountCents', 'accountId', 'transferAccountId',
     'categoryId', 'description', 'competenceDate', 'dueDate', 'certainty', 'adjustmentDirection',
+    'reversesEventId', 'replacesEventId',
   ]);
   const optionalDirection = Object.hasOwn(record, 'adjustmentDirection')
     ? { adjustmentDirection: readEnum(record, 'adjustmentDirection', ['increase', 'decrease']) }
@@ -175,6 +191,8 @@ function readEvent(value: unknown): FinancialEvent {
     ...readOptionalString(record, 'transferAccountId'),
     ...readOptionalString(record, 'categoryId'),
     ...readOptionalString(record, 'dueDate'),
+    ...readOptionalString(record, 'reversesEventId'),
+    ...readOptionalString(record, 'replacesEventId'),
     ...optionalDirection,
   };
 }

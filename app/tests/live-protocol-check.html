@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <title>Conferência de acesso — Atlas Financeiro</title>
+  </head>
+  <body>
+    <main class="app-shell access-page" data-theme="light">
+      <section class="access-card">
+        <span class="brand-mark" aria-hidden="true">A</span>
+        <h1>Conferência de acesso</h1>
+        <p>Verifique sua sessão e o servidor mantendo o envio financeiro bloqueado.</p>
+        <button id="check" class="button button--primary" type="button">Conferir conexão</button>
+        <pre id="result" role="status" aria-live="polite" style="white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; margin-top: 1.5rem">Pronto para conferir.</pre>
+        <p class="warning-copy">Esta etapa não cria lançamentos, não associa uma base e não exibe credenciais. Use a mesma janela e o mesmo perfil em que entrou no Atlas.</p>
+        <a href="/" class="text-button">Voltar ao Atlas</a>
+      </section>
+    </main>
+    <script type="module" src="./live-protocol-check-entry.ts"></script>
+  </body>
+</html>
