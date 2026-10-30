@@ -133,11 +133,15 @@ describe('bloqueio seguro de recursos locais ainda não migrados no servidor', (
 
   it('identifica saldo zero e conciliação de conta fora do contrato SQL atual', async () => {
     const f = await fixture();
-    const envelope = { ...f.envelope, kind: 'record_event' as const, operation: {
-      ...f.envelope.coveredOperations[0]!,
+    const operationId = crypto.randomUUID();
+    const envelope = {
+      protocolVersion: 1 as const, operationId, userId: f.owner, baseRevision: '0',
       kind: 'record_event' as const,
-      payload: { events: [{ id: crypto.randomUUID(), source: 'opening_balance', amountCents: '0', kind: 'adjustment' }] },
-    }};
+      operation: {
+        id: operationId, userId: f.owner, kind: 'record_event' as const, createdAt: '2026-10-30T12:00:00.000Z',
+        payload: { events: [{ id: crypto.randomUUID(), source: 'opening_balance', amountCents: '0', kind: 'adjustment' }] },
+      },
+    };
     expect(isI3SchemaCompatible(envelope)).toBe(false);
   });
 });
