@@ -108,6 +108,22 @@ describe('controlador local de sessão com SQL e identidades simuladas',()=>{
 });
 
 describe('recuperação I3 não concede autenticação nem escrita remota',()=>{
+  it('recusa novos lançamentos enquanto a recuperação está em andamento',async()=>{
+    const f=await setup();await associate(f);
+    const store=f.controller.getSnapshot().store!;
+    const {exportSyncBackup}=await import('../../src/sync/export-backup');
+    const backup=await exportSyncBackup(store,'synthetic-controller');
+    let release!:()=>void;
+    const pendingRecovery=new Promise<void>((resolve)=>{release=resolve;});
+    vi.spyOn(store,'recoverBackup').mockImplementation(async()=>{await pendingRecovery;});
+    const restoring=f.controller.recoverBackup(backup);
+    const before=await store.read();
+    const command=createTransactionCommand({accountId:before.projection.accounts[0]!.id,kind:'income',amountCents:1n,date:'2026-10-26',description:'Concorrência sintética',realized:true},createDefaultCommandContext(f.owner));
+    try {
+      await expect(f.controller.enqueue(command)).rejects.toThrow(/Aguarde a recuperação/);
+      expect((await store.read()).pending).toHaveLength(before.pending.length);
+    } finally {release();await restoring;}
+  });
   it('exige login, restaura no aparelho novo com gate falso e conserva bloqueio remoto',async()=>{
     const f=await setup();await associate(f);
     const {exportSyncBackup}=await import('../../src/sync/export-backup');
