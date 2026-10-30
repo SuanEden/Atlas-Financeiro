@@ -83,7 +83,7 @@ export function assertFinancialDataset(dataset: FinancialDataset, expectedUserId
     if (event.source === 'opening_balance' && event.kind !== 'adjustment') fail('Saldo inicial deve ser registrado como ajuste.');
     assertEnum(event.status, ['planned', 'confirmed', 'cancelled'], 'Status financeiro');
     assertEnum(event.certainty, ['confirmed', 'estimated'], 'Certeza da informação');
-    if (!(event.amountCents === 0n && event.kind === 'adjustment' && event.source === 'opening_balance')) assertEntryAmount(event.amountCents);
+    assertEntryAmount(event.amountCents);
     assertText(event.description, 'Descrição', 500);
     assertEntityId(event.accountId, 'Conta do evento');
     assertIsoDate(event.competenceDate);
@@ -155,6 +155,41 @@ export function assertFinancialDataset(dataset: FinancialDataset, expectedUserId
     }
   }
 
+  const replacedReconciliations = new Set<string>();
+  const reconciliationEventIds = new Set<string>();
+  for (const reconciliation of reconciliations.values()) {
+    assertEntityId(reconciliation.accountId, 'Conta conciliada');
+    if (!accounts.has(reconciliation.accountId)) fail('Conciliação aponta para conta inexistente.');
+    if (typeof reconciliation.balanceCents !== 'bigint') fail('Saldo de conciliação inválido.');
+    if (reconciliation.balanceCents !== 0n) assertEntryAmount(reconciliation.balanceCents < 0n ? -reconciliation.balanceCents : reconciliation.balanceCents);
+    assertIsoDate(reconciliation.referenceDate);
+    assertText(reconciliation.sourceDescription, 'Origem da conciliação', 300);
+    assertEnum(reconciliation.certainty, ['confirmed', 'estimated'], 'Certeza da conciliação');
+    if (reconciliation.eventId !== undefined) {
+      assertEntityId(reconciliation.eventId, 'Evento de saldo inicial');
+      const event = events.get(reconciliation.eventId);
+      const amount = reconciliation.balanceCents < 0n ? -reconciliation.balanceCents : reconciliation.balanceCents;
+      const direction = reconciliation.balanceCents < 0n ? 'decrease' : 'increase';
+      if (reconciliation.certainty !== 'confirmed' || amount === 0n || !event || event.source !== 'opening_balance' || event.kind !== 'adjustment'
+        || event.status !== 'confirmed' || event.certainty !== 'confirmed' || event.accountId !== reconciliation.accountId
+        || event.amountCents !== amount || event.adjustmentDirection !== direction || event.competenceDate !== reconciliation.referenceDate) {
+        fail('O evento de abertura não corresponde à conciliação confirmada.');
+      }
+      if (reconciliationEventIds.has(event.id)) fail('Um evento de abertura não pode representar duas conciliações.');
+      reconciliationEventIds.add(event.id);
+    } else if (reconciliation.certainty === 'confirmed' && reconciliation.balanceCents !== 0n) {
+      fail('Conciliação confirmada diferente de zero exige ajuste no razão.');
+    }
+    if (reconciliation.replacesReconciliationId !== undefined) {
+      assertEntityId(reconciliation.replacesReconciliationId, 'Conciliação substituída');
+      const original = reconciliations.get(reconciliation.replacesReconciliationId);
+      if (!original || original.accountId !== reconciliation.accountId || original.certainty !== 'estimated' || original.id === reconciliation.id) {
+        fail('Substituição de conciliação exige estimativa anterior da mesma conta.');
+      }
+      if (replacedReconciliations.has(original.id)) fail('Uma estimativa não pode receber duas confirmações.');
+      replacedReconciliations.add(original.id);
+    }
+  }
   const settledByEvent = new Map<string, bigint>();
   for (const settlement of settlements.values()) {
     assertEntryAmount(settlement.amountCents);
