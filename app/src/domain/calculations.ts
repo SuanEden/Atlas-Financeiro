@@ -114,7 +114,7 @@ export function calculateFinancialForecast(dataset: FinancialDataset, startMonth
     else if (obligation) result.obligationCents += event.amountCents;
     else result.plannedExpenseCents += event.amountCents;
     result.items.push({
-      eventId: event.id, month, date: event.dueDate ?? event.competenceDate, kind: event.kind,
+      eventId: event.id, month, ...(event.dueDate === undefined ? {} : { date: event.dueDate }), kind: event.kind,
       amountCents: event.amountCents, description: event.description, source: 'planned',
       amountBasis: 'cash', obligation,
     });
