@@ -222,7 +222,8 @@ describe('previsões financeiras e recorrências', () => {
     });
     assertFinancialDataset(data, userId);
     const forecast = calculateFinancialForecast(data, '2026-11', 2);
-    expect(forecast.plannedExpenseCents).toBe(2_600n);
+    expect(forecast.plannedExpenseCents).toBe(1_300n);
+    expect(forecast.obligationCents).toBe(1_300n);
     expect(forecast.items.filter((item) => item.eventId === ruleId)).toHaveLength(1);
     expect(forecast.items.filter((item) => item.eventId === uuid(71))).toHaveLength(1);
   });
