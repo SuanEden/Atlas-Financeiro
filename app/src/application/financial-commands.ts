@@ -31,6 +31,8 @@ export interface CreateAccountInput {
   kind: Account['kind'];
   availability: Account['availability'];
   openingBalanceCents?: bigint;
+  openingBalanceCertainty?: 'confirmed' | 'estimated';
+  openingBalanceSource?: string;
   openingDate: string;
 }
 
