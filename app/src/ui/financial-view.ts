@@ -32,6 +32,7 @@ export function formatFinancialDate(date: string): string {
 }
 
 export function eventLabel(event: FinancialEvent): string {
+  if (event.recurrenceJson !== undefined) return 'Regra recorrente';
   if (event.reversesEventId !== undefined) return 'Estorno';
   if (event.kind === 'income') return 'Receita';
   if (event.kind === 'expense') return 'Despesa';
@@ -57,4 +58,16 @@ export function activeEventIds(dataset: FinancialDataset): Set<string> {
     if (event.replacesEventId !== undefined) superseded.add(event.replacesEventId);
   }
   return new Set(dataset.events.filter((event) => event.status !== 'cancelled' && event.reversesEventId === undefined && !superseded.has(event.id)).map((event) => event.id));
+}
+
+export function eventStatusLabel(event: FinancialEvent): string {
+  if (event.recurrenceJson !== undefined) return 'Regra recorrente';
+  if (event.status === 'confirmed') return 'Realizado';
+  if (event.status === 'cancelled') return 'Cancelado';
+  if (event.kind === 'expense' && event.certainty === 'confirmed') return 'Pendente';
+  return 'Previsto';
+}
+
+export function isRecurringTemplate(event: FinancialEvent): boolean {
+  return event.recurrenceJson !== undefined;
 }
