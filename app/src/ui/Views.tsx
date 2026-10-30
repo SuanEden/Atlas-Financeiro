@@ -17,6 +17,7 @@ import {
   calculateCashTotals,
   calculateFinancialForecast,
   hasReconciledOpeningBalance,
+  parseMonthlyRecurrenceRule,
   formatBRL,
   type FinancialEvent,
   type LocalFinancialState,
@@ -66,6 +67,10 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
   const projectedBalance = freeComplete ? available + forecast.projectedCashChangeCents : undefined;
   const obligations = forecast.items.filter((item) => item.obligation).slice(0, 5);
   const grossForecast = forecast.recurringGrossIncomeCents;
+  const proratedUnknown = state.events.filter((event) => event.recurrenceJson !== undefined).flatMap((event) => {
+    const rule = parseMonthlyRecurrenceRule(event.recurrenceJson);
+    return rule?.firstOccurrence === 'prorated_unknown' && rule.firstOccurrenceMonth !== undefined ? [{ description: event.description, month: rule.firstOccurrenceMonth }] : [];
+  });
 
   return (
     <div className="page-content">
@@ -103,7 +108,8 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
           <MoneyStat label="Receitas brutas previstas" value={grossForecast > 0n ? formatBRL(grossForecast) : '—'} />
           <MoneyStat label="Saldo projetado" value={projectedBalance === undefined ? 'Concilie as contas' : formatBRL(projectedBalance)} />
         </div>
-        {grossForecast > 0n ? <p className="form-note">Receitas brutas não são tratadas como dinheiro disponível. O salário líquido precisa ser informado antes de entrar na projeção de caixa.</p> : null}
+        {grossForecast > 0n ? <p className="form-note">Receitas brutas não são tratadas como dinheiro disponível. O valor líquido precisa ser informado antes de entrar na projeção de caixa.</p> : null}
+        {proratedUnknown.map((item) => <p className="form-note" key={item.description}>Primeira ocorrência de {item.description}: competência {monthLabel(item.month + '-01')}; valor proporcional ainda não informado.</p>)}
         <div className="upcoming-obligations">
           <div className="section-heading"><h3>Obrigações próximas</h3><button className="text-button" onClick={() => onNavigate('movements')}>Ver movimentações</button></div>
           {obligations.length === 0 ? <CompactEmpty text="Nenhuma obrigação pendente neste horizonte." /> : obligations.map((item) => <div className="obligation-row" key={item.eventId}><span><strong>{item.description}</strong><small>{item.date === undefined ? `${monthLabel(`${item.month}-01`)} · vencimento não informado` : formatFinancialDate(item.date)}</small></span><b>{formatBRL(item.amountCents)}</b></div>)}
