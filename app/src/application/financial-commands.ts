@@ -9,6 +9,7 @@ import {
   type PendingOperationKind,
   type Posting,
   type Settlement,
+  parseMonthlyRecurrenceRule,
 } from '../domain';
 import type { FinancialAggregate } from '../persistence';
 import { serializeOperationPayload } from '../serialization';
@@ -49,6 +50,10 @@ export interface TransactionInput {
   date: string;
   realized: boolean;
   estimated?: boolean;
+  dueDate?: string;
+  recurrenceJson?: string;
+  recurrenceRuleId?: string;
+  recurrenceMonth?: string;
 }
 
 export function createDefaultCommandContext(userId: string): CommandContext {
@@ -145,6 +150,14 @@ export function replaceEventCommand(dataset: FinancialDataset, eventId: string, 
 function transactionAggregate(input: TransactionInput, context: CommandContext, replacesEventId?: string): FinancialAggregate {
   assertEntryAmount(input.amountCents);
   assertIsoDate(input.date);
+  if (input.dueDate !== undefined) assertIsoDate(input.dueDate);
+  if (input.recurrenceJson !== undefined) {
+    parseMonthlyRecurrenceRule(input.recurrenceJson);
+    if (input.realized || input.kind === 'transfer' || input.recurrenceRuleId !== undefined) throw new TypeError('Uma regra recorrente deve ser uma receita ou despesa prevista.');
+  }
+  if (input.recurrenceRuleId !== undefined && (input.recurrenceMonth === undefined || !/^\\d{4}-(0[1-9]|1[0-2])$/.test(input.recurrenceMonth))) {
+    throw new TypeError('Vincule a ocorrência a uma regra e competência mensal válidas.');
+  }
   const description = input.description.trim() || defaultDescription(input.kind);
   const event: FinancialEvent = {
     id: context.nextId(),
@@ -157,6 +170,9 @@ function transactionAggregate(input: TransactionInput, context: CommandContext, 
     accountId: input.accountId,
     description,
     competenceDate: input.date,
+    ...(input.dueDate === undefined ? {} : { dueDate: input.dueDate }),
+    ...(input.recurrenceJson === undefined ? {} : { recurrenceJson: input.recurrenceJson }),
+    ...(input.recurrenceRuleId === undefined ? {} : { recurrenceRuleId: input.recurrenceRuleId, recurrenceMonth: input.recurrenceMonth }),
     ...(input.transferAccountId === undefined ? {} : { transferAccountId: input.transferAccountId }),
     ...(input.categoryId === undefined ? {} : { categoryId: input.categoryId }),
     ...(replacesEventId === undefined ? {} : { replacesEventId }),
