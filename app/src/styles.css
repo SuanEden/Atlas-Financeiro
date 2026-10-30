@@ -339,3 +339,16 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .money-summary > div:last-child { grid-column: auto; }
   .money-summary > div:nth-child(2n) { border-right: 0; }
 }
+
+
+.movement-filters { display: grid; grid-template-columns: minmax(150px, .8fr) minmax(180px, .9fr) minmax(220px, 1.4fr) auto; align-items: end; gap: 12px; margin: 18px 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.movement-filters label { display: grid; min-width: 0; gap: 6px; color: var(--muted); font-size: .76rem; }
+.movement-filters input, .movement-filters select { width: 100%; min-width: 0; min-height: 38px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); padding: 0 10px; }
+@media (max-width: 760px) {
+  .movement-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .movement-filters .movement-search { grid-column: 1 / -1; }
+}
+@media (max-width: 420px) {
+  .movement-filters { grid-template-columns: 1fr; }
+  .movement-filters .movement-search { grid-column: auto; }
+}
