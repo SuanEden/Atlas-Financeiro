@@ -1,0 +1,43 @@
+name: Atlas validation
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [codex/recuperacao-i3-chat]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npm run test -- --maxWorkers=2
+      - run: npm run build
+  browser-and-pwa:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - run: npm run test:pwa
