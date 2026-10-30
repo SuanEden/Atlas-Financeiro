@@ -157,10 +157,24 @@ export function calculateFinancialForecast(dataset: FinancialDataset, startMonth
 }
 
 /** An account is not a confirmed balance until the user records its opening position. */
-export function hasReconciledOpeningBalance(dataset: FinancialDataset, accountId: string): boolean {
+export function getAccountReconciliation(dataset: FinancialDataset, accountId: string) {
   const reconciliations = dataset.accountReconciliations ?? [];
   const superseded = new Set(reconciliations.flatMap((item) => item.replacesReconciliationId === undefined ? [] : [item.replacesReconciliationId]));
-  return reconciliations.some((item) => item.accountId === accountId && item.certainty === 'confirmed' && !superseded.has(item.id));
+  const current = reconciliations.find((item) => item.accountId === accountId && !superseded.has(item.id));
+  if (current !== undefined) return current;
+  const replacedEvents = new Set(dataset.events.flatMap((event) => [event.replacesEventId, event.reversesEventId].filter((id): id is string => id !== undefined)));
+  const legacy = dataset.events.filter((event) => event.accountId === accountId && event.source === 'opening_balance' && event.status !== 'cancelled' && !replacedEvents.has(event.id))
+    .sort((left, right) => right.competenceDate.localeCompare(left.competenceDate))[0];
+  if (legacy === undefined) return undefined;
+  const balanceCents = legacy.adjustmentDirection === 'decrease' ? -legacy.amountCents : legacy.amountCents;
+  return {
+    id: legacy.id, userId: legacy.userId, accountId: legacy.accountId, balanceCents,
+    referenceDate: legacy.competenceDate, sourceDescription: legacy.description, certainty: legacy.certainty, eventId: legacy.id,
+  };
+}
+
+export function hasReconciledOpeningBalance(dataset: FinancialDataset, accountId: string): boolean {
+  return getAccountReconciliation(dataset, accountId)?.certainty === 'confirmed';
 }
 
 function recurrenceDate(month: string, day: number): IsoDate {
