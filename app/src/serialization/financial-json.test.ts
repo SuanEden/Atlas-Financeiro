@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_ENTRY_CENTS } from '../domain';
+import { MAX_ENTRY_CENTS, serializeMonthlyRecurrenceRule } from '../domain';
 import { syntheticDataset } from '../persistence/synthetic-fixture.test-helper';
 import { deserializeFinancialDataset, serializeFinancialDataset } from './financial-json';
 
@@ -84,5 +84,33 @@ describe('versioned explicit financial JSON', () => {
     const root = representation();
     (root.postings as Record<string, unknown>[])[1]!.amountCents = '1206';
     expect(() => deserializeFinancialDataset(JSON.stringify(root), USER_ID)).toThrow();
+  });
+});
+
+
+describe('metadados de recorrência no JSON financeiro', () => {
+  it('preserva regra mensal e vínculo de cobrança sem transformar previsão em liquidação', () => {
+    const dataset = syntheticDataset(USER_ID);
+    const ruleId = '20000000-0000-4000-8000-000000000099';
+    dataset.events.push({
+      id: ruleId, userId: USER_ID, kind: 'expense', source: 'manual', status: 'planned', certainty: 'confirmed',
+      amountCents: 1_300n, accountId: dataset.accounts[0]!.id, categoryId: dataset.categories[0]!.id,
+      description: 'Assinatura mensal', competenceDate: '2026-11-01',
+      recurrenceJson: serializeMonthlyRecurrenceRule({
+        frequency: 'monthly', status: 'active', startMonth: '2026-11', nextOccurrenceMonth: '2026-11',
+        necessity: 'unknown', amountBasis: 'fixed', firstOccurrence: 'normal',
+      }),
+    });
+    dataset.events.push({
+      id: '20000000-0000-4000-8000-000000000098', userId: USER_ID, kind: 'expense', source: 'manual',
+      status: 'planned', certainty: 'confirmed', amountCents: 1_300n, accountId: dataset.accounts[0]!.id,
+      categoryId: dataset.categories[0]!.id, description: 'Cobrança da assinatura',
+      competenceDate: '2026-11-04', recurrenceRuleId: ruleId, recurrenceMonth: '2026-11',
+    });
+    const json = serializeFinancialDataset(dataset, USER_ID);
+    const restored = deserializeFinancialDataset(json, USER_ID);
+    expect(restored).toEqual(dataset);
+    expect(restored.settlements).toEqual(dataset.settlements);
+    expect(restored.events.find((event) => event.id === ruleId)?.recurrenceJson).toBeDefined();
   });
 });
