@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { calculateAccountBalance, calculateCashTotals, assertFinancialDataset, type FinancialDataset } from '../domain';
+import { calculateAccountBalance, calculateCashTotals, assertFinancialDataset, hasReconciledOpeningBalance, type FinancialDataset } from '../domain';
 import {
   createAccountCommand,
   createCategoryCommand,
   createTransactionCommand,
+  reconcileAccountCommand,
   replaceEventCommand,
   reverseEventCommand,
   type CommandContext,
@@ -112,3 +113,52 @@ describe('comandos financeiros locais', () => {
   });
 });
 
+
+
+describe('conciliação inicial de contas', () => {
+  it('registra saldo zero confirmado sem inventar lançamento ou contrapartida', () => {
+    const ctx = context();
+    let dataset = apply(empty(), createAccountCommand({
+      name: 'Conta principal', kind: 'checking', availability: 'free', openingDate: '2026-10-30',
+    }, ctx));
+    const accountId = dataset.accounts[0]!.id;
+    const reconciliation = reconcileAccountCommand(dataset, {
+      accountId, balanceCents: 0n, referenceDate: '2026-10-30',
+      sourceDescription: 'Saldo exibido no aplicativo do banco', certainty: 'confirmed',
+    }, ctx);
+    dataset = apply(dataset, reconciliation);
+    assertFinancialDataset(dataset, userId);
+    expect(dataset.events).toHaveLength(1);
+    expect(dataset.events[0]!.amountCents).toBe(0n);
+    expect(dataset.settlements).toHaveLength(0);
+    expect(dataset.postings).toHaveLength(0);
+    expect(hasReconciledOpeningBalance(dataset, accountId)).toBe(true);
+    expect(calculateAccountBalance(dataset, accountId)).toBe(0n);
+  });
+
+  it('mantém estimativa fora do saldo e substitui pela conciliação confirmada sem apagar o histórico', () => {
+    const ctx = context();
+    let dataset = apply(empty(), createAccountCommand({
+      name: 'Dinheiro', kind: 'cash', availability: 'free', openingDate: '2026-10-30',
+    }, ctx));
+    const accountId = dataset.accounts[0]!.id;
+    const estimate = reconcileAccountCommand(dataset, {
+      accountId, balanceCents: 3_200n, referenceDate: '2026-10-30',
+      sourceDescription: 'Estimativa do usuário', certainty: 'estimated',
+    }, ctx);
+    dataset = apply(dataset, estimate);
+    expect(hasReconciledOpeningBalance(dataset, accountId)).toBe(false);
+    expect(calculateAccountBalance(dataset, accountId)).toBe(0n);
+
+    const confirmed = reconcileAccountCommand(dataset, {
+      accountId, balanceCents: 2_800n, referenceDate: '2026-10-30',
+      sourceDescription: 'Saldo conferido no aplicativo', certainty: 'confirmed',
+    }, ctx);
+    dataset = apply(dataset, confirmed);
+    assertFinancialDataset(dataset, userId);
+    expect(dataset.events).toHaveLength(2);
+    expect(dataset.events[1]!.replacesEventId).toBe(dataset.events[0]!.id);
+    expect(hasReconciledOpeningBalance(dataset, accountId)).toBe(true);
+    expect(calculateAccountBalance(dataset, accountId)).toBe(2_800n);
+  });
+});
