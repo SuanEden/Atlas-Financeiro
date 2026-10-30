@@ -1,4 +1,4 @@
-import { assertEntityId, encodeCents, type FinancialDataset } from '../domain';
+import { assertEntityId, encodeCents, type AccountReconciliation, type FinancialDataset } from '../domain';
 import type { FinancialAggregate } from '../persistence/local-financial-store';
 
 export const OPERATION_JSON_SCHEMA_VERSION = 1 as const;
@@ -62,7 +62,7 @@ function pickSettlement(row: FinancialDataset['settlements'][number]) {
   };
 }
 
-function pickAccountReconciliation(row: FinancialDataset['accountReconciliations'] extends (infer T)[] | undefined ? T : never) {
+function pickAccountReconciliation(row: AccountReconciliation) {
   return {
     id: row.id, userId: row.userId, accountId: row.accountId, balanceCents: encodeCents(row.balanceCents),
     referenceDate: row.referenceDate, sourceDescription: row.sourceDescription, certainty: row.certainty,
