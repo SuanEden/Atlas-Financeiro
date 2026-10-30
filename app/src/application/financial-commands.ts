@@ -34,6 +34,14 @@ export interface CreateAccountInput {
   openingDate: string;
 }
 
+export interface AccountReconciliationInput {
+  accountId: string;
+  balanceCents: bigint;
+  referenceDate: string;
+  sourceDescription: string;
+  certainty: 'confirmed' | 'estimated';
+}
+
 export interface CreateCategoryInput {
   name: string;
   kind: Category['kind'];
@@ -76,24 +84,49 @@ export function createAccountCommand(input: CreateAccountInput, context: Command
   };
   const aggregate: FinancialAggregate = { accounts: [account] };
   const openingBalance = input.openingBalanceCents ?? 0n;
-  if (openingBalance !== 0n) {
-    assertEntryAmount(openingBalance < 0n ? -openingBalance : openingBalance);
+  if (input.openingBalanceCents !== undefined) {
+    if (openingBalance !== 0n) assertEntryAmount(openingBalance < 0n ? -openingBalance : openingBalance);
     const event: FinancialEvent = {
       id: context.nextId(),
       userId: context.userId,
       kind: 'adjustment',
       source: 'opening_balance',
-      status: 'confirmed',
-      certainty: 'confirmed',
+      status: input.openingBalanceCertainty === 'estimated' ? 'planned' : 'confirmed',
+      certainty: input.openingBalanceCertainty ?? 'confirmed',
       amountCents: openingBalance < 0n ? -openingBalance : openingBalance,
       accountId: account.id,
-      description: 'Saldo inicial',
+      description: input.openingBalanceSource?.trim() ? 'Saldo inicial · Origem: ' + input.openingBalanceSource.trim() : 'Saldo inicial · Origem não informada',
       competenceDate: input.openingDate,
       adjustmentDirection: openingBalance < 0n ? 'decrease' : 'increase',
     };
-    Object.assign(aggregate, settledAggregate(event, context, input.openingDate));
+    if (event.status === 'confirmed' && event.amountCents > 0n) Object.assign(aggregate, settledAggregate(event, context, input.openingDate));
   }
   return command('create_account', aggregate, context);
+}
+
+export function reconcileAccountCommand(dataset: FinancialDataset, input: AccountReconciliationInput, context: CommandContext): LocalCommand {
+  const account = dataset.accounts.find((item) => item.id === input.accountId);
+  if (!account) throw new TypeError('Conta não encontrada.');
+  if (dataset.events.some((event) => event.accountId === input.accountId && event.source === 'opening_balance')) {
+    throw new TypeError('Esta conta já possui um saldo inicial registrado. Use um ajuste para corrigir diferenças posteriores.');
+  }
+  assertIsoDate(input.referenceDate);
+  if (typeof input.balanceCents !== 'bigint' || input.balanceCents > 99_999_999_999n || input.balanceCents < -99_999_999_999n) {
+    throw new RangeError('O saldo deve estar dentro do limite permitido.');
+  }
+  if (input.sourceDescription.trim().length === 0) throw new TypeError('Informe a origem do saldo.');
+  const amount = input.balanceCents < 0n ? -input.balanceCents : input.balanceCents;
+  if (amount > 0n) assertEntryAmount(amount);
+  const event: FinancialEvent = {
+    id: context.nextId(), userId: context.userId, kind: 'adjustment', source: 'opening_balance',
+    status: input.certainty === 'confirmed' ? 'confirmed' : 'planned', certainty: input.certainty,
+    amountCents: amount, accountId: account.id,
+    description: 'Saldo inicial ' + (input.certainty === 'confirmed' ? 'confirmado' : 'estimado') + ' · Origem: ' + input.sourceDescription.trim(),
+    competenceDate: input.referenceDate, adjustmentDirection: input.balanceCents < 0n ? 'decrease' : 'increase',
+  };
+  const aggregate: FinancialAggregate = { events: [event] };
+  if (event.status === 'confirmed' && amount > 0n) Object.assign(aggregate, settledAggregate(event, context, input.referenceDate));
+  return command('record_event', aggregate, context);
 }
 
 export function createCategoryCommand(input: CreateCategoryInput, context: CommandContext): LocalCommand {
@@ -117,6 +150,7 @@ export function reverseEventCommand(dataset: FinancialDataset, eventId: string, 
   if (dataset.events.some((event) => event.reversesEventId === eventId || event.replacesEventId === eventId)) {
     throw new TypeError('O lançamento já foi estornado ou substituído.');
   }
+  if (original.amountCents === 0n) throw new TypeError('O saldo inicial zero é um marco de conciliação e não possui contrapartida para estorno.');
   if (original.status !== 'confirmed') {
     const cancelled: FinancialEvent = {
       ...original,
@@ -139,6 +173,7 @@ export function replaceEventCommand(dataset: FinancialDataset, eventId: string, 
   if (original.reversesEventId !== undefined || dataset.events.some((event) => event.reversesEventId === eventId || event.replacesEventId === eventId)) {
     throw new TypeError('Somente o lançamento ativo mais recente pode ser editado.');
   }
+  if (original.amountCents === 0n) throw new TypeError('O saldo inicial zero é um marco de conciliação; use um ajuste posterior para corrigir diferenças.');
   const replacement = transactionAggregate(input, context, original.id);
   const aggregate = original.status === 'confirmed'
     ? mergeAggregates(reversalAggregate(original, context), replacement)
