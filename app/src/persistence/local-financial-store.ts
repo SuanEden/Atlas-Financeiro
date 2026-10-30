@@ -3,6 +3,7 @@ import {
   assertEntityId,
   assertFinancialDataset,
   type Account,
+  type AccountReconciliation,
   type Category,
   type FinancialDataset,
   type FinancialEvent,
@@ -16,7 +17,7 @@ import { assertPendingOperation } from '../serialization/pending-operation';
 import { canonicalLocalState, validateI2Backup } from '../backup/validate-i2-backup';
 export { assertPendingOperation } from '../serialization/pending-operation';
 
-const DATA_TABLE_NAMES = ['accounts', 'categories', 'events', 'settlements', 'postings'] as const;
+const DATA_TABLE_NAMES = ['accounts', 'categories', 'events', 'settlements', 'postings', 'accountReconciliations'] as const;
 const ALL_TABLE_NAMES = [...DATA_TABLE_NAMES, 'outbox'] as const;
 
 /** A local domain aggregate to append. This is not a synchronization operation. */
@@ -28,6 +29,7 @@ class FinancialDatabase extends Dexie {
   events!: EntityTable<FinancialEvent, 'id'>;
   settlements!: EntityTable<Settlement, 'id'>;
   postings!: EntityTable<Posting, 'id'>;
+  accountReconciliations!: EntityTable<AccountReconciliation, 'id'>;
   outbox!: EntityTable<PendingOperation, 'id'>;
 
   constructor(name: string) {
@@ -45,6 +47,15 @@ class FinancialDatabase extends Dexie {
       events: 'id, userId, accountId, competenceDate, reversesEventId, replacesEventId',
       settlements: 'id, userId, eventId, settlementDate',
       postings: 'id, userId, settlementId, accountId',
+      outbox: 'id, userId, createdAt, kind',
+    });
+    this.version(3).stores({
+      accounts: 'id, userId',
+      categories: 'id, userId, parentId',
+      events: 'id, userId, accountId, competenceDate, reversesEventId, replacesEventId',
+      settlements: 'id, userId, eventId, settlementDate',
+      postings: 'id, userId, settlementId, accountId',
+      accountReconciliations: 'id, userId, accountId, referenceDate, replacesReconciliationId',
       outbox: 'id, userId, createdAt, kind',
     });
   }
@@ -108,7 +119,7 @@ export class LocalFinancialStore {
     if (backup.userId !== this.userId) throw new TypeError('A recuperação deve preservar o proprietário original.');
     return this.#db.transaction('rw', ALL_TABLE_NAMES, async () => {
       const current: LocalFinancialState = { ...await this.#readTables(), outbox: await this.#db.outbox.toArray() };
-      if (ALL_TABLE_NAMES.some((table) => current[table].length > 0)) {
+      if (ALL_TABLE_NAMES.some((table) => (current[table]?.length ?? 0) > 0)) {
         if (canonicalLocalState(current, this.userId) === canonicalLocalState(backup.state, this.userId)) return 'already_present';
         throw new TypeError('O destino contém dados diferentes. A recuperação não une nem substitui bases.');
       }
@@ -133,14 +144,15 @@ export class LocalFinancialStore {
   }
 
   async #readTables(): Promise<FinancialDataset> {
-    const [accounts, categories, events, settlements, postings] = await Promise.all([
+    const [accounts, categories, events, settlements, postings, accountReconciliations] = await Promise.all([
       this.#db.accounts.toArray(),
       this.#db.categories.toArray(),
       this.#db.events.toArray(),
       this.#db.settlements.toArray(),
       this.#db.postings.toArray(),
+      this.#db.accountReconciliations.toArray(),
     ]);
-    return { accounts, categories, events, settlements, postings };
+    return { accounts, categories, events, settlements, postings, accountReconciliations };
   }
 
   async #insertAggregate(input: FinancialDataset): Promise<void> {
@@ -150,6 +162,7 @@ export class LocalFinancialStore {
     await this.#db.events.bulkAdd(input.events);
     await this.#db.settlements.bulkAdd(input.settlements);
     await this.#db.postings.bulkAdd(input.postings);
+    await this.#db.accountReconciliations.bulkAdd(input.accountReconciliations ?? []);
   }
 }
 
@@ -173,6 +186,7 @@ function copyAggregate(aggregate: FinancialAggregate): FinancialDataset {
     events: aggregate.events ?? [],
     settlements: aggregate.settlements ?? [],
     postings: aggregate.postings ?? [],
+    accountReconciliations: aggregate.accountReconciliations ?? [],
   });
 }
 
@@ -183,6 +197,7 @@ function mergeDataset(current: FinancialDataset, input: FinancialDataset): Finan
     events: [...current.events, ...input.events],
     settlements: [...current.settlements, ...input.settlements],
     postings: [...current.postings, ...input.postings],
+    accountReconciliations: [...(current.accountReconciliations ?? []), ...(input.accountReconciliations ?? [])],
   };
 }
 
