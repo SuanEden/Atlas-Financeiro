@@ -158,7 +158,16 @@ export class RemoteController {
       && current.userId === store.userId && current.epoch === session.epoch && store === this.#store; };
     this.#recovering = true;
     try {
-    await store.recoverBackup(json, authorized);
+    // Coordinate recovery with foreground sync in other tabs of the same namespace.
+    // Never restore while another tab may be transmitting the previous local state.
+    if (typeof navigator !== 'undefined' && navigator.locks) {
+      await navigator.locks.request(`atlas-financeiro:sync:${store.name}`, async () => {
+        if (!authorized()) throw new Error('A sessão mudou antes da recuperação.');
+        await store.recoverBackup(json, authorized);
+      });
+    } else {
+      await store.recoverBackup(json, authorized);
+    }
     if (!authorized()) throw new Error('A sessão mudou. Entre novamente; os dados recuperados foram preservados.');
     const state = await store.read();
     if (state.meta.binding === 'active') this.policy.markAssociated(store.userId);
