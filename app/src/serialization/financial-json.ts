@@ -53,6 +53,9 @@ export function serializeFinancialDataset(dataset: FinancialDataset, userId: str
       adjustmentDirection: event.adjustmentDirection,
       reversesEventId: event.reversesEventId,
       replacesEventId: event.replacesEventId,
+      recurrenceJson: event.recurrenceJson,
+      recurrenceRuleId: event.recurrenceRuleId,
+      recurrenceMonth: event.recurrenceMonth,
     })),
     settlements: dataset.settlements.map((settlement) => ({
       id: settlement.id,
@@ -173,7 +176,7 @@ function readEvent(value: unknown): FinancialEvent {
   const record = readObject(value, [
     'id', 'userId', 'kind', 'status', 'source', 'amountCents', 'accountId', 'transferAccountId',
     'categoryId', 'description', 'competenceDate', 'dueDate', 'certainty', 'adjustmentDirection',
-    'reversesEventId', 'replacesEventId',
+    'reversesEventId', 'replacesEventId', 'recurrenceJson', 'recurrenceRuleId', 'recurrenceMonth',
   ]);
   const optionalDirection = Object.hasOwn(record, 'adjustmentDirection')
     ? { adjustmentDirection: readEnum(record, 'adjustmentDirection', ['increase', 'decrease']) }
@@ -193,6 +196,9 @@ function readEvent(value: unknown): FinancialEvent {
     ...readOptionalString(record, 'dueDate'),
     ...readOptionalString(record, 'reversesEventId'),
     ...readOptionalString(record, 'replacesEventId'),
+    ...readOptionalString(record, 'recurrenceJson'),
+    ...readOptionalString(record, 'recurrenceRuleId'),
+    ...readOptionalString(record, 'recurrenceMonth'),
     ...optionalDirection,
   };
 }
