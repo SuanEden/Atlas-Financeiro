@@ -14,14 +14,15 @@ import { useState } from 'react';
 import { RecoveryPanel } from './RecoveryPanel';
 import {
   calculateAccountBalance,
-  calculateAvailabilityBalances,
   calculateCashTotals,
+  calculateFinancialForecast,
+  hasReconciledOpeningBalance,
   formatBRL,
   type FinancialEvent,
   type LocalFinancialState,
 } from '../domain';
 import { backupFilename, serializeLocalBackup } from '../backup';
-import { activeEventIds, accountKindLabels, availabilityLabels, eventAmountSign, eventLabel, formatFinancialDate, financialMonthPeriod } from './financial-view';
+import { activeEventIds, accountKindLabels, availabilityLabels, eventAmountSign, eventLabel, eventStatusLabel, formatFinancialDate, financialMonthPeriod, isRecurringTemplate } from './financial-view';
 
 type Page = 'dashboard' | 'movements' | 'accounts' | 'categories' | 'backup';
 
@@ -35,42 +36,81 @@ interface DashboardProps {
 }
 
 export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavigate, integration=false }: DashboardProps) {
-  const balances = calculateAvailabilityBalances(state);
-  const period = financialMonthPeriod(today);
+  const [selectedMonth, setSelectedMonth] = useState(today.slice(0, 7));
+  const period = financialMonthPeriod(`${selectedMonth}-01`);
   const cash = calculateCashTotals(state, period);
+  const forecast = calculateFinancialForecast(state, selectedMonth, 6);
   const activeIds = activeEventIds(state);
   const recent = [...state.events]
-    .filter((event) => activeIds.has(event.id))
+    .filter((event) => activeIds.has(event.id) && !isRecurringTemplate(event))
     .sort((left, right) => right.competenceDate.localeCompare(left.competenceDate))
     .slice(0, 4);
+
+  const balanceFor = (accountId: string) => calculateAccountBalance(state, accountId);
+  const reconciled = (accountId: string) => hasReconciledOpeningBalance(state, accountId);
+  const bankAccounts = state.accounts.filter((account) => ['checking', 'savings', 'digital'].includes(account.kind));
+  const cashAccounts = state.accounts.filter((account) => account.kind === 'cash');
+  const transportAccounts = state.accounts.filter((account) => account.kind === 'transport');
+  const freeAccounts = state.accounts.filter((account) => account.availability === 'free');
+  const bankComplete = bankAccounts.length > 0 && bankAccounts.every((account) => reconciled(account.id));
+  const cashComplete = cashAccounts.length > 0 && cashAccounts.every((account) => reconciled(account.id));
+  const transportComplete = transportAccounts.length > 0 && transportAccounts.every((account) => reconciled(account.id));
+  const freeComplete = freeAccounts.length > 0 && freeAccounts.every((account) => reconciled(account.id));
+  const bankBalance = bankAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
+  const physicalCash = cashAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
+  const transportBalance = transportAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
+  const available = freeAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
+  const projectedBalance = freeComplete ? available + forecast.projectedCashChangeCents : undefined;
+  const obligations = forecast.items.filter((item) => item.obligation).slice(0, 5);
+  const grossForecast = forecast.recurringGrossIncomeCents;
 
   return (
     <div className="page-content">
       <PageHeading title="Visão geral" action={<button className="button button--primary" onClick={onAddTransaction} disabled={state.accounts.length === 0}><Plus size={18} />Novo lançamento</button>} />
-      <p className="form-note">{integration?`Cópia neste navegador. ${state.outbox.length} operações aguardando confirmação ou conferência. Consulte o painel de sincronização e guarde uma cópia em Backup.`:`Dados somente neste navegador. ${state.outbox.length} operações locais ainda sem envio remoto. Guarde uma cópia em Backup.`}</p>
-      <section className="money-summary" aria-label="Resumo dos saldos">
-        <MoneyStat label="Disponível" value={balances.freeCents} />
-        <MoneyStat label="Reservado" value={balances.reservedCents} />
-        <MoneyStat label="Total em contas" value={balances.totalCents} />
+      <p className="form-note">{integration ? `Cópia neste navegador. ${state.outbox.length} operações aguardando confirmação ou conferência. Consulte o painel de sincronização e guarde uma cópia em Backup.` : `Dados somente neste navegador. ${state.outbox.length} operações locais ainda sem envio remoto. Guarde uma cópia em Backup.`}</p>
+
+      <section className="money-summary" aria-label="Saldos conciliados">
+        <MoneyStat label="Saldo bancário conciliado" value={bankComplete ? formatBRL(bankBalance) : 'A conciliar'} />
+        <MoneyStat label="Dinheiro físico" value={cashComplete ? formatBRL(physicalCash) : 'A conciliar'} />
+        <MoneyStat label="Bilhete Único" value={transportComplete ? formatBRL(transportBalance) : 'A conciliar'} />
+        <MoneyStat label="Saldo livre" value={freeComplete ? formatBRL(available) : 'A conciliar'} />
       </section>
 
       <section className="flow-section" aria-labelledby="flow-title">
-        <div className="section-heading"><div><p className="section-kicker">{monthLabel(today)}</p><h2 id="flow-title">Fluxo do mês</h2></div></div>
-        {state.accounts.length === 0 ? (
-          <EmptyPanel icon={<WalletCards />} title="Comece criando sua primeira conta" description="Depois, seus lançamentos e o fluxo do mês aparecerão aqui." action="Criar minha primeira conta" onAction={onAddAccount} />
-        ) : (
-          <div className="flow-band">
-            <div><span>Entradas realizadas</span><strong className="positive">{formatBRL(cash.incomeCents)}</strong></div>
-            <div><span>Saídas realizadas</span><strong className="negative">{formatBRL(cash.expenseCents)}</strong></div>
-            <div><span>Resultado do mês</span><strong>{formatBRL(cash.resultCents)}</strong></div>
-          </div>
-        )}
+        <div className="section-heading">
+          <div><p className="section-kicker">{monthLabel(`${selectedMonth}-01`)}</p><h2 id="flow-title">Resultado realizado</h2></div>
+          <label className="period-filter">Período <input aria-label="Mês do dashboard" type="month" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)} /></label>
+        </div>
+        <div className="flow-band">
+          <div><span>Entradas realizadas</span><strong className="positive">{formatBRL(cash.incomeCents)}</strong></div>
+          <div><span>Saídas realizadas</span><strong className="negative">{formatBRL(cash.expenseCents)}</strong></div>
+          <div><span>Resultado realizado</span><strong>{formatBRL(cash.resultCents)}</strong></div>
+        </div>
+        <p className="form-note">Somente liquidações efetivas entram nestes três indicadores. Previsões, obrigações e regras recorrentes ficam separados abaixo.</p>
+      </section>
+
+      <section className="flow-section" aria-labelledby="forecast-title">
+        <div className="section-heading"><div><p className="section-kicker">Próximos 6 meses</p><h2 id="forecast-title">Previsões e compromissos</h2></div></div>
+        <div className="forecast-grid">
+          <MoneyStat label="Receitas previstas (caixa)" value={formatBRL(forecast.plannedIncomeCents)} />
+          <MoneyStat label="Despesas previstas" value={formatBRL(forecast.plannedExpenseCents)} />
+          <MoneyStat label="Obrigações pendentes" value={formatBRL(forecast.obligationCents)} />
+          <MoneyStat label="Despesas recorrentes futuras" value={formatBRL(forecast.recurringExpenseCents)} />
+          <MoneyStat label="Receitas brutas previstas" value={grossForecast > 0n ? formatBRL(grossForecast) : '—'} />
+          <MoneyStat label="Saldo projetado" value={projectedBalance === undefined ? 'Concilie as contas' : formatBRL(projectedBalance)} />
+        </div>
+        {grossForecast > 0n ? <p className="form-note">Receitas brutas não são tratadas como dinheiro disponível. O salário líquido precisa ser informado antes de entrar na projeção de caixa.</p> : null}
+        <div className="upcoming-obligations">
+          <div className="section-heading"><h3>Obrigações próximas</h3><button className="text-button" onClick={() => onNavigate('movements')}>Ver movimentações</button></div>
+          {obligations.length === 0 ? <CompactEmpty text="Nenhuma obrigação pendente neste horizonte." /> : obligations.map((item) => <div className="obligation-row" key={item.eventId}><span><strong>{item.description}</strong><small>{item.date === undefined ? `${monthLabel(`${item.month}-01`)} · vencimento não informado` : formatFinancialDate(item.date)}</small></span><b>{formatBRL(item.amountCents)}</b></div>)}
+        </div>
       </section>
 
       <div className="dashboard-columns">
-        <section aria-labelledby="accounts-title"><div className="section-heading"><h2 id="accounts-title">Contas</h2><button className="text-button" onClick={() => onNavigate('accounts')}>Ver todas</button></div>{state.accounts.length === 0 ? <CompactEmpty text="Nenhuma conta criada." /> : <div className="plain-list">{state.accounts.slice(0, 4).map((account) => <div className="account-row" key={account.id}><span className="account-icon"><WalletCards size={19} /></span><span><strong>{account.name}</strong><small>{availabilityLabels[account.availability]}</small></span><b>{formatBRL(calculateAccountBalance(state, account.id))}</b></div>)}</div>}</section>
-        <section aria-labelledby="recent-title"><div className="section-heading"><h2 id="recent-title">Movimentações recentes</h2><button className="text-button" onClick={() => onNavigate('movements')}>Ver todas</button></div>{recent.length === 0 ? <CompactEmpty text="Nenhum lançamento registrado." /> : <div className="plain-list">{recent.map((event) => <MovementRow event={event} state={state} key={event.id} />)}</div>}</section>
+        <section aria-labelledby="accounts-title"><div className="section-heading"><h2 id="accounts-title">Contas</h2><button className="text-button" onClick={() => onNavigate('accounts')}>Ver todas</button></div>{state.accounts.length === 0 ? <CompactEmpty text="Nenhuma conta criada." /> : <div className="plain-list">{state.accounts.slice(0, 4).map((account) => <div className="account-row" key={account.id}><span className="account-icon"><WalletCards size={19} /></span><span><strong>{account.name}</strong><small>{availabilityLabels[account.availability]} · {reconciled(account.id) ? 'Saldo conciliado' : 'Saldo a conciliar'}</small></span><b>{reconciled(account.id) ? formatBRL(balanceFor(account.id)) : 'A conciliar'}</b></div>)}</div>}</section>
+        <section aria-labelledby="recent-title"><div className="section-heading"><h2 id="recent-title">Movimentações recentes</h2><button className="text-button" onClick={() => onNavigate('movements')}>Ver todas</button></div>{recent.length === 0 ? <CompactEmpty text="Nenhum lançamento realizado ou previsto." /> : <div className="plain-list">{recent.map((event) => <MovementRow event={event} state={state} key={event.id} />)}</div>}</section>
       </div>
+      {state.accounts.length === 0 ? <EmptyPanel icon={<WalletCards />} title="Comece criando sua primeira conta" description="Depois, concilie o saldo atual para habilitar o saldo disponível e o saldo projetado." action="Criar minha primeira conta" onAction={onAddAccount} /> : null}
     </div>
   );
 }
@@ -105,7 +145,7 @@ export function AccountsView({ state, onAdd, onTransfer }: { state: LocalFinanci
   return (
     <div className="page-content">
       <PageHeading title="Contas" subtitle="Organize o dinheiro disponível, reservado e restrito." action={<button className="button button--primary" onClick={onAdd}><Plus size={18} />Nova conta</button>} />
-      {state.accounts.length === 0 ? <EmptyPanel icon={<WalletCards />} title="Crie sua primeira conta" description="Informe apenas os dados que você deseja manter neste dispositivo." action="Criar conta" onAction={onAdd} /> : <div className="account-grid">{state.accounts.map((account) => <article className="account-card" key={account.id}><div className="account-card__top"><span className="account-icon"><WalletCards size={20} /></span><span className={`availability availability--${account.availability}`}>{availabilityLabels[account.availability]}</span></div><h2>{account.name}</h2><p>{accountKindLabels[account.kind]}</p><strong>{formatBRL(calculateAccountBalance(state, account.id))}</strong></article>)}</div>}
+      {state.accounts.length === 0 ? <EmptyPanel icon={<WalletCards />} title="Crie sua primeira conta" description="Informe apenas os dados que você deseja manter neste dispositivo." action="Criar conta" onAction={onAdd} /> : <div className="account-grid">{state.accounts.map((account) => <article className="account-card" key={account.id}><div className="account-card__top"><span className="account-icon"><WalletCards size={20} /></span><span className={`availability availability--${account.availability}`}>{availabilityLabels[account.availability]}</span></div><h2>{account.name}</h2><p>{accountKindLabels[account.kind]}</p><strong>{hasReconciledOpeningBalance(state, account.id) ? formatBRL(calculateAccountBalance(state, account.id)) : 'A conciliar'}</strong><p>{hasReconciledOpeningBalance(state, account.id) ? 'Saldo inicial confirmado' : 'Informe o saldo atual para conciliar'}</p></article>)}</div>}
       {state.accounts.length > 1 ? <button className="button button--secondary reserve-action" onClick={onTransfer}><ArrowLeftRight size={18} />Transferir ou separar reserva</button> : null}
     </div>
   );
@@ -158,8 +198,8 @@ function PageHeading({ title, subtitle, action }: { title: string; subtitle?: st
   return <header className="page-heading"><div><h1>{title}</h1>{subtitle === undefined ? null : <p>{subtitle}</p>}</div>{action}</header>;
 }
 
-function MoneyStat({ label, value }: { label: string; value: bigint }) {
-  return <div><span>{label}</span><strong>{formatBRL(value)}</strong></div>;
+function MoneyStat({ label, value }: { label: string; value: bigint | string }) {
+  return <div><span>{label}</span><strong>{typeof value === 'bigint' ? formatBRL(value) : value}</strong></div>;
 }
 
 function EmptyPanel({ icon, title, description, action, onAction, disabled = false }: { icon: React.ReactNode; title: string; description: string; action: string; onAction: () => void; disabled?: boolean }) {
@@ -174,7 +214,7 @@ function MovementRow({ event, state, detailed = false }: { event: FinancialEvent
   const account = state.accounts.find((item) => item.id === event.accountId);
   const category = state.categories.find((item) => item.id === event.categoryId);
   const Icon = event.kind === 'income' ? ArrowDownLeft : event.kind === 'expense' ? ArrowUpRight : ArrowLeftRight;
-  return <div className="movement-row"><span className={`movement-icon movement-icon--${event.kind}`}><Icon size={18} /></span><span className="movement-main"><strong>{event.description}</strong><small>{eventLabel(event)} · {account?.name ?? 'Conta'}{category === undefined ? '' : ` · ${category.name}`}{detailed ? ` · ${formatFinancialDate(event.competenceDate)}` : ''}</small></span><span className={`movement-amount movement-amount--${event.kind}`}>{eventAmountSign(event)}{formatBRL(event.amountCents)}</span><span className={`status-text status-text--${event.status}`}>{event.status === 'confirmed' ? 'Realizado' : event.status === 'planned' ? 'Previsto' : 'Cancelado'}</span></div>;
+  return <div className="movement-row"><span className={`movement-icon movement-icon--${event.kind}`}><Icon size={18} /></span><span className="movement-main"><strong>{event.description}</strong><small>{eventLabel(event)} · {account?.name ?? 'Conta'}{category === undefined ? '' : ` · ${category.name}`}{detailed ? ` · ${formatFinancialDate(event.competenceDate)}${event.dueDate === undefined ? '' : ` · Vence ${formatFinancialDate(event.dueDate)}`}` : ''}</small></span><span className={`movement-amount movement-amount--${event.kind}`}>{eventAmountSign(event)}{formatBRL(event.amountCents)}</span><span className={`status-text status-text--${event.status}`}>{eventStatusLabel(event)}</span></div>;
 }
 
 function monthLabel(today: string): string {
