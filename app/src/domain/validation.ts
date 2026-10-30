@@ -83,7 +83,7 @@ export function assertFinancialDataset(dataset: FinancialDataset, expectedUserId
     if (event.source === 'opening_balance' && event.kind !== 'adjustment') fail('Saldo inicial deve ser registrado como ajuste.');
     assertEnum(event.status, ['planned', 'confirmed', 'cancelled'], 'Status financeiro');
     assertEnum(event.certainty, ['confirmed', 'estimated'], 'Certeza da informação');
-    assertEntryAmount(event.amountCents);
+    if (!(event.amountCents === 0n && event.kind === 'adjustment' && event.source === 'opening_balance')) assertEntryAmount(event.amountCents);
     assertText(event.description, 'Descrição', 500);
     assertEntityId(event.accountId, 'Conta do evento');
     assertIsoDate(event.competenceDate);
