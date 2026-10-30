@@ -2,6 +2,7 @@ import {
   assertEntryAmount,
   assertIsoDate,
   type Account,
+  type AccountReconciliation,
   type Category,
   type FinancialDataset,
   type FinancialEvent,
@@ -78,30 +79,32 @@ export function createDefaultCommandContext(userId: string): CommandContext {
 export function createAccountCommand(input: CreateAccountInput, context: CommandContext): LocalCommand {
   assertIsoDate(input.openingDate);
   const account: Account = {
-    id: context.nextId(),
-    userId: context.userId,
-    name: input.name.trim(),
-    kind: input.kind,
+    id: context.nextId(), userId: context.userId, name: input.name.trim(), kind: input.kind,
     availability: input.kind === 'transport' ? 'restricted' : input.availability,
   };
   const aggregate: FinancialAggregate = { accounts: [account] };
-  const openingBalance = input.openingBalanceCents ?? 0n;
   if (input.openingBalanceCents !== undefined) {
-    if (openingBalance !== 0n) assertEntryAmount(openingBalance < 0n ? -openingBalance : openingBalance);
-    const event: FinancialEvent = {
-      id: context.nextId(),
-      userId: context.userId,
-      kind: 'adjustment',
-      source: 'opening_balance',
-      status: input.openingBalanceCertainty === 'estimated' ? 'planned' : 'confirmed',
-      certainty: input.openingBalanceCertainty ?? 'confirmed',
-      amountCents: openingBalance < 0n ? -openingBalance : openingBalance,
-      accountId: account.id,
-      description: input.openingBalanceSource?.trim() ? 'Saldo inicial · Origem: ' + input.openingBalanceSource.trim() : 'Saldo inicial · Origem não informada',
-      competenceDate: input.openingDate,
-      adjustmentDirection: openingBalance < 0n ? 'decrease' : 'increase',
+    const sourceDescription = input.openingBalanceSource?.trim() ?? '';
+    if (!sourceDescription) throw new TypeError('Informe a origem do saldo inicial.');
+    const certainty = input.openingBalanceCertainty ?? 'confirmed';
+    const balance = input.openingBalanceCents;
+    if (balance !== 0n) assertEntryAmount(balance < 0n ? -balance : balance);
+    const reconciliation: AccountReconciliation = {
+      id: context.nextId(), userId: context.userId, accountId: account.id, balanceCents: balance,
+      referenceDate: input.openingDate, sourceDescription, certainty,
     };
-    if (event.status === 'confirmed' && event.amountCents > 0n) Object.assign(aggregate, settledAggregate(event, context, input.openingDate));
+    if (certainty === 'confirmed' && balance !== 0n) {
+      const amount = balance < 0n ? -balance : balance;
+      const event: FinancialEvent = {
+        id: context.nextId(), userId: context.userId, kind: 'adjustment', source: 'opening_balance',
+        status: 'confirmed', certainty: 'confirmed', amountCents: amount, accountId: account.id,
+        description: 'Saldo inicial · Origem: ' + sourceDescription, competenceDate: input.openingDate,
+        adjustmentDirection: balance < 0n ? 'decrease' : 'increase',
+      };
+      reconciliation.eventId = event.id;
+      Object.assign(aggregate, settledAggregate(event, context, input.openingDate));
+    }
+    aggregate.accountReconciliations = [reconciliation];
   }
   return command('create_account', aggregate, context);
 }
@@ -111,23 +114,34 @@ export function reconcileAccountCommand(dataset: FinancialDataset, input: Accoun
   if (!account) throw new TypeError('Conta não encontrada.');
   assertIsoDate(input.referenceDate);
   if (typeof input.balanceCents !== 'bigint' || input.balanceCents > 99_999_999_999n || input.balanceCents < -99_999_999_999n) throw new RangeError('O saldo deve estar dentro do limite permitido.');
-  if (input.sourceDescription.trim().length === 0) throw new TypeError('Informe a origem do saldo.');
-  const previous = dataset.events.find((event) => event.accountId === input.accountId && event.source === 'opening_balance' && event.status !== 'cancelled' && !dataset.events.some((other) => other.replacesEventId === event.id || other.reversesEventId === event.id));
-  if (previous?.status === 'confirmed') throw new TypeError('Esta conta já possui um saldo inicial confirmado. Diferenças posteriores devem ser registradas como ajustes, sem substituir o histórico.');
-  const amount = input.balanceCents < 0n ? -input.balanceCents : input.balanceCents;
-  if (amount > 0n) assertEntryAmount(amount);
-  const event: FinancialEvent = {
-    id: context.nextId(), userId: context.userId, kind: 'adjustment', source: 'opening_balance',
-    status: input.certainty === 'confirmed' ? 'confirmed' : 'planned', certainty: input.certainty,
-    amountCents: amount, accountId: account.id,
-    description: 'Saldo inicial ' + (input.certainty === 'confirmed' ? 'confirmado' : 'estimado') + ' · Origem: ' + input.sourceDescription.trim(),
-    competenceDate: input.referenceDate, adjustmentDirection: input.balanceCents < 0n ? 'decrease' : 'increase',
-    ...(previous === undefined ? {} : { replacesEventId: previous.id }),
+  const sourceDescription = input.sourceDescription.trim();
+  if (!sourceDescription) throw new TypeError('Informe a origem do saldo.');
+  const previousRows = dataset.accountReconciliations ?? [];
+  const superseded = new Set(previousRows.flatMap((item) => item.replacesReconciliationId === undefined ? [] : [item.replacesReconciliationId]));
+  const previous = previousRows.find((item) => item.accountId === input.accountId && !superseded.has(item.id));
+  if (previous?.certainty === 'confirmed') throw new TypeError('Esta conta já possui uma conciliação inicial confirmada. Diferenças posteriores devem ser registradas como ajustes, sem substituir o histórico.');
+  const reconciliation: AccountReconciliation = {
+    id: context.nextId(), userId: context.userId, accountId: account.id, balanceCents: input.balanceCents,
+    referenceDate: input.referenceDate, sourceDescription, certainty: input.certainty,
+    ...(previous === undefined ? {} : { replacesReconciliationId: previous.id }),
   };
-  const aggregate: FinancialAggregate = { events: [event] };
-  if (event.status === 'confirmed' && amount > 0n) Object.assign(aggregate, settledAggregate(event, context, input.referenceDate));
-  return command(previous === undefined ? 'record_event' : 'replace_event', aggregate, context);
+  const aggregate: FinancialAggregate = { accountReconciliations: [reconciliation] };
+  if (input.certainty === 'confirmed' && input.balanceCents !== 0n) {
+    const amount = input.balanceCents < 0n ? -input.balanceCents : input.balanceCents;
+    assertEntryAmount(amount);
+    const event: FinancialEvent = {
+      id: context.nextId(), userId: context.userId, kind: 'adjustment', source: 'opening_balance',
+      status: 'confirmed', certainty: 'confirmed', amountCents: amount, accountId: account.id,
+      description: 'Saldo inicial confirmado · Origem: ' + sourceDescription, competenceDate: input.referenceDate,
+      adjustmentDirection: input.balanceCents < 0n ? 'decrease' : 'increase',
+    };
+    reconciliation.eventId = event.id;
+    Object.assign(aggregate, settledAggregate(event, context, input.referenceDate));
+    aggregate.accountReconciliations = [reconciliation];
+  }
+  return command('reconcile_account', aggregate, context);
 }
+
 export function createCategoryCommand(input: CreateCategoryInput, context: CommandContext): LocalCommand {
   const category: Category = {
     id: context.nextId(),
