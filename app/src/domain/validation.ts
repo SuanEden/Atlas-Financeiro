@@ -114,7 +114,7 @@ export function assertFinancialDataset(dataset: FinancialDataset, expectedUserId
     }
     if (event.recurrenceRuleId !== undefined) {
       assertEntityId(event.recurrenceRuleId, 'Regra recorrente');
-      if (event.recurrenceMonth === undefined || !/^\\d{4}-(0[1-9]|1[0-2])$/.test(event.recurrenceMonth)) fail('Ocorrência recorrente exige competência AAAA-MM.');
+      if (event.recurrenceMonth === undefined || !/^\d{4}-(0[1-9]|1[0-2])$/.test(event.recurrenceMonth)) fail('Ocorrência recorrente exige competência AAAA-MM.');
     } else if (event.recurrenceMonth !== undefined) fail('Competência recorrente exige uma regra vinculada.');
     if (event.reversesEventId !== undefined && event.replacesEventId !== undefined) {
       fail('Um evento não pode ser estorno e substituição ao mesmo tempo.');
