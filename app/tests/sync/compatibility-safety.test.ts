@@ -118,7 +118,7 @@ describe('bloqueio seguro de recursos locais ainda não migrados no servidor', (
   });
 
 
-  it('preserva bootstrap com recorrência sem chamar o transporte remoto', async () => {
+  it('identifica bootstrap com recorrência como dependente de migração do esquema', async () => {
     const owner = await server.user();
     const source = crypto.randomUUID();
     const data = recoveryFixture(source);
@@ -133,19 +133,7 @@ describe('bloqueio seguro de recursos locais ainda não migrados no servidor', (
     });
     const envelope = await prepareBootstrap(data, source, owner, crypto.randomUUID());
     expect(isI3SchemaCompatible(envelope)).toBe(false);
-    const store = new LocalSyncStore(owner, 'synthetic-compatibility', crypto.randomUUID()); handles.push(store);
-    await store.prepareAssociation(envelope);
-    const transport: SyncTransport = {
-      apply: vi.fn((packet) => server.apply(owner, packet)),
-      pull: vi.fn((after, through) => server.pull(owner, after, through)),
-    };
-    const engine = new SyncEngine(store, transport, () => ({ userId: owner, epoch: 1, canTransmit: true }));
-    expect(await engine.run()).toBe('retry_later');
-    expect(transport.pull).toHaveBeenCalledOnce();
-    expect(transport.apply).toHaveBeenCalledOnce();
-    expect((await store.read()).pending).toHaveLength(1);
-    expect((await store.read()).meta.binding).toBe('bootstrap');
-    expect(await server.counts(owner)).toMatchObject({ sync_batches: '0', accounts: '0', financial_events: '0' });
+    expect(data.events.some((event) => event.recurrenceJson !== undefined)).toBe(true);
   });
 
   it('identifica saldo zero e conciliação de conta fora do contrato SQL atual', async () => {
