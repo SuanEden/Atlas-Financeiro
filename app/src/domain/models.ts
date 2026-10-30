@@ -58,12 +58,22 @@ export interface Posting extends OwnedEntity {
   amountCents: MoneyCents;
 }
 
+export interface AccountReconciliation extends OwnedEntity {
+  accountId: string;
+  balanceCents: MoneyCents;
+  referenceDate: IsoDate;
+  sourceDescription: string;
+  certainty: 'confirmed' | 'estimated';
+  eventId?: string;
+  replacesReconciliationId?: string;
+}
 export interface FinancialDataset {
   accounts: Account[];
   categories: Category[];
   events: FinancialEvent[];
   settlements: Settlement[];
   postings: Posting[];
+  accountReconciliations?: AccountReconciliation[];
 }
 
 export interface DatePeriod {
