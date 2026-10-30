@@ -11,6 +11,7 @@ import {
   type Posting,
   type Settlement,
   parseMonthlyRecurrenceRule,
+  getAccountReconciliation,
 } from '../domain';
 import type { FinancialAggregate } from '../persistence';
 import { serializeOperationPayload } from '../serialization';
@@ -116,14 +117,14 @@ export function reconcileAccountCommand(dataset: FinancialDataset, input: Accoun
   if (typeof input.balanceCents !== 'bigint' || input.balanceCents > 99_999_999_999n || input.balanceCents < -99_999_999_999n) throw new RangeError('O saldo deve estar dentro do limite permitido.');
   const sourceDescription = input.sourceDescription.trim();
   if (!sourceDescription) throw new TypeError('Informe a origem do saldo.');
-  const previousRows = dataset.accountReconciliations ?? [];
-  const superseded = new Set(previousRows.flatMap((item) => item.replacesReconciliationId === undefined ? [] : [item.replacesReconciliationId]));
-  const previous = previousRows.find((item) => item.accountId === input.accountId && !superseded.has(item.id));
+  const previous = getAccountReconciliation(dataset, input.accountId);
   if (previous?.certainty === 'confirmed') throw new TypeError('Esta conta já possui uma conciliação inicial confirmada. Diferenças posteriores devem ser registradas como ajustes, sem substituir o histórico.');
+  const storedPrevious = (dataset.accountReconciliations ?? []).find((item) => item.id === previous?.id);
+  const legacyEventId = storedPrevious === undefined ? previous?.eventId : undefined;
   const reconciliation: AccountReconciliation = {
     id: context.nextId(), userId: context.userId, accountId: account.id, balanceCents: input.balanceCents,
     referenceDate: input.referenceDate, sourceDescription, certainty: input.certainty,
-    ...(previous === undefined ? {} : { replacesReconciliationId: previous.id }),
+    ...(storedPrevious === undefined ? {} : { replacesReconciliationId: storedPrevious.id }),
   };
   const aggregate: FinancialAggregate = { accountReconciliations: [reconciliation] };
   if (input.certainty === 'confirmed' && input.balanceCents !== 0n) {
@@ -134,6 +135,7 @@ export function reconcileAccountCommand(dataset: FinancialDataset, input: Accoun
       status: 'confirmed', certainty: 'confirmed', amountCents: amount, accountId: account.id,
       description: 'Saldo inicial confirmado · Origem: ' + sourceDescription, competenceDate: input.referenceDate,
       adjustmentDirection: input.balanceCents < 0n ? 'decrease' : 'increase',
+      ...(legacyEventId === undefined ? {} : { replacesEventId: legacyEventId }),
     };
     reconciliation.eventId = event.id;
     Object.assign(aggregate, settledAggregate(event, context, input.referenceDate));
