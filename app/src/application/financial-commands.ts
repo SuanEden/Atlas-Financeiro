@@ -112,7 +112,7 @@ export function reconcileAccountCommand(dataset: FinancialDataset, input: Accoun
   assertIsoDate(input.referenceDate);
   if (typeof input.balanceCents !== 'bigint' || input.balanceCents > 99_999_999_999n || input.balanceCents < -99_999_999_999n) throw new RangeError('O saldo deve estar dentro do limite permitido.');
   if (input.sourceDescription.trim().length === 0) throw new TypeError('Informe a origem do saldo.');
-  const previous = dataset.events.find((event) => event.accountId === input.accountId && event.source === 'opening_balance' && event.status !== 'cancelled' && !dataset.events.some((other) => other.replacesEventId === event.id));
+  const previous = dataset.events.find((event) => event.accountId === input.accountId && event.source === 'opening_balance' && event.status !== 'cancelled' && !dataset.events.some((other) => other.replacesEventId === event.id || other.reversesEventId === event.id));
   if (previous?.status === 'confirmed') throw new TypeError('Esta conta já possui um saldo inicial confirmado. Diferenças posteriores devem ser registradas como ajustes, sem substituir o histórico.');
   const amount = input.balanceCents < 0n ? -input.balanceCents : input.balanceCents;
   if (amount > 0n) assertEntryAmount(amount);
