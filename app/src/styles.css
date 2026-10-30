@@ -102,7 +102,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .text-button { border: 0; padding: 4px; background: transparent; color: var(--accent-dark); font-size: .82rem; font-weight: 700; }
 .text-button--danger { color: var(--danger); }
 
-.money-summary { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-block: 1px solid var(--line); margin-bottom: 34px; }
+.money-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--line); margin-bottom: 34px; }
 .money-summary > div { display: grid; gap: 8px; padding: 24px 30px; border-right: 1px solid var(--line); }
 .money-summary > div:first-child { padding-left: 0; }
 .money-summary > div:last-child { border-right: 0; }
@@ -332,4 +332,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 @media (max-width: 420px) {
   .forecast-grid { grid-template-columns: 1fr; }
   .obligation-row { align-items: flex-start; }
+}
+
+@media (max-width: 760px) {
+  .money-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .money-summary > div:last-child { grid-column: auto; }
+  .money-summary > div:nth-child(2n) { border-right: 0; }
 }
