@@ -52,14 +52,17 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
   const cashAccounts = state.accounts.filter((account) => account.kind === 'cash');
   const transportAccounts = state.accounts.filter((account) => account.kind === 'transport');
   const freeAccounts = state.accounts.filter((account) => account.availability === 'free');
+  const reservedAccounts = state.accounts.filter((account) => account.availability === 'reserved');
   const bankComplete = bankAccounts.length > 0 && bankAccounts.every((account) => reconciled(account.id));
   const cashComplete = cashAccounts.length > 0 && cashAccounts.every((account) => reconciled(account.id));
   const transportComplete = transportAccounts.length > 0 && transportAccounts.every((account) => reconciled(account.id));
   const freeComplete = freeAccounts.length > 0 && freeAccounts.every((account) => reconciled(account.id));
+  const reservedComplete = reservedAccounts.length === 0 || reservedAccounts.every((account) => reconciled(account.id));
   const bankBalance = bankAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
   const physicalCash = cashAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
   const transportBalance = transportAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
   const available = freeAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
+  const reservedBalance = reservedAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
   const projectedBalance = freeComplete ? available + forecast.projectedCashChangeCents : undefined;
   const obligations = forecast.items.filter((item) => item.obligation).slice(0, 5);
   const grossForecast = forecast.recurringGrossIncomeCents;
@@ -73,6 +76,7 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
         <MoneyStat label="Saldo bancário conciliado" value={bankComplete ? formatBRL(bankBalance) : 'A conciliar'} />
         <MoneyStat label="Dinheiro físico" value={cashComplete ? formatBRL(physicalCash) : 'A conciliar'} />
         <MoneyStat label="Bilhete Único" value={transportComplete ? formatBRL(transportBalance) : 'A conciliar'} />
+        <MoneyStat label="Valores reservados" value={reservedComplete ? formatBRL(reservedBalance) : 'A conciliar'} />
         <MoneyStat label="Saldo livre" value={freeComplete ? formatBRL(available) : 'A conciliar'} />
       </section>
 
