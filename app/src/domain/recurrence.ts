@@ -42,6 +42,10 @@ export function validateMonthlyRecurrenceRule(value: unknown): asserts value is 
   if (!['fixed', 'gross'].includes(String(rule.amountBasis))) throw new TypeError('Base do valor recorrente inválida.');
   if (!['normal', 'prorated_unknown'].includes(String(rule.firstOccurrence))) throw new TypeError('Regra da primeira ocorrência inválida.');
   if (rule.firstOccurrenceMonth !== undefined) assertMonth(rule.firstOccurrenceMonth, 'Primeira competência');
+  if (rule.firstOccurrence === 'prorated_unknown' && rule.firstOccurrenceMonth === undefined) throw new TypeError('Informe o mês da primeira ocorrência proporcional ainda desconhecida.');
+  if (rule.startDate !== undefined && rule.startDate.slice(0, 7) !== rule.startMonth) throw new TypeError('A data exata deve pertencer ao mês inicial da regra.');
+  if (String(rule.nextOccurrenceMonth) < String(rule.startMonth)) throw new TypeError('A próxima ocorrência não pode anteceder o início da regra.');
+  if (rule.firstOccurrenceMonth !== undefined && String(rule.firstOccurrenceMonth) < String(rule.startMonth)) throw new TypeError('A primeira ocorrência não pode anteceder o início da regra.');
 }
 
 export function serializeMonthlyRecurrenceRule(rule: MonthlyRecurrenceRule): string {
