@@ -66,7 +66,8 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
   const reservedBalance = reservedAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
   const projectedBalance = freeComplete ? available + forecast.projectedCashChangeCents : undefined;
   const obligations = forecast.items.filter((item) => item.obligation).slice(0, 5);
-  const grossForecast = forecast.recurringGrossIncomeCents;
+  const grossForecast = forecast.recurringGrossIncomeCents > 0n ? forecast.recurringGrossIncomeCents : forecast.grossIncomeReferenceCents;
+  const grossLabel = forecast.recurringGrossIncomeCents > 0n ? 'Salário bruto previsto (6 meses)' : 'Salário bruto de referência';
   const proratedUnknown = state.events.filter((event) => activeIds.has(event.id) && event.recurrenceJson !== undefined).flatMap((event) => {
     const rule = parseMonthlyRecurrenceRule(event.recurrenceJson);
     return rule?.firstOccurrence === 'prorated_unknown' && rule.firstOccurrenceMonth !== undefined ? [{ description: event.description, month: rule.firstOccurrenceMonth }] : [];
@@ -105,10 +106,10 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
           <MoneyStat label="Despesas previstas" value={formatBRL(forecast.plannedExpenseCents)} />
           <MoneyStat label="Obrigações pendentes" value={formatBRL(forecast.obligationCents)} />
           <MoneyStat label="Despesas recorrentes futuras" value={formatBRL(forecast.recurringExpenseCents)} />
-          <MoneyStat label="Receitas brutas previstas" value={grossForecast > 0n ? formatBRL(grossForecast) : '—'} />
+          <MoneyStat label={grossLabel} value={grossForecast > 0n ? formatBRL(grossForecast) : '—'} />
           <MoneyStat label="Saldo projetado" value={projectedBalance === undefined ? 'Concilie as contas' : formatBRL(projectedBalance)} />
         </div>
-        {grossForecast > 0n ? <p className="form-note">Receitas brutas não são tratadas como dinheiro disponível. O valor líquido precisa ser informado antes de entrar na projeção de caixa.</p> : null}
+        {grossForecast > 0n ? <p className="form-note">Valor bruto de referência/projeção; não é dinheiro recebido nem entra no saldo projetado. O primeiro pagamento proporcional e o valor líquido permanecem separados até confirmação.</p> : null}
         {proratedUnknown.map((item) => <p className="form-note" key={item.description}>Primeira ocorrência de {item.description}: competência {monthLabel(item.month + '-01')}; valor proporcional ainda não informado.</p>)}
         <div className="upcoming-obligations">
           <div className="section-heading"><h3>Obrigações próximas</h3><button className="text-button" onClick={() => onNavigate('movements')}>Ver movimentações</button></div>
