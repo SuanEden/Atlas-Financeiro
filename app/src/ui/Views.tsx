@@ -67,7 +67,7 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
   const projectedBalance = freeComplete ? available + forecast.projectedCashChangeCents : undefined;
   const obligations = forecast.items.filter((item) => item.obligation).slice(0, 5);
   const grossForecast = forecast.recurringGrossIncomeCents;
-  const proratedUnknown = state.events.filter((event) => event.recurrenceJson !== undefined).flatMap((event) => {
+  const proratedUnknown = state.events.filter((event) => activeIds.has(event.id) && event.recurrenceJson !== undefined).flatMap((event) => {
     const rule = parseMonthlyRecurrenceRule(event.recurrenceJson);
     return rule?.firstOccurrence === 'prorated_unknown' && rule.firstOccurrenceMonth !== undefined ? [{ description: event.description, month: rule.firstOccurrenceMonth }] : [];
   });
@@ -88,7 +88,7 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
       <section className="flow-section" aria-labelledby="flow-title">
         <div className="section-heading">
           <div><p className="section-kicker">{monthLabel(`${selectedMonth}-01`)}</p><h2 id="flow-title">Resultado realizado</h2></div>
-          <label className="period-filter">Período <input aria-label="Mês do dashboard" type="month" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)} /></label>
+          <label className="period-filter">Período <input aria-label="Mês do dashboard" type="month" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value || today.slice(0, 7))} /></label>
         </div>
         <div className="flow-band">
           <div><span>Entradas realizadas</span><strong className="positive">{formatBRL(cash.incomeCents)}</strong></div>
