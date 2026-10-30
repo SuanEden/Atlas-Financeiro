@@ -53,7 +53,8 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
   const cashAccounts = state.accounts.filter((account) => account.kind === 'cash');
   const transportAccounts = state.accounts.filter((account) => account.kind === 'transport');
   const freeAccounts = state.accounts.filter((account) => account.availability === 'free');
-  const reservedAccounts = state.accounts.filter((account) => account.availability === 'reserved');
+  const receiptAccount = state.accounts.find((account) => account.kind === 'other' && account.availability === 'reserved' && account.name.trim().toLocaleLowerCase('pt-BR') === 'recebimentos a conciliar');
+  const reservedAccounts = state.accounts.filter((account) => account.availability === 'reserved' && account.id !== receiptAccount?.id);
   const bankComplete = bankAccounts.length > 0 && bankAccounts.every((account) => reconciled(account.id));
   const cashComplete = cashAccounts.length > 0 && cashAccounts.every((account) => reconciled(account.id));
   const transportComplete = transportAccounts.length > 0 && transportAccounts.every((account) => reconciled(account.id));
@@ -83,6 +84,7 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
         <MoneyStat label="Dinheiro físico" value={cashComplete ? formatBRL(physicalCash) : 'A conciliar'} />
         <MoneyStat label="Bilhete Único" value={transportComplete ? formatBRL(transportBalance) : 'A conciliar'} />
         <MoneyStat label="Valores reservados" value={reservedComplete ? formatBRL(reservedBalance) : 'A conciliar'} />
+        <MoneyStat label="Recebimentos a conciliar" value={receiptAccount === undefined ? '—' : reconciled(receiptAccount.id) ? formatBRL(balanceFor(receiptAccount.id)) : 'Concilie a conta'} />
         <MoneyStat label="Saldo livre" value={freeComplete ? formatBRL(available) : 'A conciliar'} />
       </section>
 
