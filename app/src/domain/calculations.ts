@@ -1,4 +1,4 @@
-import { sumCents } from './money';
+import { sumCents, type MoneyCents } from './money';
 import type { AvailabilityBalances, DatePeriod, FinancialDataset, FinancialTotals, IsoDate } from './models';
 import { assertIsoDate } from './validation';
 import { addMonths, parseMonthlyRecurrenceRule } from './recurrence';
