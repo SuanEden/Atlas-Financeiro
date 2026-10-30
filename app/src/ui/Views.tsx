@@ -138,13 +138,40 @@ interface MovementsProps {
 
 export function MovementsView({ state, onAdd, onEdit, onReverse, integration=false }: MovementsProps) {
   const activeIds = activeEventIds(state);
+  const [selectedMonth, setSelectedMonth] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [query, setQuery] = useState('');
   const events = [...state.events].sort((left, right) => right.competenceDate.localeCompare(left.competenceDate));
+  const filteredEvents = events.filter((event) => {
+    if (selectedMonth !== 'all' && event.competenceDate.slice(0, 7) !== selectedMonth) return false;
+    const category = state.categories.find((item) => item.id === event.categoryId);
+    const label = eventStatusLabel(event, category);
+    if (statusFilter === 'realized' && event.status !== 'confirmed') return false;
+    if (statusFilter === 'pending' && label !== 'Pendente') return false;
+    if (statusFilter === 'planned' && label !== 'Previsto') return false;
+    if (statusFilter === 'recurring' && !isRecurringTemplate(event)) return false;
+    if (statusFilter === 'cancelled' && event.status !== 'cancelled') return false;
+    if (statusFilter === 'superseded' && activeIds.has(event.id)) return false;
+    if (query.trim()) {
+      const account = state.accounts.find((item) => item.id === event.accountId)?.name ?? '';
+      const categoryName = category?.name ?? '';
+      const searchable = `${event.description} ${account} ${categoryName}`.toLocaleLowerCase('pt-BR');
+      if (!searchable.includes(query.trim().toLocaleLowerCase('pt-BR'))) return false;
+    }
+    return true;
+  });
   return (
     <div className="page-content">
       <PageHeading title="Movimentações" subtitle="Histórico completo, incluindo correções e estornos." action={<button className="button button--primary" onClick={onAdd} disabled={state.accounts.length === 0}><Plus size={18} />Novo lançamento</button>} />
       <div className="local-status"><span><ShieldCheck size={17} />{state.outbox.length} {state.outbox.length === 1 ? 'operação local pendente' : 'operações locais pendentes'}</span><small>{integration?'Confira o envio e eventuais conflitos no painel de sincronização.':'Sincronização remota ainda não disponível.'}</small></div>
-      {events.length === 0 ? <EmptyPanel icon={<ArrowLeftRight />} title="Ainda não há movimentações" description="Crie uma conta e registre sua primeira receita, despesa ou transferência." action="Novo lançamento" onAction={onAdd} disabled={state.accounts.length === 0} /> : (
-        <div className="history-list">{events.map((event) => {
+      <div className="movement-filters">
+        <label>Período <input aria-label="Filtrar movimentações por mês" type="month" value={selectedMonth === 'all' ? '' : selectedMonth} onChange={(event) => setSelectedMonth(event.target.value || 'all')} /></label>
+        <label>Status<select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">Todos</option><option value="realized">Realizados</option><option value="pending">Obrigações pendentes</option><option value="planned">Previstos</option><option value="recurring">Regras recorrentes</option><option value="cancelled">Cancelados</option><option value="superseded">Versões substituídas</option></select></label>
+        <label className="movement-search">Buscar<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Descrição, conta ou categoria" /></label>
+        {selectedMonth !== 'all' ? <button className="text-button" onClick={() => setSelectedMonth('all')}>Todos os meses</button> : null}
+      </div>
+      {events.length === 0 ? <EmptyPanel icon={<ArrowLeftRight />} title="Ainda não há movimentações" description="Crie uma conta e registre sua primeira receita, despesa ou transferência." action="Novo lançamento" onAction={onAdd} disabled={state.accounts.length === 0} /> : filteredEvents.length === 0 ? <CompactEmpty text="Nenhuma movimentação corresponde aos filtros selecionados." /> : (
+        <div className="history-list">{filteredEvents.map((event) => {
           const active = activeIds.has(event.id);
           const editable = active && event.status !== 'cancelled' && event.kind !== 'adjustment' && event.reversesEventId === undefined;
           return <article className={`history-row${active ? '' : ' history-row--superseded'}`} key={event.id}><MovementRow event={event} state={state} detailed /><div className="history-actions">{editable ? <><button className="text-button" onClick={() => onEdit(event)}>Editar</button><button className="text-button text-button--danger" onClick={() => onReverse(event)}>Estornar</button></> : <span>{event.reversesEventId !== undefined ? 'Contrapartida preservada' : event.status === 'cancelled' ? 'Cancelamento preservado' : event.replacesEventId !== undefined ? 'Versão atual' : 'Histórico preservado'}</span>}</div></article>;
