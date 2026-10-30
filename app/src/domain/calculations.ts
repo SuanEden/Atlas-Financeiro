@@ -113,7 +113,8 @@ export function calculateFinancialForecast(dataset: FinancialDataset, startMonth
     if (event.status !== 'planned' || event.recurrenceJson !== undefined) continue;
     const month = event.competenceDate.slice(0, 7);
     if (month < startMonth || month > endMonth || (event.kind !== 'income' && event.kind !== 'expense')) continue;
-    const obligation = event.kind === 'expense' && event.certainty === 'confirmed';
+    const categoryName = dataset.categories.find((category) => category.id === event.categoryId)?.name.trim().toLocaleLowerCase('pt-BR');
+    const obligation = event.kind === 'expense' && (event.certainty === 'confirmed' || categoryName === 'cartão de crédito');
     const grossSalaryReference = event.kind === 'income' && /sal[aá]rio.*bruto|bruto.*sal[aá]rio/i.test(event.description);
     if (grossSalaryReference) result.grossIncomeReferenceCents += event.amountCents;
     else if (event.kind === 'income') result.plannedIncomeCents += event.amountCents;
