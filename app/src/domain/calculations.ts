@@ -158,8 +158,9 @@ export function calculateFinancialForecast(dataset: FinancialDataset, startMonth
 
 /** An account is not a confirmed balance until the user records its opening position. */
 export function hasReconciledOpeningBalance(dataset: FinancialDataset, accountId: string): boolean {
-  const superseded = new Set(dataset.events.flatMap((event) => [event.replacesEventId, event.reversesEventId].filter((id): id is string => id !== undefined)));
-  return dataset.events.some((event) => event.accountId === accountId && event.source === 'opening_balance' && event.status === 'confirmed' && event.certainty === 'confirmed' && !superseded.has(event.id));
+  const reconciliations = dataset.accountReconciliations ?? [];
+  const superseded = new Set(reconciliations.flatMap((item) => item.replacesReconciliationId === undefined ? [] : [item.replacesReconciliationId]));
+  return reconciliations.some((item) => item.accountId === accountId && item.certainty === 'confirmed' && !superseded.has(item.id));
 }
 
 function recurrenceDate(month: string, day: number): IsoDate {
