@@ -15,6 +15,7 @@ export function serializeOperationPayload(aggregate: FinancialAggregate, userId:
   if (aggregate.events !== undefined) payload.events = aggregate.events.map((row) => pickEvent(row));
   if (aggregate.settlements !== undefined) payload.settlements = aggregate.settlements.map((row) => pickSettlement(row));
   if (aggregate.postings !== undefined) payload.postings = aggregate.postings.map((row) => pickPosting(row));
+  if (aggregate.accountReconciliations !== undefined) payload.accountReconciliations = aggregate.accountReconciliations.map((row) => pickAccountReconciliation(row));
   return JSON.stringify(payload);
 }
 
@@ -44,6 +45,9 @@ function pickEvent(row: FinancialDataset['events'][number]) {
     adjustmentDirection: row.adjustmentDirection,
     reversesEventId: row.reversesEventId,
     replacesEventId: row.replacesEventId,
+    recurrenceJson: row.recurrenceJson,
+    recurrenceRuleId: row.recurrenceRuleId,
+    recurrenceMonth: row.recurrenceMonth,
   };
 }
 
@@ -55,6 +59,14 @@ function pickSettlement(row: FinancialDataset['settlements'][number]) {
     amountCents: encodeCents(row.amountCents),
     paymentDate: row.paymentDate,
     settlementDate: row.settlementDate,
+  };
+}
+
+function pickAccountReconciliation(row: FinancialDataset['accountReconciliations'] extends (infer T)[] | undefined ? T : never) {
+  return {
+    id: row.id, userId: row.userId, accountId: row.accountId, balanceCents: encodeCents(row.balanceCents),
+    referenceDate: row.referenceDate, sourceDescription: row.sourceDescription, certainty: row.certainty,
+    eventId: row.eventId, replacesReconciliationId: row.replacesReconciliationId,
   };
 }
 
