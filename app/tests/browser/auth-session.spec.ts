@@ -66,7 +66,7 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   const {exportedAt:_later,...reopenedCopy}=JSON.parse(readFileSync((await (await repeatedDownload).path())!,'utf8'));
   const {exportedAt:_earlier,...initialCopy}=backup;expect(reopenedCopy).toEqual(initialCopy);
   await page.getByRole('button',{name:'Sincronizar agora'}).click();
-  await expect(page.getByRole('region',{name:'Sincronização'})).toContainText('Alterações confirmadas');
+  await expect(page.getByRole('region',{name:'Sincronização',exact:true})).toContainText('Alterações confirmadas');
   const confirmed=await page.evaluate(async()=>{const path='/tests/auth-browser-entry.tsx';return (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).inspect();});
   expect(confirmed.pending).toEqual([]);expect(confirmed.meta?.cursor).toBe('2');
   expect(confirmed.confirmed?.accounts).toEqual(backup.projection.accounts);
@@ -113,7 +113,7 @@ test('perda do IndexedDB: arquivo I3 recupera pendência em perfil vazio e sincr
     const state=await target.evaluate(async()=>{const path='/tests/auth-browser-entry.tsx';return (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).inspect();});
     expect(state.pending).toEqual(original.pending);expect(state.meta).toEqual(original.meta);
     await target.getByRole('button',{name:'Sincronizar agora'}).click();
-    await expect(target.getByRole('region',{name:'Sincronização'})).toContainText('Alterações confirmadas');
+    await expect(target.getByRole('region',{name:'Sincronização',exact:true})).toContainText('Alterações confirmadas');
     const after=await target.evaluate(async()=>{const path='/tests/auth-browser-entry.tsx';return (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).inspect();});
     expect(after.pending).toEqual([]);expect(after.confirmed!.accounts).toHaveLength(1);
     expect(after.meta!.cursor).toBe('2');expect(errors).toEqual([]);
