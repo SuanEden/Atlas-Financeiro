@@ -85,7 +85,9 @@ export function addMonths(month: string, count: number): string {
 export function monthDistance(from: string, to: string): number {
   assertMonth(from, 'Mês inicial');
   assertMonth(to, 'Mês final');
-  const [fy, fm] = from.split('-').map(Number);
-  const [ty, tm] = to.split('-').map(Number);
+  const fy = Number(from.slice(0, 4));
+  const fm = Number(from.slice(5, 7));
+  const ty = Number(to.slice(0, 4));
+  const tm = Number(to.slice(5, 7));
   return (ty - fy) * 12 + tm - fm;
 }
