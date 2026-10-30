@@ -15,19 +15,22 @@ import {
   createAccountCommand,
   createCategoryCommand,
   createTransactionCommand,
+  reconcileAccountCommand,
   replaceEventCommand,
   reverseEventCommand,
   type CreateAccountInput,
+  type AccountReconciliationInput,
   type CreateCategoryInput,
   type TransactionInput,
 } from './application';
-import type { FinancialEvent } from './domain';
-import { AccountForm, CategoryForm, DialogFrame, TransactionForm } from './ui/Forms';
+import type { Account, FinancialEvent } from './domain';
+import { AccountForm, AccountReconciliationForm, CategoryForm, DialogFrame, TransactionForm } from './ui/Forms';
 import { AccountsView, BackupView, CategoriesView, Dashboard, MovementsView, type Page } from './ui/Views';
 import { useLocalFinance } from './ui/use-local-finance';
 
 type Modal =
   | { type: 'account' }
+  | { type: 'reconcile'; account: Account }
   | { type: 'category' }
   | { type: 'transaction'; initial?: FinancialEvent; kind?: TransactionInput['kind'] }
   | { type: 'reverse'; event: FinancialEvent };
@@ -63,6 +66,12 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
   async function saveAccount(input: CreateAccountInput) {
     await execute(createAccountCommand(input, context));
     setNotice('Conta salva neste dispositivo.');
+    setModal(undefined);
+  }
+
+  async function saveReconciliation(input: AccountReconciliationInput) {
+    await execute(reconcileAccountCommand(state, input, context));
+    setNotice('Saldo inicial registrado. Confira a condição e a data de referência na conta.');
     setModal(undefined);
   }
 
@@ -110,7 +119,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
           <>
             {page === 'dashboard' ? <Dashboard integration={integration} state={state} today={today} onAddAccount={() => setModal({ type: 'account' })} onAddTransaction={openTransaction} onNavigate={setPage} /> : null}
             {page === 'movements' ? <MovementsView integration={integration} state={state} onAdd={openTransaction} onEdit={(event) => setModal({ type: 'transaction', initial: event })} onReverse={(event) => setModal({ type: 'reverse', event })} /> : null}
-            {page === 'accounts' ? <AccountsView state={state} onAdd={() => setModal({ type: 'account' })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
+            {page === 'accounts' ? <AccountsView state={state} onAdd={() => setModal({ type: 'account' })} onReconcile={(account) => setModal({ type: 'reconcile', account })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
             {page === 'categories' || page === 'backup' ? <div className="mobile-settings-tabs"><button className={page === 'categories' ? 'is-active' : ''} onClick={() => setPage('categories')}>Categorias</button><button className={page === 'backup' ? 'is-active' : ''} onClick={() => setPage('backup')}>Backup</button></div> : null}
             {page === 'categories' ? <CategoriesView state={state} onAdd={() => setModal({ type: 'category' })} /> : null}
             {page === 'backup' ? <BackupView integration={integration} {...(serverId?{serverId}:{})} {...(exportJson?{exportJson}:{})} onRecover={recover} busy={busy} readState={readState} state={state} userId={userId} today={today} /> : null}
@@ -127,6 +136,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
       </nav>
 
       {modal?.type === 'account' ? <DialogFrame title="Nova conta" onClose={() => setModal(undefined)}><AccountForm today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveAccount} /></DialogFrame> : null}
+      {modal?.type === 'reconcile' ? <DialogFrame title="Conciliar saldo inicial" onClose={() => setModal(undefined)}><AccountReconciliationForm account={modal.account} today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveReconciliation} /></DialogFrame> : null}
       {modal?.type === 'category' ? <DialogFrame title="Nova categoria" onClose={() => setModal(undefined)}><CategoryForm categories={state.categories} busy={busy} onCancel={() => setModal(undefined)} onSave={saveCategory} /></DialogFrame> : null}
       {modal?.type === 'transaction' ? <DialogFrame title={modal.initial === undefined ? 'Novo lançamento' : 'Corrigir lançamento'} onClose={() => setModal(undefined)} wide><TransactionForm defaultKind={modal.kind ?? 'expense'} accounts={state.accounts} categories={state.categories} recurrenceRules={state.events.filter((event) => event.recurrenceJson !== undefined && event.status === 'planned')} {...(modal.initial === undefined ? {} : { initial: modal.initial })} today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveTransaction} /></DialogFrame> : null}
       {modal?.type === 'reverse' ? <DialogFrame title="Confirmar estorno" onClose={() => setModal(undefined)}><div className="confirm-dialog"><p>O lançamento <strong>{modal.event.description}</strong> não será apagado. Uma contrapartida inversa será adicionada para preservar o histórico.</p><div className="dialog-actions"><button className="button button--ghost" onClick={() => setModal(undefined)}>Cancelar</button><button className="button button--danger" disabled={busy} onClick={() => void confirmReverse()}>{busy ? 'Estornando…' : 'Estornar lançamento'}</button></div></div></DialogFrame> : null}
