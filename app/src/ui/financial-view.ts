@@ -1,5 +1,5 @@
 import type { Account, FinancialDataset, FinancialEvent } from '../domain';
-import { assertIsoDate, type DatePeriod } from '../domain';
+import { assertIsoDate, parseMonthlyRecurrenceRule, type DatePeriod } from '../domain';
 
 export function financialMonthPeriod(date: string): DatePeriod {
   assertIsoDate(date);
@@ -61,7 +61,10 @@ export function activeEventIds(dataset: FinancialDataset): Set<string> {
 }
 
 export function eventStatusLabel(event: FinancialEvent): string {
-  if (event.recurrenceJson !== undefined) return 'Regra recorrente';
+  if (event.recurrenceJson !== undefined) {
+    const rule = parseMonthlyRecurrenceRule(event.recurrenceJson);
+    return rule?.status === 'active' ? 'Recorrência ativa' : rule?.status === 'paused' ? 'Recorrência pausada' : 'Recorrência encerrada';
+  }
   if (event.status === 'confirmed') return 'Realizado';
   if (event.status === 'cancelled') return 'Cancelado';
   if (event.kind === 'expense' && event.certainty === 'confirmed') return 'Pendente';
