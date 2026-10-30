@@ -7,9 +7,19 @@ import { getOrCreateLocalOwnerId } from '../application';
 import { createLocalFinancialStore } from '../persistence';
 
 let runtime:RemoteController|undefined;
+
 function createRuntime() {
   const authReturn=consumeAuthReturn(location.href,(path)=>history.replaceState(null,'',path));
-  const config=readRemoteConfig(import.meta.env);
+  // This is a Supabase publishable key (browser-safe), never a secret/service-role key.
+  // Enable I3 only on the approved production origin; local development and previews stay local.
+  const approvedProductionOrigin=location.protocol==='https:'&&location.hostname==='atlas-financeiro-henna.vercel.app';
+  const env=approvedProductionOrigin?{
+    ...import.meta.env,
+    VITE_ATLAS_REMOTE_MODE:'integration',
+    VITE_SUPABASE_URL:'https://zxancpaardzuqyyikwio.supabase.co',
+    VITE_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_Af-T1cZfHJvLy7_yvAhqxw_FZ7vYZXQ',
+  }:import.meta.env;
+  const config=readRemoteConfig(env);
   if(!config)throw new Error('Modo de integração indisponível.');
   const adapter=createSupabaseAdapter(config,location.origin);
   const controller=new RemoteController(config.serverId,adapter.auth,adapter.transport,localStorage,{
@@ -21,6 +31,7 @@ function createRuntime() {
   void controller.start(authReturn);
   return controller;
 }
+
 export default function RemoteBootstrap() {
   const [result]=useState(()=>{
     try {runtime??=createRuntime();return {controller:runtime};}catch{return {controller:undefined};}
