@@ -141,11 +141,17 @@ export function MovementsView({ state, onAdd, onEdit, onReverse, integration=fal
   );
 }
 
-export function AccountsView({ state, onAdd, onTransfer }: { state: LocalFinancialState; onAdd: () => void; onTransfer: () => void }) {
+export function AccountsView({ state, onAdd, onReconcile, onTransfer }: { state: LocalFinancialState; onAdd: () => void; onReconcile: (account: LocalFinancialState['accounts'][number]) => void; onTransfer: () => void }) {
   return (
     <div className="page-content">
       <PageHeading title="Contas" subtitle="Organize o dinheiro disponível, reservado e restrito." action={<button className="button button--primary" onClick={onAdd}><Plus size={18} />Nova conta</button>} />
-      {state.accounts.length === 0 ? <EmptyPanel icon={<WalletCards />} title="Crie sua primeira conta" description="Informe apenas os dados que você deseja manter neste dispositivo." action="Criar conta" onAction={onAdd} /> : <div className="account-grid">{state.accounts.map((account) => <article className="account-card" key={account.id}><div className="account-card__top"><span className="account-icon"><WalletCards size={20} /></span><span className={`availability availability--${account.availability}`}>{availabilityLabels[account.availability]}</span></div><h2>{account.name}</h2><p>{accountKindLabels[account.kind]}</p><strong>{hasReconciledOpeningBalance(state, account.id) ? formatBRL(calculateAccountBalance(state, account.id)) : 'A conciliar'}</strong><p>{hasReconciledOpeningBalance(state, account.id) ? 'Saldo inicial confirmado' : 'Informe o saldo atual para conciliar'}</p></article>)}</div>}
+      {state.accounts.length === 0 ? <EmptyPanel icon={<WalletCards />} title="Crie sua primeira conta" description="Informe apenas os dados que você deseja manter neste dispositivo." action="Criar conta" onAction={onAdd} /> : <div className="account-grid">{state.accounts.map((account) => {
+        const opening = accountOpeningEvent(state, account.id);
+        const confirmed = opening?.status === 'confirmed' && opening.certainty === 'confirmed';
+        const estimated = opening?.status === 'planned' && opening.certainty === 'estimated';
+        const openingAmount = opening === undefined ? 0n : opening.adjustmentDirection === 'decrease' ? -opening.amountCents : opening.amountCents;
+        return <article className="account-card" key={account.id}><div className="account-card__top"><span className="account-icon"><WalletCards size={20} /></span><span className={`availability availability--${account.availability}`}>{availabilityLabels[account.availability]}</span></div><h2>{account.name}</h2><p>{accountKindLabels[account.kind]}</p><strong>{confirmed ? formatBRL(calculateAccountBalance(state, account.id)) : estimated ? `Estimado: ${formatBRL(openingAmount)}` : 'A conciliar'}</strong><p>{confirmed ? `Saldo confirmado em ${formatFinancialDate(opening.competenceDate)}` : estimated ? 'Saldo informado como estimativa' : 'Saldo inicial ainda não informado'}</p>{confirmed ? null : <button className="text-button" onClick={() => onReconcile(account)}>{estimated ? 'Confirmar saldo' : 'Conciliar saldo'}</button>}</article>;
+      })}</div>}
       {state.accounts.length > 1 ? <button className="button button--secondary reserve-action" onClick={onTransfer}><ArrowLeftRight size={18} />Transferir ou separar reserva</button> : null}
     </div>
   );
@@ -215,6 +221,12 @@ function MovementRow({ event, state, detailed = false }: { event: FinancialEvent
   const category = state.categories.find((item) => item.id === event.categoryId);
   const Icon = event.kind === 'income' ? ArrowDownLeft : event.kind === 'expense' ? ArrowUpRight : ArrowLeftRight;
   return <div className="movement-row"><span className={`movement-icon movement-icon--${event.kind}`}><Icon size={18} /></span><span className="movement-main"><strong>{event.description}</strong><small>{eventLabel(event)} · {account?.name ?? 'Conta'}{category === undefined ? '' : ` · ${category.name}`}{detailed ? ` · ${formatFinancialDate(event.competenceDate)}${event.dueDate === undefined ? '' : ` · Vence ${formatFinancialDate(event.dueDate)}`}` : ''}</small></span><span className={`movement-amount movement-amount--${event.kind}`}>{eventAmountSign(event)}{formatBRL(event.amountCents)}</span><span className={`status-text status-text--${event.status}`}>{eventStatusLabel(event)}</span></div>;
+}
+
+function accountOpeningEvent(state: LocalFinancialState, accountId: string): FinancialEvent | undefined {
+  const opening = state.events.filter((event) => event.accountId === accountId && event.source === 'opening_balance');
+  const replaced = new Set(opening.flatMap((event) => event.replacesEventId === undefined ? [] : [event.replacesEventId]));
+  return opening.find((event) => !replaced.has(event.id) && event.status !== 'cancelled');
 }
 
 function monthLabel(today: string): string {
