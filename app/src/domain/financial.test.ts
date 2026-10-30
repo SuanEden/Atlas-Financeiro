@@ -198,6 +198,7 @@ describe('previsões financeiras e recorrências', () => {
     expect(forecast.recurringExpenseCents).toBe(1_364n);
     expect(forecast.obligationCents).toBe(22_194n);
     expect(forecast.recurringGrossIncomeCents).toBe(324_200n);
+    expect(forecast.grossIncomeReferenceCents).toBe(0n);
     expect(forecast.projectedCashChangeCents).toBe(-23_558n);
     expect(forecast.items.filter((item) => item.source === 'recurrence' && item.kind === 'expense').every((item) => item.date === undefined)).toBe(true);
   });
@@ -230,5 +231,36 @@ describe('previsões financeiras e recorrências', () => {
     const data = example();
     expect(hasReconciledOpeningBalance(data, uuid(12))).toBe(true);
     expect(hasReconciledOpeningBalance(data, uuid(10))).toBe(false);
+  });
+});
+
+
+describe('proteção de valores ainda não conciliados', () => {
+  it('mantém salário bruto fora da previsão de caixa enquanto o líquido não foi informado', () => {
+    const data = example();
+    data.events.push({
+      id: uuid(80), userId, kind: 'income', source: 'manual', status: 'planned', certainty: 'confirmed',
+      amountCents: 162_100n, accountId: uuid(10), description: 'Salário bruto Lanlink',
+      competenceDate: '2026-10-21',
+    });
+    assertFinancialDataset(data, userId);
+    const forecast = calculateFinancialForecast(data, '2026-10', 1);
+    expect(forecast.plannedIncomeCents).toBe(0n);
+    expect(forecast.grossIncomeReferenceCents).toBe(162_100n);
+    expect(forecast.projectedCashChangeCents).toBe(0n);
+  });
+
+  it('classifica fatura de cartão como obrigação e oculta vencimento provisório', () => {
+    const data = example();
+    data.categories.push({ id: uuid(21), userId, name: 'Cartão de crédito', kind: 'expense' });
+    data.events.push({
+      id: uuid(81), userId, kind: 'expense', source: 'manual', status: 'planned', certainty: 'estimated',
+      amountCents: 22_194n, accountId: uuid(10), categoryId: uuid(21), description: 'Fatura atualizada',
+      competenceDate: '2026-11-01', dueDate: '2026-11-11',
+    });
+    assertFinancialDataset(data, userId);
+    const forecast = calculateFinancialForecast(data, '2026-11', 1);
+    expect(forecast.obligationCents).toBe(22_194n);
+    expect(forecast.items.find((item) => item.eventId === uuid(81))?.date).toBeUndefined();
   });
 });
