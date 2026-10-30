@@ -155,7 +155,7 @@ function transactionAggregate(input: TransactionInput, context: CommandContext, 
     parseMonthlyRecurrenceRule(input.recurrenceJson);
     if (input.realized || input.kind === 'transfer' || input.recurrenceRuleId !== undefined) throw new TypeError('Uma regra recorrente deve ser uma receita ou despesa prevista.');
   }
-  if (input.recurrenceRuleId !== undefined && (input.recurrenceMonth === undefined || !/^\\d{4}-(0[1-9]|1[0-2])$/.test(input.recurrenceMonth))) {
+  if (input.recurrenceRuleId !== undefined && (input.recurrenceMonth === undefined || !/^\d{4}-(0[1-9]|1[0-2])$/.test(input.recurrenceMonth))) {
     throw new TypeError('Vincule a ocorrência a uma regra e competência mensal válidas.');
   }
   const description = input.description.trim() || defaultDescription(input.kind);
