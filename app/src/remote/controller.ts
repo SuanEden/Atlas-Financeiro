@@ -136,7 +136,7 @@ export class RemoteController {
         if(result==='access_denied')this.policy.deny();
         const latestState=await store.read();
         const incompatiblePending=latestState.pending.some((row)=>row.status==='pending'&&!isI3SchemaCompatible(row.envelope));
-        const notice=incompatiblePending?'A cópia local contém recorrências ou conciliações que ainda exigem uma migração versionada no servidor. Nenhum desses registros foi enviado; os dados e as pendências continuam preservados.':syncMessage(result,latestState.meta.binding==='active');
+        const notice=incompatiblePending?'A cópia local contém recorrências ou conciliações ainda não suportadas pelo esquema remoto. A sincronização permanece pendente até uma migração versionada do servidor; não considere estes dados replicados. A cópia local e as pendências continuam preservadas.':syncMessage(result,latestState.meta.binding==='active');
         this.publish({dataRevision:this.#snapshot.dataRevision+1,notice});
         return result;
       } catch {this.publish({notice:'A sincronização precisa de conferência. Os registros, a origem e as pendências foram preservados.'});return 'retry_later';}
