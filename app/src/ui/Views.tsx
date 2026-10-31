@@ -80,7 +80,7 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
       <PageHeading title="Visão geral" action={<button className="button button--primary" onClick={onAddTransaction} disabled={state.accounts.length === 0}><Plus size={18} />Novo lançamento</button>} />
       <p className="form-note">{integration ? `Cópia neste navegador. ${state.outbox.length} operações aguardando confirmação ou conferência. Consulte o painel de sincronização e guarde uma cópia em Backup.` : `Dados somente neste navegador. ${state.outbox.length} operações locais ainda sem envio remoto. Guarde uma cópia em Backup.`}</p>
 
-      <section className="money-summary" aria-label="Saldos conciliados">
+      <section className="money-summary" aria-label="Resumo dos saldos">
         <MoneyStat label="Saldo bancário conciliado" value={bankComplete ? formatBRL(bankBalance) : 'A conciliar'} />
         <MoneyStat label="Dinheiro físico" value={cashComplete ? formatBRL(physicalCash) : 'A conciliar'} />
         <MoneyStat label="Bilhete Único" value={transportComplete ? formatBRL(transportBalance) : 'A conciliar'} />
