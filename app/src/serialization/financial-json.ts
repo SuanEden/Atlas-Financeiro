@@ -114,7 +114,7 @@ export function deserializeFinancialAggregate(json: string, expectedUserId: stri
     events: root.events === undefined ? [] : readCollection(root, 'events', readEvent),
     settlements: root.settlements === undefined ? [] : readCollection(root, 'settlements', readSettlement),
     postings: root.postings === undefined ? [] : readCollection(root, 'postings', readPosting),
-    accountReconciliations: root.accountReconciliations === undefined ? [] : readCollection(root, 'accountReconciliations', readAccountReconciliation),
+    ...(root.accountReconciliations === undefined || (Array.isArray(root.accountReconciliations) && root.accountReconciliations.length === 0) ? {} : { accountReconciliations: readCollection(root, 'accountReconciliations', readAccountReconciliation) }),
   };
 }
 
