@@ -6,7 +6,7 @@ import { SyncEngine, type SyncTransport } from '../../src/sync/engine';
 import { commandEnvelope, isI3SchemaCompatible, prepareBootstrap } from '../../src/sync/protocol';
 import { serializeMonthlyRecurrenceRule } from '../../src/domain';
 import { createAccountCommand } from '../../src/application';
-import { recoveryFixture } from '../recovery-fixture';
+import { legacyRecoveryFixture as recoveryFixture, recoveryFixture as currentRecoveryFixture } from '../recovery-fixture';
 import { sqlTestServer } from './sql-test-server';
 
 const handles: {close():void}[]=[];
@@ -135,7 +135,7 @@ describe('bloqueio seguro de recursos locais ainda não migrados no servidor', (
   it('identifica bootstrap com recorrência como dependente de migração do esquema', async () => {
     const owner = await server.user();
     const source = crypto.randomUUID();
-    const data = recoveryFixture(source);
+    const data = currentRecoveryFixture(source);
     data.events.push({
       id: crypto.randomUUID(), userId: source, kind: 'expense', source: 'manual', status: 'planned', certainty: 'confirmed',
       amountCents: 1_300n, accountId: data.accounts[0]!.id, categoryId: data.categories[0]!.id,
