@@ -73,7 +73,7 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
   const grossForecast = forecast.recurringGrossIncomeCents > 0n ? forecast.recurringGrossIncomeCents : forecast.grossIncomeReferenceCents;
   const grossLabel = forecast.recurringGrossIncomeCents > 0n ? 'Salário bruto previsto (6 meses)' : 'Salário bruto de referência';
   const monthRows = Array.from({ length: 6 }, (_, index) => {
-    const [year, month] = selectedMonth.split('-').map(Number);
+    const [year = 2000, month = 1] = selectedMonth.split('-').map(Number);
     const date = new Date(Date.UTC(year, month - 6 + index, 1));
     const key = date.toISOString().slice(0, 7);
     const totals = calculateCashTotals(state, financialMonthPeriod(key + '-01'));
