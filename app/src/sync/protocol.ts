@@ -80,7 +80,7 @@ export async function prepareBootstrap(state: LocalFinancialState, sourceOwner: 
     data.schemaVersion = 2;
   }
   data.userId = authenticatedOwner;
-  for (const table of DATA_TABLES) for (const row of data[table] as JsonRecord[]) row.userId = authenticatedOwner;
+  for (const table of DATA_TABLES) for (const row of (data[table] ?? []) as JsonRecord[]) row.userId = authenticatedOwner;
   const coveredOperations = state.outbox.map((row) => {
     const operation = wireOperation(row);
     operation.userId = authenticatedOwner; operation.payload.userId = authenticatedOwner;
@@ -91,7 +91,7 @@ export async function prepareBootstrap(state: LocalFinancialState, sourceOwner: 
     protocolVersion: 1, operationId: associationId, userId: authenticatedOwner, baseRevision: '0', kind: 'bootstrap',
     source: { ownerId: sourceOwner, digest: await jsonDigest(JSON.parse(canonicalLocalState(state, sourceOwner))) }, data, coveredOperations,
   };
-  if (DATA_TABLES.reduce((sum, table) => sum + (data[table] as unknown[]).length, 0) > 5_000) throw new RangeError('Carga inicial acima de 5 mil registros; a origem foi preservada.');
+  if (DATA_TABLES.reduce((sum, table) => sum + ((data[table] ?? []) as unknown[]).length, 0) > 5_000) throw new RangeError('Carga inicial acima de 5 mil registros; a origem foi preservada.');
   if (coveredOperations.some((operation) => operation.id === associationId)) throw new TypeError('ID da associação colide com uma operação.');
   assertSize(envelope, MAX_BOOTSTRAP_BYTES);
   return envelope;
