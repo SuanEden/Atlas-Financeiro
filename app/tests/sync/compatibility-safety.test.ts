@@ -115,7 +115,12 @@ describe('bloqueio seguro de recursos locais ainda não migrados no servidor', (
     expect(f.transport.apply).not.toHaveBeenCalled();
     expect((await f.store.read()).pending).toHaveLength(1);
     expect((await server.counts(f.owner)).sync_batches).toBe('0');
-    expect(await f.snapshot()).toEqual(before);
+    const after = await f.snapshot();
+    expect(after.pending).toEqual(before.pending);
+    expect(after.meta).toEqual(before.meta);
+    expect(after.receipts).toEqual(before.receipts);
+    // An initial empty confirmed checkpoint may be created by a safe pull.
+    expect((await f.store.read()).confirmed.events).toHaveLength(0);
   });
 
   it('preserva o bloqueio remoto para fixture com conciliação ainda não migrada', async () => {
