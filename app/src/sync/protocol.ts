@@ -94,13 +94,13 @@ export function envelopeData(envelope: SyncEnvelope): FinancialDataset {
 export function mergeAppendOnly(base: FinancialDataset, incoming: FinancialDataset, owner: string): FinancialDataset {
   const merged = structuredClone(base);
   for (const table of DATA_TABLES) {
-    const rows = merged[table] as { id: string; userId: string }[];
+    const rows = (merged[table] ?? []) as { id: string; userId: string }[];
     const existing = new Map(rows.map((row) => [row.id, row]));
-    for (const row of incoming[table]) {
+    for (const row of (incoming[table] ?? [])) {
       const prior = existing.get(row.id);
       if (prior) {
         if (canonicalJson(JSON.parse(JSON.stringify(prior, centsReplacer))) !== canonicalJson(JSON.parse(JSON.stringify(row, centsReplacer)))) throw new TypeError('Mesmo ID com conteúdo financeiro diferente.');
-      } else { rows.push(structuredClone(row)); existing.set(row.id, row); }
+      } else { if (merged[table] === undefined) (merged as Record<string, unknown>)[table] = rows; rows.push(structuredClone(row)); existing.set(row.id, row); }
     }
   }
   assertFinancialDataset(merged, owner);
