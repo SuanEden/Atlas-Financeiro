@@ -34,6 +34,7 @@ function apply(dataset: FinancialDataset, command: LocalCommand): FinancialDatas
     events: [...dataset.events, ...(command.aggregate.events ?? [])],
     settlements: [...dataset.settlements, ...(command.aggregate.settlements ?? [])],
     postings: [...dataset.postings, ...(command.aggregate.postings ?? [])],
+    accountReconciliations: [...(dataset.accountReconciliations ?? []), ...(command.aggregate.accountReconciliations ?? [])],
   };
 }
 
@@ -41,7 +42,7 @@ describe('comandos financeiros locais', () => {
   it('cria conta e saldo inicial como ajuste, com outbox canônica', () => {
     const ctx = context();
     const command = createAccountCommand({
-      name: 'Conta local', kind: 'checking', availability: 'free', openingBalanceCents: 12_345n, openingDate: '2026-10-01',
+      name: 'Conta local', kind: 'checking', availability: 'free', openingBalanceCents: 12_345n, openingBalanceSource: 'Fonte sintética', openingDate: '2026-10-01',
     }, ctx);
     const dataset = apply(empty(), command);
     expect(() => assertFinancialDataset(dataset, userId)).not.toThrow();
@@ -49,12 +50,13 @@ describe('comandos financeiros locais', () => {
     expect(calculateCashTotals(dataset, { start: '2026-10-01', end: '2026-10-31' }).incomeCents).toBe(0n);
     expect(command.operation.kind).toBe('create_account');
     expect(JSON.parse(command.operation.payloadJson).events[0].amountCents).toBe('12345');
+    expect(dataset.accountReconciliations).toHaveLength(1);
   });
 
   it('registra, estorna e substitui despesa sem apagar o histórico', () => {
     const ctx = context();
     let dataset = apply(empty(), createAccountCommand({
-      name: 'Carteira', kind: 'cash', availability: 'free', openingBalanceCents: 5_000n, openingDate: '2026-10-01',
+      name: 'Carteira', kind: 'cash', availability: 'free', openingBalanceCents: 5_000n, openingBalanceSource: 'Fonte sintética', openingDate: '2026-10-01',
     }, ctx));
     const accountId = dataset.accounts[0]!.id;
     const category = createCategoryCommand({ name: 'Mercado', kind: 'expense' }, ctx);
@@ -80,7 +82,7 @@ describe('comandos financeiros locais', () => {
 
   it('estorna transferência com contrapartidas inversas e conserva o patrimônio', () => {
     const ctx = context();
-    let dataset = apply(empty(), createAccountCommand({ name: 'Origem', kind: 'cash', availability: 'free', openingBalanceCents: 10_000n, openingDate: '2026-10-01' }, ctx));
+    let dataset = apply(empty(), createAccountCommand({ name: 'Origem', kind: 'cash', availability: 'free', openingBalanceCents: 10_000n, openingBalanceSource: 'Fonte sintética', openingDate: '2026-10-01' }, ctx));
     dataset = apply(dataset, createAccountCommand({ name: 'Reserva', kind: 'savings', availability: 'reserved', openingDate: '2026-10-01' }, ctx));
     const transfer = createTransactionCommand({
       kind: 'transfer', amountCents: 2_500n, accountId: dataset.accounts[0]!.id,
@@ -128,8 +130,9 @@ describe('conciliação inicial de contas', () => {
     }, ctx);
     dataset = apply(dataset, reconciliation);
     assertFinancialDataset(dataset, userId);
-    expect(dataset.events).toHaveLength(1);
-    expect(dataset.events[0]!.amountCents).toBe(0n);
+    expect(dataset.events).toHaveLength(0);
+    expect(dataset.accountReconciliations).toHaveLength(1);
+    expect(dataset.accountReconciliations![0]!.balanceCents).toBe(0n);
     expect(dataset.settlements).toHaveLength(0);
     expect(dataset.postings).toHaveLength(0);
     expect(hasReconciledOpeningBalance(dataset, accountId)).toBe(true);
@@ -156,8 +159,9 @@ describe('conciliação inicial de contas', () => {
     }, ctx);
     dataset = apply(dataset, confirmed);
     assertFinancialDataset(dataset, userId);
-    expect(dataset.events).toHaveLength(2);
-    expect(dataset.events[1]!.replacesEventId).toBe(dataset.events[0]!.id);
+    expect(dataset.events).toHaveLength(1);
+    expect(dataset.accountReconciliations).toHaveLength(2);
+    expect(dataset.accountReconciliations![1]!.replacesReconciliationId).toBe(dataset.accountReconciliations![0]!.id);
     expect(hasReconciledOpeningBalance(dataset, accountId)).toBe(true);
     expect(calculateAccountBalance(dataset, accountId)).toBe(2_800n);
   });
