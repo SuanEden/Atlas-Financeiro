@@ -74,7 +74,7 @@ export function AccountForm({ today, busy, onCancel, onSave }: AccountFormProps)
     try {
       if (name.trim().length === 0) throw new TypeError('Informe o nome da conta.');
       const cents = openingBalance.trim() === '' ? undefined : parseBRL(openingBalance);
-      if (cents !== undefined && openingBalanceSource.trim() === '') throw new TypeError('Informe a origem do saldo inicial.');
+      // The origin may be unknown; the command records this uncertainty explicitly.
       await onSave({
         name,
         kind,
