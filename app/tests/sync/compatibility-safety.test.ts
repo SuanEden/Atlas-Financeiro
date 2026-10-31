@@ -109,6 +109,7 @@ describe('bloqueio seguro de recursos locais ainda não migrados no servidor', (
   it('não transmite uma associação com conciliação v3 ao backend v2', async () => {
     const f = await fixture();
     const before = await f.snapshot();
+    expect(f.envelope.data.schemaVersion).toBe(3);
     expect(isI3SchemaCompatible(f.envelope)).toBe(false);
     expect(await f.engine.run()).toBe('retry_later');
     expect(f.transport.apply).not.toHaveBeenCalled();
