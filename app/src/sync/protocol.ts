@@ -37,6 +37,9 @@ export async function jsonDigest(value: unknown): Promise<string> {
 /** The current remote SQL schema predates local recurrence rules and account-reconciliation records. */
 export function isI3SchemaCompatible(envelope: SyncEnvelope): boolean {
   const data = envelope.kind === 'bootstrap' ? envelope.data : envelope.operation.payload;
+  // The deployed SQL contract accepts schemaVersion 2. Version 3 requires a
+  // server-side migration; do not transmit a bootstrap that SQL would reject.
+  if (envelope.kind === 'bootstrap' && data.schemaVersion !== 2) return false;
   if (envelope.kind === 'reconcile_account') return false;
   if (Array.isArray(data.accountReconciliations) && data.accountReconciliations.length > 0) return false;
   const events = Array.isArray(data.events) ? data.events : [];
