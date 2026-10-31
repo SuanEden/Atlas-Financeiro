@@ -54,6 +54,18 @@ export function wireOperation(operation: PendingOperation): WireOperation {
   return { id: operation.id, userId: operation.userId, kind: operation.kind, createdAt: operation.createdAt, payload: JSON.parse(operation.payloadJson) as JsonRecord };
 }
 
+/** Compatibility projection for the existing remote SQL financial schema v2.
+ * Never silently strip user data. New features require a versioned server migration. */
+function legacyRemoteData(data: JsonRecord): JsonRecord {
+  const reconciliations = data.accountReconciliations;
+  if (Array.isArray(reconciliations) && reconciliations.length !== 0) throw new TypeError('Conciliações exigem migração do servidor I3; origem preservada.');
+  if ((data.events as JsonRecord[] | undefined)?.some(event => event.recurrenceJson !== undefined || event.recurrenceRuleId !== undefined || event.recurrenceMonth !== undefined)) {
+    throw new TypeError('Recorrências exigem migração do servidor I3; origem preservada.');
+  }
+  const { accountReconciliations: _ignored, ...legacy } = data;
+  return { ...legacy, schemaVersion: 2 };
+}
+
 export function commandEnvelope(operation: PendingOperation, baseRevision: string): CommandEnvelope {
   assertRevision(baseRevision);
   const envelope: CommandEnvelope = { protocolVersion: 1, operationId: operation.id, userId: operation.userId, baseRevision, kind: operation.kind, operation: wireOperation(operation) };
@@ -66,7 +78,7 @@ export async function prepareBootstrap(state: LocalFinancialState, sourceOwner: 
   assertEntityId(authenticatedOwner); assertEntityId(associationId);
   // Reuse the strict I2 boundary before changing ownership, including payload-to-snapshot coverage.
   validateI2Backup(serializeLocalBackup(state, sourceOwner));
-  const data = JSON.parse(serializeFinancialDataset(state, sourceOwner)) as JsonRecord;
+  const data = legacyRemoteData(JSON.parse(serializeFinancialDataset(state, sourceOwner)) as JsonRecord);
   data.userId = authenticatedOwner;
   for (const table of DATA_TABLES) for (const row of data[table] as JsonRecord[]) row.userId = authenticatedOwner;
   const coveredOperations = state.outbox.map((row) => {
