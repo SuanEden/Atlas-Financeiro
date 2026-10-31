@@ -70,6 +70,15 @@ export async function prepareBootstrap(state: LocalFinancialState, sourceOwner: 
   // Reuse the strict I2 boundary before changing ownership, including payload-to-snapshot coverage.
   validateI2Backup(serializeLocalBackup(state, sourceOwner));
   const data = JSON.parse(serializeFinancialDataset(state, sourceOwner)) as JsonRecord;
+  // Preserve wire compatibility for genuine legacy I2 data only. New v3
+  // reconciliations/recurrences are never dropped or silently downgraded.
+  const hasReconciliations = Array.isArray(data.accountReconciliations) && data.accountReconciliations.length > 0;
+  const hasRecurrences = Array.isArray(data.events) && data.events.some((row: JsonRecord) =>
+    row.recurrenceJson !== undefined || row.recurrenceRuleId !== undefined || row.recurrenceMonth !== undefined);
+  if (!hasReconciliations && !hasRecurrences) {
+    delete data.accountReconciliations;
+    data.schemaVersion = 2;
+  }
   data.userId = authenticatedOwner;
   for (const table of DATA_TABLES) for (const row of data[table] as JsonRecord[]) row.userId = authenticatedOwner;
   const coveredOperations = state.outbox.map((row) => {
