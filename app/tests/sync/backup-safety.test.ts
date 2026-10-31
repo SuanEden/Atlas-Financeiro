@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { IDBObjectStore as FakeObjectStore } from 'fake-indexeddb';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { sqlTestServer } from './sql-test-server';
-import { recoveryFixture } from '../recovery-fixture';
+import { legacyRecoveryFixture as recoveryFixture } from '../recovery-fixture';
 import { createAccountCommand, createTransactionCommand, replaceEventCommand, type CommandContext } from '../../src/application';
 import { calculateAvailabilityBalances } from '../../src/domain';
 import { createLocalFinancialStore } from '../../src/persistence';
