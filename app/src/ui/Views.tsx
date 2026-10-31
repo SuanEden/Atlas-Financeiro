@@ -1,4 +1,5 @@
 import { SyncRecoveryPanel } from './SyncRecoveryPanel';
+import { FinanceCharts } from './FinanceCharts';
 import {
   ArrowDownLeft,
   ArrowLeftRight,
@@ -123,6 +124,7 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
         </div>
       </section>
 
+      <FinanceCharts state={state} month={selectedMonth} />
       <div className="dashboard-columns">
         <section aria-labelledby="accounts-title"><div className="section-heading"><h2 id="accounts-title">Contas</h2><button className="text-button" onClick={() => onNavigate('accounts')}>Ver todas</button></div>{state.accounts.length === 0 ? <CompactEmpty text="Nenhuma conta criada." /> : <div className="plain-list">{state.accounts.slice(0, 4).map((account) => <div className="account-row" key={account.id}><span className="account-icon"><WalletCards size={19} /></span><span><strong>{account.name}</strong><small>{availabilityLabels[account.availability]} · {reconciled(account.id) ? 'Saldo conciliado' : 'Saldo a conciliar'}</small></span><b>{accountBalanceLabel(state, account.id)}</b></div>)}</div>}</section>
         <section aria-labelledby="recent-title"><div className="section-heading"><h2 id="recent-title">Movimentações recentes</h2><button className="text-button" onClick={() => onNavigate('movements')}>Ver todas</button></div>{recent.length === 0 ? <CompactEmpty text="Nenhum lançamento realizado ou previsto." /> : <div className="plain-list">{recent.map((event) => <MovementRow event={event} state={state} key={event.id} />)}</div>}</section>
