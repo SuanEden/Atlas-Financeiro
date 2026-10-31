@@ -98,7 +98,7 @@ export function deserializeFinancialDataset(json: string, expectedUserId: string
     events: readCollection(root, 'events', readEvent),
     settlements: readCollection(root, 'settlements', readSettlement),
     postings: readCollection(root, 'postings', readPosting),
-    accountReconciliations: root.accountReconciliations === undefined ? [] : readCollection(root, 'accountReconciliations', readAccountReconciliation),
+    ...(Array.isArray(root.accountReconciliations) && root.accountReconciliations.length === 0 ? {} : root.accountReconciliations === undefined ? {} : { accountReconciliations: readCollection(root, 'accountReconciliations', readAccountReconciliation) }),
   };
   assertFinancialDataset(dataset, expectedUserId);
   return dataset;
