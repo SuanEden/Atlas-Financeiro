@@ -106,6 +106,17 @@ describe('compatibilidade local preserva bytes/IDs e falha antes do envio',()=>{
 
 
 describe('bloqueio seguro de recursos locais ainda não migrados no servidor', () => {
+  it('não transmite uma associação com conciliação v3 ao backend v2', async () => {
+    const f = await fixture();
+    const before = await f.snapshot();
+    expect(isI3SchemaCompatible(f.envelope)).toBe(false);
+    expect(await f.engine.run()).toBe('retry_later');
+    expect(f.transport.apply).not.toHaveBeenCalled();
+    expect((await f.store.read()).pending).toHaveLength(1);
+    expect((await server.counts(f.owner)).sync_batches).toBe('0');
+    expect(await f.snapshot()).toEqual(before);
+  });
+
   it('preserva o bloqueio remoto para fixture com conciliação ainda não migrada', async () => {
     const f = await fixture();
     const events = f.envelope.data.events as Record<string, unknown>[];
