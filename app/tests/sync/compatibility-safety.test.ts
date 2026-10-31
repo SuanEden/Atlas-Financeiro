@@ -15,11 +15,11 @@ beforeAll(async()=>{server=await sqlTestServer();},30_000);
 afterAll(async()=>{await server?.close();});
 afterEach(()=>{handles.splice(0).forEach(handle=>handle.close());});
 
-async function fixture() {
+async function fixture(useCurrentSchema = false) {
   const owner=await server.user();
   const store=new LocalSyncStore(owner,'synthetic-compatibility',crypto.randomUUID());handles.push(store);
   const raw=new Dexie(store.name);raw.version(1).stores({confirmed:'id',pending:'id,ordinal,status',receipts:'id,revision',meta:'id'});handles.push(raw);
-  const source=crypto.randomUUID();const envelope=await prepareBootstrap(recoveryFixture(source),source,owner,crypto.randomUUID());
+  const source=crypto.randomUUID();const envelope=await prepareBootstrap(useCurrentSchema ? currentRecoveryFixture(source) : recoveryFixture(source),source,owner,crypto.randomUUID());
   await store.prepareAssociation(envelope);
   const transport:SyncTransport={apply:vi.fn(packet=>server.apply(owner,packet)),pull:vi.fn((after,through)=>server.pull(owner,after,through))};
   const engine=new SyncEngine(store,transport,()=>({userId:owner,epoch:1,canTransmit:true}));
@@ -107,7 +107,7 @@ describe('compatibilidade local preserva bytes/IDs e falha antes do envio',()=>{
 
 describe('bloqueio seguro de recursos locais ainda não migrados no servidor', () => {
   it('não transmite uma associação com conciliação v3 ao backend v2', async () => {
-    const f = await fixture();
+    const f = await fixture(true);
     const before = await f.snapshot();
     expect(f.envelope.data.schemaVersion).toBe(3);
     expect(isI3SchemaCompatible(f.envelope)).toBe(false);
@@ -119,7 +119,7 @@ describe('bloqueio seguro de recursos locais ainda não migrados no servidor', (
   });
 
   it('preserva o bloqueio remoto para fixture com conciliação ainda não migrada', async () => {
-    const f = await fixture();
+    const f = await fixture(true);
     const events = f.envelope.data.events as Record<string, unknown>[];
     const unsupported = events.filter((event) =>
       event.recurrenceJson !== undefined || event.recurrenceRuleId !== undefined || event.recurrenceMonth !== undefined
