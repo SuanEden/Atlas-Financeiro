@@ -352,3 +352,29 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .movement-filters { grid-template-columns: 1fr; }
   .movement-filters .movement-search { grid-column: auto; }
 }
+
+.finance-charts { margin: 26px 0; }
+.finance-chart-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px; }
+.finance-chart-card { padding:20px; border:1px solid var(--line);border-radius:14px;background:var(--surface);min-width:0; }
+.finance-chart-card h3 { font-size:1rem;margin:0 0 6px; }
+.finance-chart-card > p { font-size:.8rem;color:var(--muted);margin:0 0 14px; }
+.finance-chart-svg { display:block;width:100%;max-height:290px;color:var(--muted); }
+.finance-chart-legend {display:flex;gap:16px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin:8px 0;}
+.finance-chart-legend span {display:flex;align-items:center;gap:7px;}
+.finance-dot {display:inline-block;width:10px;height:10px;border-radius:3px;}
+.finance-dot--income {background:var(--positive);}
+.finance-dot--expense {background:var(--negative);}
+.finance-chart-details {display:grid;gap:6px;margin-top:15px;font-size:.78rem;}
+.finance-chart-details > div {display:grid;grid-template-columns:1fr 1.3fr 1.3fr;gap:9px;border-top:1px solid var(--line);padding-top:7px;}
+.finance-chart-details span {text-align:right; overflow-wrap:anywhere;}
+.finance-chart-empty {min-height:160px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);font-size:.9rem;}
+.finance-donut {width:210px;aspect-ratio:1;border-radius:50%;margin:12px auto 24px;display:grid;place-items:center;}
+.finance-donut > div {width:74%;height:74%;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;padding:12px;text-align:center;}
+.finance-donut small {color:var(--muted);}
+.finance-donut strong {font-size:1rem;overflow-wrap:anywhere;}
+.finance-category-legend {display:grid;gap:10px;}
+.finance-category-legend > div {display:grid;grid-template-columns:11px minmax(0,1fr) auto;gap:9px;align-items:center;font-size:.81rem;}
+.finance-category-legend i {width:11px;height:11px;border-radius:3px;}
+.finance-category-legend span {overflow-wrap:anywhere;}
+.finance-category-legend strong {font-variant-numeric:tabular-nums;}
+@media(max-width:780px){.finance-chart-grid{grid-template-columns:1fr;}.finance-chart-card{padding:16px;}}
