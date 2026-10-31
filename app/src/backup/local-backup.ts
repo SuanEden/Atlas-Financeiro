@@ -2,7 +2,7 @@ import { assertEntityId, type LocalFinancialState } from '../domain';
 import { serializeFinancialDataset } from '../serialization';
 import { assertPendingOperation } from '../serialization/pending-operation';
 
-export const LOCAL_BACKUP_SCHEMA_VERSION = 1 as const;
+export const LOCAL_BACKUP_SCHEMA_VERSION = 2 as const;
 
 /** I2-compatible export. Limited empty-origin recovery is separate; full restore remains I4. */
 export function serializeLocalBackup(state: LocalFinancialState, userId: string, exportedAt = new Date().toISOString()): string {
@@ -34,6 +34,7 @@ export function serializeLocalBackup(state: LocalFinancialState, userId: string,
       events: state.events.length,
       settlements: state.settlements.length,
       postings: state.postings.length,
+      accountReconciliations: (state.accountReconciliations ?? []).length,
       pendingOperations: state.outbox.length,
       attachmentsIncluded: false,
     },

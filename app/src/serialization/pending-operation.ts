@@ -4,7 +4,7 @@ export function assertPendingOperation(operation: PendingOperation, userId: stri
   assertEntityId(operation.id, 'Operação pendente');
   assertEntityId(operation.userId, 'Proprietário da operação');
   if (operation.userId !== userId) throw new TypeError('A operação pendente pertence a outro usuário.');
-  const kinds = ['create_account', 'create_category', 'record_event', 'reverse_event', 'replace_event'];
+  const kinds = ['create_account', 'create_category', 'record_event', 'reverse_event', 'replace_event', 'reconcile_account'];
   if (!kinds.includes(operation.kind)) throw new TypeError('Tipo de operação pendente inválido.');
   if (typeof operation.createdAt !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(operation.createdAt)) {
     throw new TypeError('Instante da operação pendente inválido.');

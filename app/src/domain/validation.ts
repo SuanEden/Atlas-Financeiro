@@ -1,5 +1,6 @@
 import { assertEntryAmount, assertPostingAmount, sumCents } from './money';
 import type { FinancialDataset, OwnedEntity } from './models';
+import { parseMonthlyRecurrenceRule } from './recurrence';
 
 function fail(message: string): never {
   throw new TypeError(message);
@@ -55,6 +56,7 @@ export function assertFinancialDataset(dataset: FinancialDataset, expectedUserId
   const events = assertOwnedRows(dataset.events, expectedUserId, 'Eventos');
   const settlements = assertOwnedRows(dataset.settlements, expectedUserId, 'Liquidações');
   assertOwnedRows(dataset.postings, expectedUserId, 'Contrapartidas');
+  const reconciliations = assertOwnedRows(dataset.accountReconciliations ?? [], expectedUserId, 'Conciliações');
 
   for (const account of accounts.values()) {
     assertText(account.name, 'Nome da conta', 120);
@@ -105,8 +107,25 @@ export function assertFinancialDataset(dataset: FinancialDataset, expectedUserId
     }
     if (event.reversesEventId !== undefined) assertEntityId(event.reversesEventId, 'Evento estornado');
     if (event.replacesEventId !== undefined) assertEntityId(event.replacesEventId, 'Evento substituído');
+    if (event.recurrenceJson !== undefined) {
+      parseMonthlyRecurrenceRule(event.recurrenceJson);
+      if (event.status !== 'planned' || (event.kind !== 'income' && event.kind !== 'expense') || event.recurrenceRuleId !== undefined || event.recurrenceMonth !== undefined) {
+        fail('Uma regra recorrente deve ser um modelo previsto de receita ou despesa.');
+      }
+    }
+    if (event.recurrenceRuleId !== undefined) {
+      assertEntityId(event.recurrenceRuleId, 'Regra recorrente');
+      if (event.recurrenceMonth === undefined || !/^\d{4}-(0[1-9]|1[0-2])$/.test(event.recurrenceMonth)) fail('Ocorrência recorrente exige competência AAAA-MM.');
+    } else if (event.recurrenceMonth !== undefined) fail('Competência recorrente exige uma regra vinculada.');
     if (event.reversesEventId !== undefined && event.replacesEventId !== undefined) {
       fail('Um evento não pode ser estorno e substituição ao mesmo tempo.');
+    }
+  }
+
+  for (const event of events.values()) {
+    if (event.recurrenceRuleId !== undefined) {
+      const rule = events.get(event.recurrenceRuleId);
+      if (!rule || rule.recurrenceJson === undefined || rule.kind !== event.kind || rule.id === event.id) fail('A ocorrência deve apontar para uma regra recorrente compatível.');
     }
   }
 
@@ -137,6 +156,41 @@ export function assertFinancialDataset(dataset: FinancialDataset, expectedUserId
     }
   }
 
+  const replacedReconciliations = new Set<string>();
+  const reconciliationEventIds = new Set<string>();
+  for (const reconciliation of reconciliations.values()) {
+    assertEntityId(reconciliation.accountId, 'Conta conciliada');
+    if (!accounts.has(reconciliation.accountId)) fail('Conciliação aponta para conta inexistente.');
+    if (typeof reconciliation.balanceCents !== 'bigint') fail('Saldo de conciliação inválido.');
+    if (reconciliation.balanceCents !== 0n) assertEntryAmount(reconciliation.balanceCents < 0n ? -reconciliation.balanceCents : reconciliation.balanceCents);
+    assertIsoDate(reconciliation.referenceDate);
+    assertText(reconciliation.sourceDescription, 'Origem da conciliação', 300);
+    assertEnum(reconciliation.certainty, ['confirmed', 'estimated'], 'Certeza da conciliação');
+    if (reconciliation.eventId !== undefined) {
+      assertEntityId(reconciliation.eventId, 'Evento de saldo inicial');
+      const event = events.get(reconciliation.eventId);
+      const amount = reconciliation.balanceCents < 0n ? -reconciliation.balanceCents : reconciliation.balanceCents;
+      const direction = reconciliation.balanceCents < 0n ? 'decrease' : 'increase';
+      if (reconciliation.certainty !== 'confirmed' || amount === 0n || !event || event.source !== 'opening_balance' || event.kind !== 'adjustment'
+        || event.status !== 'confirmed' || event.certainty !== 'confirmed' || event.accountId !== reconciliation.accountId
+        || event.amountCents !== amount || event.adjustmentDirection !== direction || event.competenceDate !== reconciliation.referenceDate) {
+        fail('O evento de abertura não corresponde à conciliação confirmada.');
+      }
+      if (reconciliationEventIds.has(event.id)) fail('Um evento de abertura não pode representar duas conciliações.');
+      reconciliationEventIds.add(event.id);
+    } else if (reconciliation.certainty === 'confirmed' && reconciliation.balanceCents !== 0n) {
+      fail('Conciliação confirmada diferente de zero exige ajuste no razão.');
+    }
+    if (reconciliation.replacesReconciliationId !== undefined) {
+      assertEntityId(reconciliation.replacesReconciliationId, 'Conciliação substituída');
+      const original = reconciliations.get(reconciliation.replacesReconciliationId);
+      if (!original || original.accountId !== reconciliation.accountId || original.certainty !== 'estimated' || original.id === reconciliation.id) {
+        fail('Substituição de conciliação exige estimativa anterior da mesma conta.');
+      }
+      if (replacedReconciliations.has(original.id)) fail('Uma estimativa não pode receber duas confirmações.');
+      replacedReconciliations.add(original.id);
+    }
+  }
   const settledByEvent = new Map<string, bigint>();
   for (const settlement of settlements.values()) {
     assertEntryAmount(settlement.amountCents);

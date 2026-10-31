@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sqlTestServer } from './sql-test-server';
-import { recoveryFixture } from '../recovery-fixture';
+import { legacyRecoveryFixture as recoveryFixture } from '../recovery-fixture';
 import { commandEnvelope, emptyDataset, envelopeData, jsonDigest, mergeAppendOnly, prepareBootstrap, receiptAcknowledges, type SyncEnvelope, type BootstrapEnvelope } from '../../src/sync/protocol';
 import { createAccountCommand, createTransactionCommand, replaceEventCommand, type CommandContext } from '../../src/application';
 import { calculateAvailabilityBalances, type LocalFinancialState } from '../../src/domain';

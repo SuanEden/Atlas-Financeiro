@@ -4,7 +4,7 @@ import type { AuthPort } from '../auth/supabase-adapter';
 import type { AuthReturn } from '../auth/callback';
 import { SyncEngine, SyncFailure, type SyncResult, type SyncTransport } from '../sync/engine';
 import { LocalSyncStore } from '../sync/local-sync-store';
-import { commandEnvelope, prepareBootstrap, type BootstrapEnvelope } from '../sync/protocol';
+import { commandEnvelope, isI3SchemaCompatible, prepareBootstrap, type BootstrapEnvelope } from '../sync/protocol';
 import { canonicalLocalState } from '../backup/validate-i2-backup';
 import { jsonDigest } from '../sync/protocol';
 import type { LocalFinancialState } from '../domain';
@@ -134,7 +134,10 @@ export class RemoteController {
         if(active&&this.policy.snapshot.onlineVerified)this.policy.markAssociated(store.userId);
         if(result==='login_required')this.policy.expire();
         if(result==='access_denied')this.policy.deny();
-        this.publish({dataRevision:this.#snapshot.dataRevision+1,notice:syncMessage(result,(await store.read()).meta.binding==='active')});
+        const latestState=await store.read();
+        const incompatiblePending=latestState.pending.some((row)=>row.status==='pending'&&!isI3SchemaCompatible(row.envelope));
+        const notice=incompatiblePending?'A cópia local contém recorrências ou conciliações ainda não suportadas pelo esquema remoto. A sincronização permanece pendente até uma migração versionada do servidor; não considere estes dados replicados. A cópia local e as pendências continuam preservadas.':syncMessage(result,latestState.meta.binding==='active');
+        this.publish({dataRevision:this.#snapshot.dataRevision+1,notice});
         return result;
       } catch {this.publish({notice:'A sincronização precisa de conferência. Os registros, a origem e as pendências foram preservados.'});return 'retry_later';}
       finally {this.publish({syncing:false});}

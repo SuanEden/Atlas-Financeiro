@@ -72,7 +72,7 @@ test('receitas, previsões, realização, estorno, exportação e reabertura pre
   await forecast.getByRole('button', { name: 'Editar' }).click();
   await page.getByLabel('Valor em reais').fill('13,00');
   await page.getByText('Mais detalhes', { exact: true }).click();
-  await page.getByRole('combobox', { name: 'Status', exact: true }).selectOption('realized');
+  await page.getByRole('dialog').getByRole('combobox', { name: 'Status', exact: true }).selectOption('realized');
   await page.getByRole('button', { name: 'Salvar correção' }).click();
   for (const description of ['Despesa sintética', 'Receita sintética', 'Receita prevista sintética']) {
     const row = page.locator('.history-row').filter({ has: page.getByText(description, { exact: true }) });

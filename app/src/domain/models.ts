@@ -37,6 +37,11 @@ export interface FinancialEvent extends OwnedEntity {
   reversesEventId?: string;
   /** An edit appends a replacement instead of overwriting the original event. */
   replacesEventId?: string;
+  /** JSON-encoded monthly rule; a template is not a cash movement. */
+  recurrenceJson?: string;
+  /** Links a real or planned occurrence to its recurring template. */
+  recurrenceRuleId?: string;
+  recurrenceMonth?: string;
 }
 
 /** Only effective settlements are recorded here; forecasts remain events. */
@@ -53,12 +58,22 @@ export interface Posting extends OwnedEntity {
   amountCents: MoneyCents;
 }
 
+export interface AccountReconciliation extends OwnedEntity {
+  accountId: string;
+  balanceCents: MoneyCents;
+  referenceDate: IsoDate;
+  sourceDescription: string;
+  certainty: 'confirmed' | 'estimated';
+  eventId?: string;
+  replacesReconciliationId?: string;
+}
 export interface FinancialDataset {
   accounts: Account[];
   categories: Category[];
   events: FinancialEvent[];
   settlements: Settlement[];
   postings: Posting[];
+  accountReconciliations?: AccountReconciliation[];
 }
 
 export interface DatePeriod {
@@ -84,7 +99,8 @@ export type PendingOperationKind =
   | 'create_category'
   | 'record_event'
   | 'reverse_event'
-  | 'replace_event';
+  | 'replace_event'
+  | 'reconcile_account';
 
 /** Durable local operation prepared for the future remote synchronization layer. */
 export interface PendingOperation extends OwnedEntity {

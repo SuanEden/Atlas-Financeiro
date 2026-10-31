@@ -5,7 +5,7 @@ import type { AuthIdentity, AuthPort } from '../../src/auth/supabase-adapter';
 import { SyncFailure, type SyncTransport } from '../../src/sync/engine';
 import { createTransactionCommand, createDefaultCommandContext } from '../../src/application';
 import { sqlTestServer } from './sql-test-server';
-import { recoveryFixture } from '../recovery-fixture';
+import { legacyRecoveryFixture as recoveryFixture } from '../recovery-fixture';
 import { calculateAvailabilityBalances } from '../../src/domain';
 
 let server:Awaited<ReturnType<typeof sqlTestServer>>;

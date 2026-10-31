@@ -102,7 +102,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .text-button { border: 0; padding: 4px; background: transparent; color: var(--accent-dark); font-size: .82rem; font-weight: 700; }
 .text-button--danger { color: var(--danger); }
 
-.money-summary { display: grid; grid-template-columns: repeat(3, 1fr); border-block: 1px solid var(--line); margin-bottom: 34px; }
+.money-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--line); margin-bottom: 34px; }
 .money-summary > div { display: grid; gap: 8px; padding: 24px 30px; border-right: 1px solid var(--line); }
 .money-summary > div:first-child { padding-left: 0; }
 .money-summary > div:last-child { border-right: 0; }
@@ -302,3 +302,53 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .sync-conflicts h2 { font-size: 1rem; }
 .sync-conflicts details { padding: 12px 0; overflow-wrap: anywhere; }
 @media (max-width: 760px) { .sync-panel { margin: 12px 16px 0; } .access-card { padding: 20px; } }
+
+
+.period-filter { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: .8rem; }
+.period-filter input { min-height: 38px; max-width: 170px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); padding: 0 10px; }
+.forecast-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.forecast-grid > div { display: grid; min-width: 0; gap: 9px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); padding: 18px; }
+.forecast-grid span { color: var(--muted); font-size: .78rem; }
+.forecast-grid strong { overflow-wrap: anywhere; font-size: 1.15rem; letter-spacing: -.025em; }
+.upcoming-obligations { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 18px; }
+.upcoming-obligations .section-heading { margin-bottom: 8px; }
+.upcoming-obligations h3 { margin: 0; font-size: .92rem; }
+.obligation-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding: 13px 0; }
+.obligation-row > span { display: grid; min-width: 0; gap: 4px; }
+.obligation-row strong { overflow-wrap: anywhere; font-size: .86rem; }
+.obligation-row small { color: var(--muted); font-size: .75rem; }
+.obligation-row b { flex: 0 0 auto; font-size: .86rem; }
+.recurrence-fields { display: grid; gap: 12px; border-left: 3px solid var(--accent-soft); margin-top: 14px; padding-left: 14px; }
+.check-field { display: flex; align-items: center; gap: 10px; font-size: .86rem; }
+.check-field input { width: 18px; height: 18px; accent-color: var(--accent); }
+.history-row .movement-main strong, .history-row .movement-main small { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
+
+@media (max-width: 760px) {
+  .forecast-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .period-filter { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .period-filter input { max-width: 100%; }
+}
+
+@media (max-width: 420px) {
+  .forecast-grid { grid-template-columns: 1fr; }
+  .obligation-row { align-items: flex-start; }
+}
+
+@media (max-width: 760px) {
+  .money-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .money-summary > div:last-child { grid-column: auto; }
+  .money-summary > div:nth-child(2n) { border-right: 0; }
+}
+
+
+.movement-filters { display: grid; grid-template-columns: minmax(150px, .8fr) minmax(180px, .9fr) minmax(220px, 1.4fr) auto; align-items: end; gap: 12px; margin: 18px 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.movement-filters label { display: grid; min-width: 0; gap: 6px; color: var(--muted); font-size: .76rem; }
+.movement-filters input, .movement-filters select { width: 100%; min-width: 0; min-height: 38px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); padding: 0 10px; }
+@media (max-width: 760px) {
+  .movement-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .movement-filters .movement-search { grid-column: 1 / -1; }
+}
+@media (max-width: 420px) {
+  .movement-filters { grid-template-columns: 1fr; }
+  .movement-filters .movement-search { grid-column: auto; }
+}

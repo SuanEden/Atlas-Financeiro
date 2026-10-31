@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { calculateAccountBalance, calculateAccrualTotals, calculateAvailabilityBalances, calculateCashTotals } from './calculations';
+import { calculateAccountBalance, calculateAccrualTotals, calculateAvailabilityBalances, calculateCashTotals, calculateFinancialForecast, hasReconciledOpeningBalance } from './calculations';
 import type { FinancialDataset } from './models';
 import { assertEntityId, assertFinancialDataset, assertIsoDate } from './validation';
+import { serializeMonthlyRecurrenceRule } from './recurrence';
 
 const uuid = (number: number): string => `00000000-0000-4000-8000-${number.toString().padStart(12, '0')}`;
 const userId = uuid(1);
@@ -150,5 +151,117 @@ describe('prevenção de inconsistências', () => {
     for (const invalid of ['2026-02-29', '2026-04-31', '2026-13-01', '0000-01-01', '24/10/2026', '2026-01-01T00:00:00Z']) {
       expect(() => assertIsoDate(invalid)).toThrow();
     }
+  });
+});
+
+
+describe('previsões financeiras e recorrências', () => {
+  it('separa obrigações, previsões, recorrências e salário bruto sem inflar caixa projetado', () => {
+    const data = example();
+    const spotifyId = uuid(60);
+    const salaryId = uuid(61);
+    data.events.push(
+      {
+        id: spotifyId, userId, kind: 'expense', source: 'manual', status: 'planned', certainty: 'confirmed',
+        amountCents: 682n, accountId: uuid(10), categoryId: uuid(20), description: 'Spotify',
+        competenceDate: '2026-11-01',
+        recurrenceJson: serializeMonthlyRecurrenceRule({
+          frequency: 'monthly', status: 'active', startMonth: '2026-11', nextOccurrenceMonth: '2026-11',
+          necessity: 'unknown', amountBasis: 'fixed', firstOccurrence: 'normal',
+        }),
+      },
+      {
+        id: salaryId, userId, kind: 'income', source: 'manual', status: 'planned', certainty: 'confirmed',
+        amountCents: 162_100n, accountId: uuid(10), description: 'Salário bruto Lanlink',
+        competenceDate: '2026-10-21',
+        recurrenceJson: serializeMonthlyRecurrenceRule({
+          frequency: 'monthly', status: 'active', startMonth: '2026-10', startDate: '2026-10-21',
+          nextOccurrenceMonth: '2026-11', necessity: 'unknown', amountBasis: 'gross',
+          firstOccurrence: 'prorated_unknown', firstOccurrenceMonth: '2026-10',
+        }),
+      },
+      {
+        id: uuid(62), userId, kind: 'expense', source: 'manual', status: 'planned', certainty: 'confirmed',
+        amountCents: 22_194n, accountId: uuid(10), categoryId: uuid(20), description: 'Fatura do cartão',
+        competenceDate: '2026-11-01',
+      },
+      {
+        id: uuid(63), userId, kind: 'income', source: 'manual', status: 'planned', certainty: 'estimated',
+        amountCents: 40_267n, accountId: uuid(10), description: 'Recebimento ainda não confirmado',
+        competenceDate: '2026-10-28',
+      },
+    );
+    assertFinancialDataset(data, userId);
+    const forecast = calculateFinancialForecast(data, '2026-11', 2);
+    expect(forecast.plannedIncomeCents).toBe(0n);
+    expect(forecast.plannedExpenseCents).toBe(1_364n);
+    expect(forecast.recurringExpenseCents).toBe(1_364n);
+    expect(forecast.obligationCents).toBe(22_194n);
+    expect(forecast.recurringGrossIncomeCents).toBe(324_200n);
+    expect(forecast.grossIncomeReferenceCents).toBe(0n);
+    expect(forecast.projectedCashChangeCents).toBe(-23_558n);
+    expect(forecast.items.filter((item) => item.source === 'recurrence' && item.kind === 'expense').every((item) => item.date === undefined)).toBe(true);
+  });
+
+  it('não duplica uma competência recorrente já vinculada a um lançamento', () => {
+    const data = example();
+    const ruleId = uuid(70);
+    data.events.push({
+      id: ruleId, userId, kind: 'expense', source: 'manual', status: 'planned', certainty: 'confirmed',
+      amountCents: 1_300n, accountId: uuid(10), categoryId: uuid(20), description: 'Internet',
+      competenceDate: '2026-11-01',
+      recurrenceJson: serializeMonthlyRecurrenceRule({
+        frequency: 'monthly', status: 'active', startMonth: '2026-11', nextOccurrenceMonth: '2026-11',
+        necessity: 'unknown', amountBasis: 'fixed', firstOccurrence: 'normal',
+      }),
+    });
+    data.events.push({
+      id: uuid(71), userId, kind: 'expense', source: 'manual', status: 'planned', certainty: 'confirmed',
+      amountCents: 1_300n, accountId: uuid(10), categoryId: uuid(20), description: 'Internet · cobrança de novembro',
+      competenceDate: '2026-11-05', recurrenceRuleId: ruleId, recurrenceMonth: '2026-11',
+    });
+    assertFinancialDataset(data, userId);
+    const forecast = calculateFinancialForecast(data, '2026-11', 2);
+    expect(forecast.plannedExpenseCents).toBe(1_300n);
+    expect(forecast.obligationCents).toBe(1_300n);
+    expect(forecast.items.filter((item) => item.eventId === ruleId)).toHaveLength(1);
+    expect(forecast.items.filter((item) => item.eventId === uuid(71))).toHaveLength(1);
+  });
+
+  it('só considera saldo inicial conciliado quando a referência está confirmada e ativa', () => {
+    const data = example();
+    expect(hasReconciledOpeningBalance(data, uuid(12))).toBe(true);
+    expect(hasReconciledOpeningBalance(data, uuid(10))).toBe(false);
+  });
+});
+
+
+describe('proteção de valores ainda não conciliados', () => {
+  it('mantém salário bruto fora da previsão de caixa enquanto o líquido não foi informado', () => {
+    const data = example();
+    data.events.push({
+      id: uuid(80), userId, kind: 'income', source: 'manual', status: 'planned', certainty: 'confirmed',
+      amountCents: 162_100n, accountId: uuid(10), description: 'Salário bruto Lanlink',
+      competenceDate: '2026-10-21',
+    });
+    assertFinancialDataset(data, userId);
+    const forecast = calculateFinancialForecast(data, '2026-10', 1);
+    expect(forecast.plannedIncomeCents).toBe(0n);
+    expect(forecast.grossIncomeReferenceCents).toBe(162_100n);
+    expect(forecast.projectedCashChangeCents).toBe(0n);
+  });
+
+  it('classifica fatura de cartão como obrigação e oculta vencimento provisório', () => {
+    const data = example();
+    data.categories.push({ id: uuid(21), userId, name: 'Cartão de crédito', kind: 'expense' });
+    data.events.push({
+      id: uuid(81), userId, kind: 'expense', source: 'manual', status: 'planned', certainty: 'estimated',
+      amountCents: 22_194n, accountId: uuid(10), categoryId: uuid(21), description: 'Fatura atualizada',
+      competenceDate: '2026-11-01', dueDate: '2026-11-11',
+    });
+    assertFinancialDataset(data, userId);
+    const forecast = calculateFinancialForecast(data, '2026-11', 1);
+    expect(forecast.obligationCents).toBe(22_194n);
+    expect(forecast.items.find((item) => item.eventId === uuid(81))?.date).toBeUndefined();
   });
 });

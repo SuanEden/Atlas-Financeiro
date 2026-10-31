@@ -3,6 +3,7 @@ import {
   decodeCents,
   encodeCents,
   type Account,
+  type AccountReconciliation,
   type Category,
   type FinancialDataset,
   type FinancialEvent,
@@ -10,7 +11,7 @@ import {
   type Settlement,
 } from '../domain';
 
-export const FINANCIAL_JSON_SCHEMA_VERSION = 2 as const;
+export const FINANCIAL_JSON_SCHEMA_VERSION = 3 as const;
 
 /**
  * A versioned data representation for the local foundation and its tests.
@@ -53,6 +54,9 @@ export function serializeFinancialDataset(dataset: FinancialDataset, userId: str
       adjustmentDirection: event.adjustmentDirection,
       reversesEventId: event.reversesEventId,
       replacesEventId: event.replacesEventId,
+      recurrenceJson: event.recurrenceJson,
+      recurrenceRuleId: event.recurrenceRuleId,
+      recurrenceMonth: event.recurrenceMonth,
     })),
     settlements: dataset.settlements.map((settlement) => ({
       id: settlement.id,
@@ -61,6 +65,11 @@ export function serializeFinancialDataset(dataset: FinancialDataset, userId: str
       amountCents: encodeCents(settlement.amountCents),
       paymentDate: settlement.paymentDate,
       settlementDate: settlement.settlementDate,
+    })),
+    accountReconciliations: (dataset.accountReconciliations ?? []).map((item) => ({
+      id: item.id, userId: item.userId, accountId: item.accountId, balanceCents: encodeCents(item.balanceCents),
+      referenceDate: item.referenceDate, sourceDescription: item.sourceDescription, certainty: item.certainty,
+      eventId: item.eventId, replacesReconciliationId: item.replacesReconciliationId,
     })),
     postings: dataset.postings.map((posting) => ({
       id: posting.id,
@@ -75,9 +84,9 @@ export function serializeFinancialDataset(dataset: FinancialDataset, userId: str
 export function deserializeFinancialDataset(json: string, expectedUserId: string): FinancialDataset {
   if (typeof json !== 'string') throw new TypeError('A representação financeira deve ser texto JSON.');
   const root = readObject(JSON.parse(json) as unknown, [
-    'schemaVersion', 'userId', 'accounts', 'categories', 'events', 'settlements', 'postings',
+    'schemaVersion', 'userId', 'accounts', 'categories', 'events', 'settlements', 'postings', 'accountReconciliations',
   ]);
-  if (root.schemaVersion !== 1 && root.schemaVersion !== FINANCIAL_JSON_SCHEMA_VERSION) {
+  if (root.schemaVersion !== 1 && root.schemaVersion !== 2 && root.schemaVersion !== FINANCIAL_JSON_SCHEMA_VERSION) {
     throw new TypeError('Versão da representação financeira não suportada.');
   }
   if (readString(root, 'userId') !== expectedUserId) {
@@ -89,6 +98,7 @@ export function deserializeFinancialDataset(json: string, expectedUserId: string
     events: readCollection(root, 'events', readEvent),
     settlements: readCollection(root, 'settlements', readSettlement),
     postings: readCollection(root, 'postings', readPosting),
+    ...(Array.isArray(root.accountReconciliations) && root.accountReconciliations.length === 0 ? {} : root.accountReconciliations === undefined ? {} : { accountReconciliations: readCollection(root, 'accountReconciliations', readAccountReconciliation) }),
   };
   assertFinancialDataset(dataset, expectedUserId);
   return dataset;
@@ -96,7 +106,7 @@ export function deserializeFinancialDataset(json: string, expectedUserId: string
 
 /** Decodes a command's rows without assuming its references are all in this packet. */
 export function deserializeFinancialAggregate(json: string, expectedUserId: string): FinancialDataset {
-  const root = readObject(JSON.parse(json) as unknown, ['schemaVersion', 'userId', 'accounts', 'categories', 'events', 'settlements', 'postings']);
+  const root = readObject(JSON.parse(json) as unknown, ['schemaVersion', 'userId', 'accounts', 'categories', 'events', 'settlements', 'postings', 'accountReconciliations']);
   if (root.schemaVersion !== 1 || readString(root, 'userId') !== expectedUserId) throw new TypeError('Schema ou proprietário de comando inválido.');
   return {
     accounts: root.accounts === undefined ? [] : readCollection(root, 'accounts', readAccount),
@@ -104,6 +114,7 @@ export function deserializeFinancialAggregate(json: string, expectedUserId: stri
     events: root.events === undefined ? [] : readCollection(root, 'events', readEvent),
     settlements: root.settlements === undefined ? [] : readCollection(root, 'settlements', readSettlement),
     postings: root.postings === undefined ? [] : readCollection(root, 'postings', readPosting),
+    ...(root.accountReconciliations === undefined || (Array.isArray(root.accountReconciliations) && root.accountReconciliations.length === 0) ? {} : { accountReconciliations: readCollection(root, 'accountReconciliations', readAccountReconciliation) }),
   };
 }
 
@@ -173,7 +184,7 @@ function readEvent(value: unknown): FinancialEvent {
   const record = readObject(value, [
     'id', 'userId', 'kind', 'status', 'source', 'amountCents', 'accountId', 'transferAccountId',
     'categoryId', 'description', 'competenceDate', 'dueDate', 'certainty', 'adjustmentDirection',
-    'reversesEventId', 'replacesEventId',
+    'reversesEventId', 'replacesEventId', 'recurrenceJson', 'recurrenceRuleId', 'recurrenceMonth',
   ]);
   const optionalDirection = Object.hasOwn(record, 'adjustmentDirection')
     ? { adjustmentDirection: readEnum(record, 'adjustmentDirection', ['increase', 'decrease']) }
@@ -193,6 +204,9 @@ function readEvent(value: unknown): FinancialEvent {
     ...readOptionalString(record, 'dueDate'),
     ...readOptionalString(record, 'reversesEventId'),
     ...readOptionalString(record, 'replacesEventId'),
+    ...readOptionalString(record, 'recurrenceJson'),
+    ...readOptionalString(record, 'recurrenceRuleId'),
+    ...readOptionalString(record, 'recurrenceMonth'),
     ...optionalDirection,
   };
 }
@@ -205,6 +219,16 @@ function readSettlement(value: unknown): Settlement {
     amountCents: decodeCents(record.amountCents),
     paymentDate: readString(record, 'paymentDate'),
     settlementDate: readString(record, 'settlementDate'),
+  };
+}
+
+function readAccountReconciliation(value: unknown): AccountReconciliation {
+  const row = readObject(value, ['id', 'userId', 'accountId', 'balanceCents', 'referenceDate', 'sourceDescription', 'certainty', 'eventId', 'replacesReconciliationId']);
+  return {
+    id: readString(row, 'id'), userId: readString(row, 'userId'), accountId: readString(row, 'accountId'),
+    balanceCents: decodeCents(readString(row, 'balanceCents')), referenceDate: readString(row, 'referenceDate'),
+    sourceDescription: readString(row, 'sourceDescription'), certainty: readEnum(row, 'certainty', ['confirmed', 'estimated']),
+    ...readOptionalString(row, 'eventId'), ...readOptionalString(row, 'replacesReconciliationId'),
   };
 }
 

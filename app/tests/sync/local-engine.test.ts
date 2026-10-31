@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { IDBObjectStore as FakeObjectStore } from 'fake-indexeddb';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { sqlTestServer } from './sql-test-server';
-import { recoveryFixture } from '../recovery-fixture';
+import { legacyRecoveryFixture as recoveryFixture } from '../recovery-fixture';
 import { LocalSyncStore } from '../../src/sync/local-sync-store';
 import { SyncEngine, SyncFailure, type SyncTransport, type TransmissionGrant } from '../../src/sync/engine';
 import { commandEnvelope, jsonDigest, prepareBootstrap, type ChangePage } from '../../src/sync/protocol';

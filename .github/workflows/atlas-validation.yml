@@ -3,7 +3,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [codex/recuperacao-i3-chat]
+    branches: [codex/recuperacao-i3-chat, codex/auditoria-dashboard-recorrencias]
   workflow_dispatch:
 
 permissions:

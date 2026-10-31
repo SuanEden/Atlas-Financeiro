@@ -1,6 +1,7 @@
-import { sumCents } from './money';
+import { sumCents, type MoneyCents } from './money';
 import type { AvailabilityBalances, DatePeriod, FinancialDataset, FinancialTotals, IsoDate } from './models';
 import { assertIsoDate } from './validation';
+import { addMonths, parseMonthlyRecurrenceRule } from './recurrence';
 
 function assertPeriod(period: DatePeriod): void {
   assertIsoDate(period.start);
@@ -63,4 +64,123 @@ export function calculateAccrualTotals(dataset: FinancialDataset, period: DatePe
     if (event.kind === 'expense') expenseCents += event.amountCents * direction;
   }
   return { incomeCents, expenseCents, resultCents: incomeCents - expenseCents };
+}
+
+
+export interface FinancialForecastItem {
+  eventId: string;
+  month: string;
+  date?: IsoDate;
+  kind: 'income' | 'expense';
+  amountCents: MoneyCents;
+  description: string;
+  source: 'planned' | 'recurrence';
+  amountBasis: 'cash' | 'gross';
+  obligation: boolean;
+}
+
+export interface FinancialForecast {
+  plannedIncomeCents: MoneyCents;
+  plannedExpenseCents: MoneyCents;
+  obligationCents: MoneyCents;
+  recurringExpenseCents: MoneyCents;
+  recurringGrossIncomeCents: MoneyCents;
+  grossIncomeReferenceCents: MoneyCents;
+  projectedCashChangeCents: MoneyCents;
+  items: FinancialForecastItem[];
+}
+
+/** Planned items and recurring rules are forecasts only; none creates a settlement. */
+export function calculateFinancialForecast(dataset: FinancialDataset, startMonth: string, monthCount = 6): FinancialForecast {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(startMonth)) throw new TypeError('O período deve usar AAAA-MM.');
+  if (!Number.isSafeInteger(monthCount) || monthCount < 1 || monthCount > 24) throw new RangeError('O horizonte deve conter de 1 a 24 meses.');
+  const endMonth = addMonths(startMonth, monthCount - 1);
+  const superseded = new Set(dataset.events.flatMap((event) => [event.replacesEventId, event.reversesEventId].filter((id): id is string => id !== undefined)));
+  const activeEvents = dataset.events.filter((event) => !superseded.has(event.id));
+  const covered = new Set(activeEvents.filter((event) => event.recurrenceRuleId !== undefined && event.recurrenceMonth !== undefined)
+    .map((event) => `${event.recurrenceRuleId}:${event.recurrenceMonth}`));
+  const result: FinancialForecast = {
+    plannedIncomeCents: 0n,
+    plannedExpenseCents: 0n,
+    obligationCents: 0n,
+    recurringExpenseCents: 0n,
+    recurringGrossIncomeCents: 0n,
+    grossIncomeReferenceCents: 0n,
+    projectedCashChangeCents: 0n,
+    items: [],
+  };
+  for (const event of activeEvents) {
+    if (event.status !== 'planned' || event.recurrenceJson !== undefined) continue;
+    const month = event.competenceDate.slice(0, 7);
+    if (month < startMonth || month > endMonth || (event.kind !== 'income' && event.kind !== 'expense')) continue;
+    const categoryName = dataset.categories.find((category) => category.id === event.categoryId)?.name.trim().toLocaleLowerCase('pt-BR');
+    const obligation = event.kind === 'expense' && (event.certainty === 'confirmed' || categoryName === 'cartão de crédito');
+    const grossSalaryReference = event.kind === 'income' && /sal[aá]rio.*bruto|bruto.*sal[aá]rio/i.test(event.description);
+    if (grossSalaryReference) result.grossIncomeReferenceCents += event.amountCents;
+    else if (event.kind === 'income') result.plannedIncomeCents += event.amountCents;
+    else if (obligation) result.obligationCents += event.amountCents;
+    else result.plannedExpenseCents += event.amountCents;
+    result.items.push({
+      eventId: event.id, month, ...(event.dueDate === undefined || event.certainty !== 'confirmed' ? {} : { date: event.dueDate }), kind: event.kind,
+      amountCents: event.amountCents, description: event.description, source: 'planned',
+      amountBasis: grossSalaryReference ? 'gross' : 'cash', obligation,
+    });
+  }
+  for (const ruleEvent of activeEvents) {
+    if (ruleEvent.status !== 'planned' || ruleEvent.recurrenceJson === undefined) continue;
+    const rule = parseMonthlyRecurrenceRule(ruleEvent.recurrenceJson);
+    if (rule?.status !== 'active' || (ruleEvent.kind !== 'income' && ruleEvent.kind !== 'expense')) continue;
+    const firstMonth = rule.startMonth > rule.nextOccurrenceMonth ? rule.startMonth : rule.nextOccurrenceMonth;
+    for (let offset = 0; offset < monthCount; offset += 1) {
+      const month = addMonths(startMonth, offset);
+      if (month < firstMonth || month < rule.startMonth || covered.has(`${ruleEvent.id}:${month}`)) continue;
+      if (rule.firstOccurrence === 'prorated_unknown' && rule.firstOccurrenceMonth === month) continue;
+      const date = rule.dueDayOfMonth === undefined ? undefined : recurrenceDate(month, rule.dueDayOfMonth);
+      const item: FinancialForecastItem = {
+        eventId: ruleEvent.id, month, ...(date === undefined ? {} : { date }),
+        kind: ruleEvent.kind, amountCents: ruleEvent.amountCents, description: ruleEvent.description,
+        source: 'recurrence', amountBasis: rule.amountBasis === 'gross' ? 'gross' : 'cash', obligation: false,
+      };
+      result.items.push(item);
+      if (ruleEvent.kind === 'income') {
+        if (rule.amountBasis === 'gross') result.recurringGrossIncomeCents += ruleEvent.amountCents;
+        else result.plannedIncomeCents += ruleEvent.amountCents;
+      } else {
+        result.plannedExpenseCents += ruleEvent.amountCents;
+        result.recurringExpenseCents += ruleEvent.amountCents;
+      }
+    }
+  }
+  result.items.sort((a, b) => a.month.localeCompare(b.month) || (a.date ?? '').localeCompare(b.date ?? '') || a.description.localeCompare(b.description));
+  result.projectedCashChangeCents = result.plannedIncomeCents - result.plannedExpenseCents - result.obligationCents;
+  return result;
+}
+
+/** An account is not a confirmed balance until the user records its opening position. */
+export function getAccountReconciliation(dataset: FinancialDataset, accountId: string) {
+  const reconciliations = dataset.accountReconciliations ?? [];
+  const superseded = new Set(reconciliations.flatMap((item) => item.replacesReconciliationId === undefined ? [] : [item.replacesReconciliationId]));
+  const current = reconciliations.find((item) => item.accountId === accountId && !superseded.has(item.id));
+  if (current !== undefined) return current;
+  const replacedEvents = new Set(dataset.events.flatMap((event) => [event.replacesEventId, event.reversesEventId].filter((id): id is string => id !== undefined)));
+  const legacy = dataset.events.filter((event) => event.accountId === accountId && event.source === 'opening_balance' && event.status !== 'cancelled' && !replacedEvents.has(event.id))
+    .sort((left, right) => right.competenceDate.localeCompare(left.competenceDate))[0];
+  if (legacy === undefined) return undefined;
+  const balanceCents = legacy.adjustmentDirection === 'decrease' ? -legacy.amountCents : legacy.amountCents;
+  return {
+    id: legacy.id, userId: legacy.userId, accountId: legacy.accountId, balanceCents,
+    referenceDate: legacy.competenceDate, sourceDescription: legacy.description, certainty: legacy.certainty, eventId: legacy.id,
+  };
+}
+
+export function hasReconciledOpeningBalance(dataset: FinancialDataset, accountId: string): boolean {
+  return getAccountReconciliation(dataset, accountId)?.certainty === 'confirmed';
+}
+
+function recurrenceDate(month: string, day: number): IsoDate {
+  const [yearText, monthText] = month.split('-');
+  const year = Number(yearText);
+  const monthNumber = Number(monthText);
+  const lastDay = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
+  return `${month}-${String(Math.min(day, lastDay)).padStart(2, '0')}`;
 }

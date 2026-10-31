@@ -9,7 +9,7 @@ import { deserializeFinancialAggregate } from '../serialization/financial-json';
 export const SYNC_PROTOCOL_VERSION = 1 as const;
 export const MAX_COMMAND_BYTES = 128 * 1024;
 export const MAX_BOOTSTRAP_BYTES = 2 * 1024 * 1024;
-export const DATA_TABLES = ['accounts', 'categories', 'events', 'settlements', 'postings'] as const;
+export const DATA_TABLES = ['accounts', 'categories', 'events', 'settlements', 'postings', 'accountReconciliations'] as const;
 export type JsonRecord = Record<string, unknown>;
 export interface WireOperation { id: string; userId: string; kind: PendingOperation['kind']; createdAt: string; payload: JsonRecord }
 interface EnvelopeBase { protocolVersion: 1; operationId: string; userId: string; baseRevision: string }
@@ -34,6 +34,24 @@ export async function jsonDigest(value: unknown): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+/** The current remote SQL schema predates local recurrence rules and account-reconciliation records. */
+export function isI3SchemaCompatible(envelope: SyncEnvelope): boolean {
+  const data = envelope.kind === 'bootstrap' ? envelope.data : envelope.operation.payload;
+  // The deployed SQL contract accepts schemaVersion 2. Version 3 requires a
+  // server-side migration; do not transmit a bootstrap that SQL would reject.
+  if (envelope.kind === 'bootstrap' && data.schemaVersion !== 2) return false;
+  if (envelope.kind === 'reconcile_account') return false;
+  if (Array.isArray(data.accountReconciliations) && data.accountReconciliations.length > 0) return false;
+  const events = Array.isArray(data.events) ? data.events : [];
+  return !events.some((value) => {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) return true;
+    const event = value as Record<string, unknown>;
+    if (event.recurrenceJson !== undefined || event.recurrenceRuleId !== undefined || event.recurrenceMonth !== undefined) return true;
+    if (envelope.kind !== 'bootstrap' && envelope.kind === 'record_event' && event.source === 'opening_balance') return true;
+    return false;
+  });
+}
+
 export function wireOperation(operation: PendingOperation): WireOperation {
   assertPendingOperation(operation, operation.userId);
   return { id: operation.id, userId: operation.userId, kind: operation.kind, createdAt: operation.createdAt, payload: JSON.parse(operation.payloadJson) as JsonRecord };
@@ -52,8 +70,17 @@ export async function prepareBootstrap(state: LocalFinancialState, sourceOwner: 
   // Reuse the strict I2 boundary before changing ownership, including payload-to-snapshot coverage.
   validateI2Backup(serializeLocalBackup(state, sourceOwner));
   const data = JSON.parse(serializeFinancialDataset(state, sourceOwner)) as JsonRecord;
+  // Preserve wire compatibility for genuine legacy I2 data only. New v3
+  // reconciliations/recurrences are never dropped or silently downgraded.
+  const hasReconciliations = Array.isArray(data.accountReconciliations) && data.accountReconciliations.length > 0;
+  const hasRecurrences = Array.isArray(data.events) && data.events.some((row: JsonRecord) =>
+    row.recurrenceJson !== undefined || row.recurrenceRuleId !== undefined || row.recurrenceMonth !== undefined);
+  if (!hasReconciliations && !hasRecurrences) {
+    delete data.accountReconciliations;
+    data.schemaVersion = 2;
+  }
   data.userId = authenticatedOwner;
-  for (const table of DATA_TABLES) for (const row of data[table] as JsonRecord[]) row.userId = authenticatedOwner;
+  for (const table of DATA_TABLES) for (const row of (data[table] ?? []) as JsonRecord[]) row.userId = authenticatedOwner;
   const coveredOperations = state.outbox.map((row) => {
     const operation = wireOperation(row);
     operation.userId = authenticatedOwner; operation.payload.userId = authenticatedOwner;
@@ -64,7 +91,7 @@ export async function prepareBootstrap(state: LocalFinancialState, sourceOwner: 
     protocolVersion: 1, operationId: associationId, userId: authenticatedOwner, baseRevision: '0', kind: 'bootstrap',
     source: { ownerId: sourceOwner, digest: await jsonDigest(JSON.parse(canonicalLocalState(state, sourceOwner))) }, data, coveredOperations,
   };
-  if (DATA_TABLES.reduce((sum, table) => sum + (data[table] as unknown[]).length, 0) > 5_000) throw new RangeError('Carga inicial acima de 5 mil registros; a origem foi preservada.');
+  if (DATA_TABLES.reduce((sum, table) => sum + ((data[table] ?? []) as unknown[]).length, 0) > 5_000) throw new RangeError('Carga inicial acima de 5 mil registros; a origem foi preservada.');
   if (coveredOperations.some((operation) => operation.id === associationId)) throw new TypeError('ID da associação colide com uma operação.');
   assertSize(envelope, MAX_BOOTSTRAP_BYTES);
   return envelope;
@@ -79,13 +106,13 @@ export function envelopeData(envelope: SyncEnvelope): FinancialDataset {
 export function mergeAppendOnly(base: FinancialDataset, incoming: FinancialDataset, owner: string): FinancialDataset {
   const merged = structuredClone(base);
   for (const table of DATA_TABLES) {
-    const rows = merged[table] as { id: string; userId: string }[];
+    const rows = (merged[table] ?? []) as { id: string; userId: string }[];
     const existing = new Map(rows.map((row) => [row.id, row]));
-    for (const row of incoming[table]) {
+    for (const row of (incoming[table] ?? [])) {
       const prior = existing.get(row.id);
       if (prior) {
         if (canonicalJson(JSON.parse(JSON.stringify(prior, centsReplacer))) !== canonicalJson(JSON.parse(JSON.stringify(row, centsReplacer)))) throw new TypeError('Mesmo ID com conteúdo financeiro diferente.');
-      } else { rows.push(structuredClone(row)); existing.set(row.id, row); }
+      } else { if (merged[table] === undefined) (merged as unknown as Record<string, unknown>)[table] = rows; rows.push(structuredClone(row)); existing.set(row.id, row); }
     }
   }
   assertFinancialDataset(merged, owner);
