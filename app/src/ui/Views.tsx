@@ -72,6 +72,21 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
   const obligations = forecast.items.filter((item) => item.obligation).slice(0, 5);
   const grossForecast = forecast.recurringGrossIncomeCents > 0n ? forecast.recurringGrossIncomeCents : forecast.grossIncomeReferenceCents;
   const grossLabel = forecast.recurringGrossIncomeCents > 0n ? 'Salário bruto previsto (6 meses)' : 'Salário bruto de referência';
+  const monthRows = Array.from({ length: 6 }, (_, index) => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const date = new Date(Date.UTC(year, month - 6 + index, 1));
+    const key = date.toISOString().slice(0, 7);
+    const totals = calculateCashTotals(state, financialMonthPeriod(key + '-01'));
+    return { key, income: Number(totals.incomeCents), expense: Number(totals.expenseCents) };
+  });
+  const maxFlow = Math.max(1, ...monthRows.flatMap((row) => [row.income, row.expense]));
+  const categoryRows = state.categories.map((category) => ({
+    id: category.id, name: category.name,
+    amount: state.events.filter((event) => activeIds.has(event.id) && !isRecurringTemplate(event) && event.kind === 'expense' && event.status === 'confirmed' && event.categoryId === category.id)
+      .reduce((sum, event) => sum + Number(event.amountCents), 0),
+  })).filter((row) => row.amount > 0).sort((a, b) => b.amount - a.amount).slice(0, 7);
+  const maxCategory = Math.max(1, ...categoryRows.map((row) => row.amount));
+
   const proratedUnknown = state.events.filter((event) => activeIds.has(event.id) && event.recurrenceJson !== undefined).flatMap((event) => {
     const rule = parseMonthlyRecurrenceRule(event.recurrenceJson);
     return rule?.firstOccurrence === 'prorated_unknown' && rule.firstOccurrenceMonth !== undefined ? [{ description: event.description, month: rule.firstOccurrenceMonth }] : [];
@@ -103,6 +118,28 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
           <div><span>Resultado realizado</span><strong>{formatBRL(cash.resultCents)}</strong></div>
         </div>
         <p className="form-note">Somente liquidações efetivas entram nestes três indicadores. Previsões, obrigações e regras recorrentes ficam separados abaixo.</p>
+      </section>
+
+      <section className="flow-section" aria-labelledby="analytics-title">
+        <div className="section-heading"><div><p className="section-kicker">Até {monthLabel(selectedMonth + '-01')}</p><h2 id="analytics-title">Gráficos financeiros</h2></div></div>
+        <div className="dashboard-columns">
+          <div className="analytics-panel">
+            <h3>Entradas e saídas · seis meses</h3>
+            <p className="form-note">Valores efetivamente liquidados. Projeções não são tratadas como recebimentos.</p>
+            <div className="analytics-legend"><span>Entradas</span><span>Saídas</span></div>
+            <div className="analytics-chart" aria-label="Entradas e saídas mensais">
+              {monthRows.map((row) => <div className="analytics-month" key={row.key} title={row.key + ': ' + formatBRL(BigInt(row.income)) + ' em entradas; ' + formatBRL(BigInt(row.expense)) + ' em saídas'}>
+                <div className="analytics-bars"><div className="analytics-bar analytics-bar--income" style={{ height: (row.income / maxFlow * 100) + '%' }} /><div className="analytics-bar analytics-bar--expense" style={{ height: (row.expense / maxFlow * 100) + '%' }} /></div>
+                <small>{row.key.slice(5)}</small>
+              </div>)}
+            </div>
+          </div>
+          <div className="analytics-panel">
+            <h3>Despesas por categoria</h3>
+            <p className="form-note">Eventos confirmados e ativos, inclusive os ainda sem liquidação. Não equivalem a pagamentos.</p>
+            {categoryRows.length === 0 ? <CompactEmpty text="Sem despesas confirmadas por categoria." /> : <div className="analytics-categories">{categoryRows.map((row) => <div className="analytics-category" key={row.id}><div><span>{row.name}</span><strong>{formatBRL(BigInt(row.amount))}</strong></div><div className="analytics-track"><span style={{ width: (row.amount / maxCategory * 100) + '%' }} /></div></div>)}</div>}
+          </div>
+        </div>
       </section>
 
       <section className="flow-section" aria-labelledby="forecast-title">
