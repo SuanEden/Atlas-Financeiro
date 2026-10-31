@@ -31,3 +31,19 @@ export function recoveryFixture(userId: string = crypto.randomUUID()): LocalFina
   apply(reverseEventCommand(state, planned, ctx));
   return state;
 }
+
+/**
+ * Historical I2 fixture for testing the already-deployed SQL I3/v2 contract.
+ * The current fixture above remains unchanged and is used to test new v3 behavior.
+ * This removes ONLY synthetic v3 reconciliation records in tests; never run on user data.
+ */
+export function legacyRecoveryFixture(userId: string = crypto.randomUUID()): LocalFinancialState {
+  const state = recoveryFixture(userId);
+  state.accountReconciliations = [];
+  state.outbox = state.outbox.map((operation) => {
+    const payload = JSON.parse(operation.payloadJson) as Record<string, unknown>;
+    delete payload.accountReconciliations;
+    return { ...operation, payloadJson: JSON.stringify(payload) };
+  });
+  return state;
+}
