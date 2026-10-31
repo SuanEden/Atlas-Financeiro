@@ -306,7 +306,7 @@ export async function validateSyncBackup(json: string, owner: string, serverId: 
   if (!Array.isArray(root.pending) || !Array.isArray(root.receipts)) throw new TypeError('Pendências ou recibos ausentes.');
   const confirmed = deserializeFinancialDataset(JSON.stringify(root.confirmed), owner);
   const projection = deserializeFinancialDataset(JSON.stringify(root.projection), owner);
-  if (DATA_TABLES.reduce((n, key) => n + confirmed[key].length + projection[key].length, 0)
+  if (DATA_TABLES.reduce((n, key) => n + (confirmed[key] ?? []).length + (projection[key] ?? []).length, 0)
     + root.pending.length + root.receipts.length > 50_000) throw new RangeError('A cópia excede 50 mil registros.');
   const pending = root.pending as PendingDelivery[];
   const ids = new Set<string>(); const ordinals = new Set<number>();
@@ -349,11 +349,11 @@ export async function validateSyncBackup(json: string, owner: string, serverId: 
     if (!await receiptAcknowledges(command.envelope, receipt)) throw new TypeError('Recibo diverge da operação.');
   }
   if (root.meta.binding === 'unbound' && (pending.length || receipts.length || root.meta.cursor !== '0'
-    || DATA_TABLES.some(key => confirmed[key].length))) throw new TypeError('Base sem associação contém registros.');
+    || DATA_TABLES.some(key => (confirmed[key] ?? []).length))) throw new TypeError('Base sem associação contém registros.');
   if (['bootstrap','verifying_source'].includes(root.meta.binding) && (!root.meta.associationId || !root.meta.sourceDigest || !root.meta.sourceOwnerId || !root.meta.sourceMode))
     throw new TypeError('Proveniência da associação ausente.');
   if (root.meta.binding === 'active' && root.meta.cursor === '0') throw new TypeError('Associação ativa sem revisão confirmada.');
-  if (root.meta.cursor === '0' && DATA_TABLES.some(key => confirmed[key].length)) throw new TypeError('Base confirmada sem revisão de origem.');
+  if (root.meta.cursor === '0' && DATA_TABLES.some(key => (confirmed[key] ?? []).length)) throw new TypeError('Base confirmada sem revisão de origem.');
   const calculated = project(confirmed, pending, owner);
   if (serializeFinancialDataset(calculated.data, owner) !== serializeFinancialDataset(projection, owner)
     || canonicalJson(calculated.pending) !== canonicalJson(pending)) throw new TypeError('A projeção não corresponde à base e às pendências.');
