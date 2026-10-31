@@ -100,7 +100,7 @@ export function mergeAppendOnly(base: FinancialDataset, incoming: FinancialDatas
       const prior = existing.get(row.id);
       if (prior) {
         if (canonicalJson(JSON.parse(JSON.stringify(prior, centsReplacer))) !== canonicalJson(JSON.parse(JSON.stringify(row, centsReplacer)))) throw new TypeError('Mesmo ID com conteúdo financeiro diferente.');
-      } else { if (merged[table] === undefined) (merged as Record<string, unknown>)[table] = rows; rows.push(structuredClone(row)); existing.set(row.id, row); }
+      } else { if (merged[table] === undefined) (merged as unknown as Record<string, unknown>)[table] = rows; rows.push(structuredClone(row)); existing.set(row.id, row); }
     }
   }
   assertFinancialDataset(merged, owner);
