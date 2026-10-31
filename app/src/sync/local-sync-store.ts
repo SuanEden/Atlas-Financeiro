@@ -246,7 +246,7 @@ function assertDelivery(row: PendingDelivery,owner: string) {
 }
 
 function referencesPresent(base: FinancialDataset,incoming: FinancialDataset): boolean {
-  const ids=Object.fromEntries(DATA_TABLES.map((table)=>[table,new Set([...base[table],...incoming[table]].map((row)=>row.id))])) as Record<typeof DATA_TABLES[number],Set<string>>;
+  const ids=Object.fromEntries(DATA_TABLES.map((table)=>[table,new Set([...(base[table] ?? []),...(incoming[table] ?? [])].map((row)=>row.id))])) as Record<typeof DATA_TABLES[number],Set<string>>;
   return incoming.categories.every((row)=>!row.parentId||ids.categories.has(row.parentId))
     &&incoming.events.every((row)=>ids.accounts.has(row.accountId)&&(!row.transferAccountId||ids.accounts.has(row.transferAccountId))&&(!row.categoryId||ids.categories.has(row.categoryId))&&(!row.reversesEventId||ids.events.has(row.reversesEventId))&&(!row.replacesEventId||ids.events.has(row.replacesEventId)))
     &&incoming.settlements.every((row)=>ids.events.has(row.eventId))&&incoming.postings.every((row)=>ids.accounts.has(row.accountId)&&ids.settlements.has(row.settlementId));
