@@ -85,8 +85,8 @@ export function createAccountCommand(input: CreateAccountInput, context: Command
   };
   const aggregate: FinancialAggregate = { accounts: [account] };
   if (input.openingBalanceCents !== undefined) {
-    const sourceDescription = input.openingBalanceSource?.trim() ?? '';
-    if (!sourceDescription) throw new TypeError('Informe a origem do saldo inicial.');
+    // Legacy callers may lack provenance. Preserve the uncertainty explicitly instead of inventing a source.
+    const sourceDescription = input.openingBalanceSource?.trim() || 'Origem não informada (registro legado)';
     const certainty = input.openingBalanceCertainty ?? 'confirmed';
     const balance = input.openingBalanceCents;
     if (balance !== 0n) assertEntryAmount(balance < 0n ? -balance : balance);
