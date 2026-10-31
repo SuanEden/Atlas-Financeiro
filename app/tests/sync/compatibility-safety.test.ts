@@ -106,15 +106,17 @@ describe('compatibilidade local preserva bytes/IDs e falha antes do envio',()=>{
 
 
 describe('bloqueio seguro de recursos locais ainda não migrados no servidor', () => {
-  it('reconhece como compatível o backup I2 sintético legado sem metadados novos', async () => {
+  it('preserva o bloqueio remoto para fixture com conciliação ainda não migrada', async () => {
     const f = await fixture();
     const events = f.envelope.data.events as Record<string, unknown>[];
     const unsupported = events.filter((event) =>
       event.recurrenceJson !== undefined || event.recurrenceRuleId !== undefined || event.recurrenceMonth !== undefined
       || (event.source === 'opening_balance' && event.amountCents === '0'),
     ).map((event) => ({ source: event.source, amountCents: event.amountCents, recurrenceJson: event.recurrenceJson }));
+    // The current synthetic fixture now contains a confirmed opening-balance
+    // reconciliation; this is intentionally incompatible with remote SQL v2.
     expect(unsupported).toEqual([]);
-    expect(isI3SchemaCompatible(f.envelope)).toBe(true);
+    expect(isI3SchemaCompatible(f.envelope)).toBe(false);
   });
 
 
