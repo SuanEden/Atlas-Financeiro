@@ -18,7 +18,7 @@ describe('versioned explicit financial JSON', () => {
     const dataset = syntheticDataset(USER_ID);
     const json = serializeFinancialDataset(dataset, USER_ID);
     const root = JSON.parse(json) as Record<string, unknown>;
-    expect(root.schemaVersion).toBe(2);
+    expect(root.schemaVersion).toBe(3);
     expect(firstEvent(root).source).toBe('manual');
     expect(firstEvent(root).amountCents).toBe('1207');
     expect((root.postings as Record<string, unknown>[])[0]!.amountCents).toBe('-1207');
@@ -53,7 +53,7 @@ describe('versioned explicit financial JSON', () => {
 
   it('rejects unsupported versions, missing collections, unknown fields and another user', () => {
     const unsupported = representation();
-    unsupported.schemaVersion = 3;
+    unsupported.schemaVersion = 4;
     expect(() => deserializeFinancialDataset(JSON.stringify(unsupported), USER_ID)).toThrow();
     const missing = representation();
     delete missing.settlements;
