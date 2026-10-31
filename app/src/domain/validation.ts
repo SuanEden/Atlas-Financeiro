@@ -56,6 +56,7 @@ export function assertFinancialDataset(dataset: FinancialDataset, expectedUserId
   const events = assertOwnedRows(dataset.events, expectedUserId, 'Eventos');
   const settlements = assertOwnedRows(dataset.settlements, expectedUserId, 'Liquidações');
   assertOwnedRows(dataset.postings, expectedUserId, 'Contrapartidas');
+  const reconciliations = assertOwnedRows(dataset.accountReconciliations ?? [], expectedUserId, 'Conciliações');
 
   for (const account of accounts.values()) {
     assertText(account.name, 'Nome da conta', 120);
