@@ -66,6 +66,8 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
   const transportBalance = transportAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
   const available = freeAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
   const reservedBalance = reservedAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
+  const allAccountsComplete = state.accounts.length > 0 && state.accounts.every((account) => reconciled(account.id));
+  const totalReconciled = state.accounts.reduce((sum, account) => sum + balanceFor(account.id), 0n);
   const projectedBalance = freeComplete && selectedMonth === today.slice(0, 7) ? available + forecast.projectedCashChangeCents : undefined;
   const obligations = forecast.items.filter((item) => item.obligation).slice(0, 5);
   const grossForecast = forecast.recurringGrossIncomeCents > 0n ? forecast.recurringGrossIncomeCents : forecast.grossIncomeReferenceCents;
@@ -87,6 +89,7 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
         <MoneyStat label="Valores reservados" value={reservedComplete ? formatBRL(reservedBalance) : 'A conciliar'} />
         <MoneyStat label="Recebimentos a conciliar" value={receiptAccount === undefined ? '—' : reconciled(receiptAccount.id) ? formatBRL(balanceFor(receiptAccount.id)) : 'Concilie a conta'} />
         <MoneyStat label="Saldo livre" value={freeComplete ? formatBRL(available) : 'A conciliar'} />
+        <MoneyStat label="Saldo total conciliado" value={allAccountsComplete ? formatBRL(totalReconciled) : 'A conciliar'} />
       </section>
 
       <section className="flow-section" aria-labelledby="flow-title">
