@@ -11,7 +11,8 @@ const labels = (month: string) => new Intl.DateTimeFormat('pt-BR', {month: 'shor
 export function FinanceCharts({ state, month }: { state: LocalFinancialState; month: string }) {
   const historical = Array.from({length: 6}, (_, index) => {
     const m = monthAt(month, index - 5);
-    const totals = calculateCashTotals(state, {start: m + '-01', end: m + '-31'});
+    const end = new Date(Date.UTC(Number(m.slice(0,4)),Number(m.slice(5,7)),0)).getUTCDate();
+    const totals = calculateCashTotals(state, {start: m + '-01', end: m + '-' + String(end).padStart(2,'0')});
     return {month: m, income: totals.incomeCents, expense: totals.expenseCents};
   });
   const forecast = calculateFinancialForecast(state, month, 6);
