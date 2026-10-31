@@ -85,6 +85,8 @@ test('transferência para reserva mantém o total entre contas', async ({ page }
   const accountDialog = page.getByRole('dialog');
   await accountDialog.getByLabel('Nome da conta').fill('Reserva de teste');
   await accountDialog.getByRole('combobox').nth(1).selectOption('reserved');
+  // A reserved account must be explicitly reconciled before its saldo counts.
+  await accountDialog.getByPlaceholder('R$ 0,00').fill('0,00');
   await accountDialog.getByRole('button', { name: 'Criar conta' }).click();
 
   await page.getByRole('button', { name: 'Transferir ou separar reserva' }).click();
