@@ -8,16 +8,16 @@ export function recoveryFixture(userId: string = crypto.randomUUID()): LocalFina
     userId, nextId: () => `d3000000-0000-4000-8000-${String(++sequence).padStart(12, '0')}`,
     now: () => '2026-10-26T12:00:00.000Z', today: () => '2026-10-26',
   };
-  const state: LocalFinancialState = { accounts: [], categories: [], events: [], settlements: [], postings: [], outbox: [] };
+  const state: LocalFinancialState = { accounts: [], categories: [], events: [], settlements: [], postings: [], accountReconciliations: [], outbox: [] };
   const apply = (command: LocalCommand) => {
-    for (const table of ['accounts', 'categories', 'events', 'settlements', 'postings'] as const) {
+    for (const table of ['accounts', 'categories', 'events', 'settlements', 'postings', 'accountReconciliations'] as const) {
       // All aggregates append immutable records; this helper is intentionally test-only.
       (state[table] as unknown[]).push(...(command.aggregate[table] ?? []));
     }
     state.outbox.push(command.operation);
     return command.aggregate.events?.[0]?.id;
   };
-  apply(createAccountCommand({ name: 'Conta sintética A', kind: 'cash', availability: 'free', openingDate: ctx.today(), openingBalanceCents: 100_003n }, ctx));
+  apply(createAccountCommand({ name: 'Conta sintética A', kind: 'cash', availability: 'free', openingDate: ctx.today(), openingBalanceCents: 100_003n, openingBalanceSource: 'Referência sintética de teste' }, ctx));
   apply(createAccountCommand({ name: 'Conta sintética B', kind: 'savings', availability: 'reserved', openingDate: ctx.today() }, ctx));
   apply(createCategoryCommand({ name: 'Categoria sintética', kind: 'both' }, ctx));
   const accountId = state.accounts[0]!.id;
