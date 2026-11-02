@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { RemoteController } from './controller';
+type BankReader = { readBank(resource:'item'|'accounts'|'transactions',id?:string):Promise<unknown> };
 
 /** Explicitly read-only bank connection inspector. No statements are posted. */
 type BankRow = { id?:string; name?:string; status?:string; type?:string; itemId?:string; description?:string; amount?:number; date?:string };
@@ -9,7 +9,7 @@ const rows=(payload:unknown):BankRow[]=>{
   if(!Array.isArray(results))return [];
   return results.filter((row):row is BankRow=>typeof row==='object'&&row!==null);
 };
-export function PluggyReadPanel({controller}:{controller:RemoteController}) {
+export function PluggyReadPanel({controller}:{controller:BankReader}) {
   const [items,setItems]=useState<BankRow[]>([]);
   const [accounts,setAccounts]=useState<BankRow[]>([]);
   const [transactions,setTransactions]=useState<BankRow[]>([]);
