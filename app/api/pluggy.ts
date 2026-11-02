@@ -2,11 +2,14 @@
  * Server-side read-only Pluggy gateway for Vercel Node Functions.
  * Requires authenticated, allowlisted Supabase owner; NEVER returns API keys.
  * Configure PLUGGY_CLIENT_ID, PLUGGY_CLIENT_SECRET, ATLAS_PLUGGY_OWNER_ID,
- * VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in Preview.
+ * VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in Production.
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 let cachedKey: { value: string; expires: number } | undefined;
+// Only two owner-approved Pluggy items may be read through this endpoint.
+const bankItems = new Set(['71c06153-0d24-45ac-81f6-9de6f0d04282','1c91ee97-e614-494f-b41a-5e203d5fa7ee']);
+const accountPermissions = new Map<string,number>();
 const reply = (res: ServerResponse, status: number, body: unknown) => {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -43,6 +46,18 @@ async function authorize(req: IncomingMessage): Promise<boolean> {
   const user = await r.json() as { id?: string; email_confirmed_at?: string };
   return user.id === owner && Boolean(user.email_confirmed_at);
 }
+async function accountBelongsToOwner(id: string): Promise<boolean> {
+  const cached=accountPermissions.get(id);
+  if(cached && cached>Date.now())return true;
+  const response=await fetch('https://api.pluggy.ai/accounts/'+encodeURIComponent(id),{
+    headers:{'X-API-KEY':await key()},signal:AbortSignal.timeout(12000),
+  });
+  if(!response.ok)return false;
+  const account=await response.json() as {itemId?:string};
+  if(!account.itemId||!bankItems.has(account.itemId))return false;
+  accountPermissions.set(id,Date.now()+10*60*1000);
+  return true;
+}
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== 'GET') return reply(res, 405, { error: 'Method not allowed' });
   try {
@@ -60,6 +75,15 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     const accountId = original.searchParams.get('accountId');
     const after = original.searchParams.get('after');
     const uuid = (v: string | null) => Boolean(v && /^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i.test(v));
+    if(resource==='session' && !itemId && !accountId && !after) {
+      return reply(res,200,{authorized:true});
+    }
+    if((resource==='item'||resource==='accounts') && (!itemId||!bankItems.has(itemId))) {
+      return reply(res,403,{error:'Conexão não autorizada no Atlas.'});
+    }
+    if((resource==='balance'||resource==='transactions') && (!uuid(accountId)||!await accountBelongsToOwner(accountId!))) {
+      return reply(res,403,{error:'Conta não pertence a uma conexão autorizada.'});
+    }
     let endpoint: URL;
     if (resource === 'item' && uuid(itemId) && !accountId && !after) {
       endpoint = new URL('https://api.pluggy.ai/items/' + itemId);
