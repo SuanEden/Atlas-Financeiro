@@ -38,7 +38,7 @@ function AccessGate({controller}:{controller:RemoteController}) {
     <span className="brand-mark" aria-hidden="true">A</span><h1>Atlas Financeiro</h1>
     <p role="status">{snapshot.session.message}</p><p>{snapshot.notice}</p>
     {failure?<p role="alert">{failure}</p>:null}
-    <button className="button button--primary" disabled={busy} onClick={()=>void controller.login()}>Entrar com Google</button>
+    {!snapshot.session.onlineVerified?<button className="button button--primary" disabled={busy} onClick={()=>void controller.login()}>Entrar com Google</button>:null}
     {snapshot.session.onlineVerified?<button className="button button--ghost" disabled={busy} onClick={()=>void controller.logout()}>Sair e bloquear acesso local</button>:null}
     {canAssociate?<section className="association-panel" aria-label="Associação inicial">
       <h2>Escolha como começar neste navegador</h2><p>Confirme a conta Google antes de continuar. Dados de teste não devem ser usados como sua base pessoal.</p>
