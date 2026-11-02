@@ -106,6 +106,26 @@ describe('compatibilidade local preserva bytes/IDs e falha antes do envio',()=>{
 
 
 describe('bloqueio seguro de recursos locais ainda não migrados no servidor', () => {
+  it.each(['recorrencia', 'conciliacao'])('recusa feed remoto incompatível (%s) sem escrever no IndexedDB', async tipo => {
+    const f = await fixture(true);
+    const envelope = structuredClone(f.envelope);
+    if (tipo === 'recorrencia') {
+      const event = (envelope.data.events as Record<string, unknown>[])[0];
+      if (!event) throw new Error('Fixture precisa ter evento sintético.');
+      event.recurrenceJson = '{}';
+      envelope.data.schemaVersion = 2;
+      delete envelope.data.accountReconciliations;
+    }
+    const before = await f.snapshot();
+    const coveredOperations = await Promise.all(envelope.coveredOperations.map(async operation => ({ id: operation.id, digest: await jsonDigest(operation) })));
+    const page = { protocolVersion: 1 as const, userId: f.owner, after: '0', through: '1', cursor: '1', batches: [{
+      revision: '1', envelope,
+      receipt: { protocolVersion: 1 as const, userId: f.owner, operationId: envelope.operationId, revision: '1', digest: await jsonDigest(envelope), coveredOperations },
+    }] };
+    await expect(f.store.applyPage(page)).rejects.toThrow();
+    expect(await f.snapshot()).toEqual(before);
+  });
+
   it('recusa lote remoto v3 antes de avançar o cursor ou gravar recibos', async () => {
     const f = await fixture(true);
     const before = await f.snapshot();
