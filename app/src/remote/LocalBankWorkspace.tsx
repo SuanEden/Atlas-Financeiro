@@ -74,7 +74,7 @@ export default function LocalBankWorkspace(){
       if(info.status==='OUTDATED')throw new Error('A última sincronização bancária falhou; aguarde a Pluggy atualizar.');
       const response=await adapter.auth.readBank?.('accounts',itemId);
       const next=bankAccounts(records<BankAccount>(response));
-      setSnapshots(current=>({...current,[itemId]:{accounts:next,lastUpdated:new Date().toISOString(),bankUpdatedAt:info.lastUpdatedAt,status:info.status}}));
+      setSnapshots(current=>({...current,[itemId]:{accounts:next,lastUpdated:new Date().toISOString(),...(info.lastUpdatedAt?{bankUpdatedAt:info.lastUpdatedAt}:{}),...(info.status?{status:info.status}:{})}}));
       if(visible){setAccounts(next);setMessage(next.length?'Saldo e contas consultados.':'A Pluggy não retornou contas para este banco.');}
     }catch(e){
       const description=e instanceof Error?e.message:'Erro de conexão';
@@ -103,8 +103,9 @@ export default function LocalBankWorkspace(){
     try{
       const response=await adapter.auth.readBank?.('balance',accountId) as {balance?:number;currencyCode?:string;updateDateTime?:string}|undefined;
       if(!response||typeof response.balance!=='number'||!Number.isFinite(response.balance)||response.currencyCode!=='BRL')throw new Error('A Pluggy não confirmou um saldo válido em reais.');
-      setAccounts(existing=>existing.map(a=>a.id===accountId?{...a,balance:response.balance}:a));
-      setSnapshots(existing=>Object.fromEntries(Object.entries(existing).map(([id,s])=>[id,{...s,accounts:s.accounts.map(a=>a.id===accountId?{...a,balance:response.balance}:a),bankUpdatedAt:response.updateDateTime||s.bankUpdatedAt}])));
+      const balance=response.balance;
+      setAccounts(existing=>existing.map(a=>a.id===accountId?{...a,balance}:a));
+      setSnapshots(existing=>Object.fromEntries(Object.entries(existing).map(([id,s])=>[id,{...s,accounts:s.accounts.map(a=>a.id===accountId?{...a,balance}:a),...(response.updateDateTime?{bankUpdatedAt:response.updateDateTime}:{})}])));
       setMessage('Saldo atualizado pela instituição.');
     }catch(e){setMessage('Saldo em tempo real indisponível: '+(e instanceof Error?e.message:'erro não identificado'));}
     finally{setBusy(false);}
