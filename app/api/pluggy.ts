@@ -54,8 +54,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     const after = original.searchParams.get('after');
     const uuid = (v: string | null) => Boolean(v && /^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i.test(v));
     let endpoint: URL;
-    if (resource === 'items' && !itemId && !accountId && !after) {
-      endpoint = new URL('https://api.pluggy.ai/items');
+    if (resource === 'item' && uuid(itemId) && !accountId && !after) {
+      endpoint = new URL('https://api.pluggy.ai/items/' + itemId);
     } else if (resource === 'accounts' && uuid(itemId) && !accountId && !after) {
       endpoint = new URL('https://api.pluggy.ai/accounts');
       endpoint.searchParams.set('itemId', itemId!);
