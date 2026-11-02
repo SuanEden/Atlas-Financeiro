@@ -1,3 +1,4 @@
+import { PluggyReadPanel } from './PluggyReadPanel';
 import { SyncRecoveryPanel } from '../ui/SyncRecoveryPanel';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { FinancialWorkspace } from '../App';
@@ -63,13 +64,13 @@ function RemoteWorkspace({controller}:{controller:RemoteController}) {
     if(!controller.getSnapshot().session.canView||controller.getSnapshot().session.userId!==store.userId)throw new Error('A sessão mudou.');
     return json;
   }
-  return <FinancialWorkspace finance={finance} integration serverId={controller.serverId} exportJson={exportJson} sessionControls={<section className="sync-panel" aria-label="Sincronização">
+  return <FinancialWorkspace finance={finance} integration serverId={controller.serverId} exportJson={exportJson} sessionControls={<><PluggyReadPanel controller={controller}/><section className="sync-panel" aria-label="Sincronização">
     <div><strong>{snapshot.session.onlineVerified?'Acesso verificado':'Acesso offline'}</strong><p role="status">{snapshot.notice||snapshot.session.message}</p></div>
     <div className="sync-actions"><button className="button button--secondary" disabled={!snapshot.session.canTransmit||snapshot.syncing} onClick={()=>void controller.sync()}>{snapshot.syncing?'Conferindo envio…':'Sincronizar agora'}</button>
       {!snapshot.session.onlineVerified?<button className="text-button" onClick={()=>void controller.login()}>Entrar novamente</button>:null}
       <button className="text-button" onClick={()=>void controller.logout()}>Sair e bloquear</button></div>
     <Conflicts controller={controller} />
-  </section>} />;
+  </section></>} />;
 }
 
 function Conflicts({controller}:{controller:RemoteController}) {
