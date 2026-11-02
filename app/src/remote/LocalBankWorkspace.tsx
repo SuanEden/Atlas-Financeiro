@@ -5,6 +5,8 @@ import { createSupabaseAdapter } from '../auth/supabase-adapter';
 import { consumeAuthReturn } from '../auth/callback';
 
 type BankAccount={id?:string;name?:string;type?:string;balance?:number;currencyCode?:string};
+type BankSnapshot={accounts:BankAccount[];lastUpdated:string;error?:string};
+const money=(value:number,currency='BRL')=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:currency==='BRL'?'BRL':'BRL'}).format(value);
 type BankItem={id?:string;name?:string;status?:string};
 type BankTransaction={id?:string;date?:string;description?:string;amount?:number};
 const BANKS=[
@@ -32,6 +34,8 @@ export default function LocalBankWorkspace(){
   const [accounts,setAccounts]=useState<BankAccount[]>([]);
   const [transactions,setTransactions]=useState<BankTransaction[]>([]);
   const [selected,setSelected]=useState('');
+  const [snapshots,setSnapshots]=useState<Record<string,BankSnapshot>>({});
+  const [refreshing,setRefreshing]=useState(false);
   useEffect(()=>{
     let live=true;
     const result=consumeAuthReturn(location.href,(path)=>history.replaceState(null,'',path));
@@ -49,20 +53,37 @@ export default function LocalBankWorkspace(){
     return()=>{live=false;};
   },[adapter]);
 
-  async function consult(name:string,itemId:string){
+  async function refreshBank(name:string,itemId:string,visible=false){
     if(!adapter)return;
-    setBusy(true);setMessage('Consultando '+name+'…');setAccounts([]);setTransactions([]);setBankName(name);
+    if(visible){setBusy(true);setMessage('Consultando '+name+'…');setAccounts([]);setTransactions([]);setBankName(name);}
     try{
-      // Bank access is authenticated server-side; no I3 financial association is required.
       const info=await adapter.auth.readBank?.('item',itemId) as BankItem|undefined;
-      if(!info||typeof info!=='object'||(!info.id&&!info.status))throw new Error('Resposta da conexão inválida.');
-      const body=await adapter.auth.readBank?.('accounts',itemId);
-      setAccounts(records<BankAccount>(body));
-      setMessage(records<BankAccount>(body).length?'Contas consultadas em modo leitura.':'Conexão encontrada, mas nenhuma conta foi retornada.');
+      if(!info||typeof info!=='object'||(!info.id&&!info.status))throw new Error('Conexão bancária não disponível.');
+      const response=await adapter.auth.readBank?.('accounts',itemId);
+      const next=records<BankAccount>(response);
+      setSnapshots(current=>({...current,[itemId]:{accounts:next,lastUpdated:new Date().toISOString()}}));
+      if(visible){setAccounts(next);setMessage(next.length?'Saldo e contas consultados.':'A Pluggy não retornou contas para este banco.');}
     }catch(e){
-      setMessage('Não foi possível consultar '+name+': '+(e instanceof Error?e.message:'erro inesperado')+'.');
-    }finally{setBusy(false);}
+      const description=e instanceof Error?e.message:'Erro de conexão';
+      setSnapshots(current=>({...current,[itemId]:{...current[itemId],accounts:current[itemId]?.accounts||[],lastUpdated:current[itemId]?.lastUpdated||'',error:description}}));
+      if(visible)setMessage('Não foi possível consultar '+name+': '+description);
+    }finally{if(visible)setBusy(false);}
   }
+  async function consult(name:string,itemId:string){await refreshBank(name,itemId,true);}
+  useEffect(()=>{
+    if(session!=='connected'||!adapter)return;
+    let alive=true;
+    const refresh=async()=>{
+      if(!alive||document.visibilityState==='hidden')return;
+      setRefreshing(true);
+      try{await Promise.all(BANKS.map(b=>refreshBank(b.name,b.itemId)));}finally{if(alive)setRefreshing(false);}
+    };
+    void refresh();
+    const timer=window.setInterval(()=>{void refresh();},5*60*1000);
+    const onVisible=()=>{if(document.visibilityState==='visible')void refresh();};
+    document.addEventListener('visibilitychange',onVisible);
+    return()=>{alive=false;window.clearInterval(timer);document.removeEventListener('visibilitychange',onVisible);};
+  },[session,adapter]);
   async function movement(accountId:string){
     if(!adapter)return;
     setBusy(true);setSelected(accountId);setMessage('Consultando movimentações…');
@@ -80,9 +101,12 @@ export default function LocalBankWorkspace(){
         onClick={()=>{if(session==='connected')void consult(b.name,b.itemId);else setMessage('O banco '+b.name+' está cadastrado. A consulta de saldos exige autenticação; os seus dados locais continuam disponíveis.');}}>
         <span aria-hidden="true" style={{width:58,height:58,display:'grid',placeItems:'center',borderRadius:16,background:b.name==='Nubank'?'#820ad1':'#1b2434',color:'#fff',fontSize:30,fontWeight:700}}>{b.name==='Nubank'?'nu':'∞'}</span>
         <strong>{b.name}</strong>
+        {session==='connected' && snapshots[b.itemId]?.accounts.length ? <span>{snapshots[b.itemId]!.accounts.map(a=>typeof a.balance==='number'&&Number.isFinite(a.balance)?money(a.balance):'Saldo indisponível').join(' · ')}</span>:null}
+        {session==='connected' && snapshots[b.itemId]?.error ? <small>Consulta indisponível</small>:null}
       </button>)}
     </div>
-    {session==='connected'?<p>Consulta bancária disponível em modo leitura.</p>:null}
+    {session==='connected'?<p role="status">{refreshing?'Atualizando saldos…':'Saldos consultados automaticamente ao abrir, retornar à aba e a cada 5 minutos enquanto o Atlas estiver aberto.'}</p>:null}
+    {session!=='connected'?<p>Para buscar saldos reais, é necessário autorizar a consulta. Os bancos listados acima não representam saldo confirmado.</p>:null}
     {message?<p role="status">{message}</p>:null}
     {accounts.length>0?<section><h3>Contas de {bankName}</h3>{accounts.map(a=><div key={a.id}><strong>{a.name||a.type||'Conta'}</strong>{a.id?<button className="text-button" disabled={busy} onClick={()=>void movement(a.id!)}>Ver movimentações</button>:null}</div>)}</section>:null}
     {transactions.length>0?<section><h3>Movimentações da conta {selected}</h3><ul>{transactions.slice(0,30).map((tx,i)=><li key={tx.id||i}>{tx.date||'Sem data'} · {tx.description||'Sem descrição'} · {typeof tx.amount==='number'?tx.amount.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'Sem valor'}</li>)}</ul></section>:null}
