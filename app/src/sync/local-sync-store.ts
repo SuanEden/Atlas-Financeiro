@@ -2,7 +2,7 @@ import Dexie, { type EntityTable } from 'dexie';
 import { assertEntityId, type FinancialDataset } from '../domain';
 import { deserializeFinancialDataset, serializeFinancialDataset } from '../serialization';
 import { canonicalJson } from '../serialization/canonical-json';
-import { assertEnvelope, assertFields, assertRevision, assertSize, DATA_TABLES, emptyDataset, envelopeData, jsonDigest, mergeAppendOnly, receiptAcknowledges, type BootstrapEnvelope, type ChangePage, type Receipt, type SyncEnvelope } from './protocol';
+import { assertEnvelope, assertFields, assertRevision, assertSize, DATA_TABLES, emptyDataset, envelopeData, isI3SchemaCompatible, jsonDigest, mergeAppendOnly, receiptAcknowledges, type BootstrapEnvelope, type ChangePage, type Receipt, type SyncEnvelope } from './protocol';
 
 export interface PendingDelivery {
   id: string; envelope: SyncEnvelope; digest: string; operationDigest?: string; ordinal: number;
@@ -261,6 +261,9 @@ async function validatePage(page: ChangePage,owner: string) {
   const acks=new Map<string,{envelopeDigest?:string;operationDigest?:string}>();
   for(const batch of page.batches) {
     assertFields(batch,['revision','envelope','receipt']); assertEnvelope(batch.envelope);
+    // Never apply or acknowledge future financial schemas using this append-only projection.
+    // Reject the full page before the IndexedDB transaction advances its cursor.
+    if (!isI3SchemaCompatible(batch.envelope)) throw new TypeError('Lote remoto requer versão financeira mais recente. Preserve a base local.');
     assertRevision(batch.revision);
     if(BigInt(batch.revision)!==expected++||batch.envelope.userId!==owner||batch.receipt.revision!==batch.revision||!await receiptAcknowledges(batch.envelope,batch.receipt)) throw new TypeError('Lote/recibo inválido ou lacuna no feed.');
     assertSize(batch.envelope);
