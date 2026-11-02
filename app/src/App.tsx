@@ -44,8 +44,8 @@ const desktopNavigation = [
   { page: 'backup' as const, label: 'Backup', Icon: Download },
 ];
 
-export function App() {
-  return <FinancialWorkspace finance={useLocalFinance()} />;
+export function App({bankPanel}:{bankPanel?:ReactNode}={}) {
+  return <FinancialWorkspace finance={useLocalFinance()} bankPanel={bankPanel} />;
 }
 
 export function FinancialWorkspace({finance,sessionControls,integration=false,exportJson,serverId,bankPanel}:{finance:ReturnType<typeof useLocalFinance>;sessionControls?:ReactNode;integration?:boolean;exportJson?:()=>Promise<string>;serverId?:string;bankPanel?:ReactNode}) {
@@ -107,7 +107,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
     <main className="app-shell" data-theme={dark ? 'dark' : 'light'}>
       <aside className="sidebar">
         <Brand />
-        <nav aria-label="Navegação principal">{[...desktopNavigation, ...(integration ? [{page:'banks' as const,label:'Bancos',Icon:Landmark}] : [])].map(({ page: target, label, Icon }) => <button className={page === target ? 'is-active' : ''} key={target} onClick={() => setPage(target)}><Icon size={19} /><span>{label}</span></button>)}</nav>
+        <nav aria-label="Navegação principal">{[...desktopNavigation, ...(integration || bankPanel !== undefined ? [{page:'banks' as const,label:'Bancos',Icon:Landmark}] : [])].map(({ page: target, label, Icon }) => <button className={page === target ? 'is-active' : ''} key={target} onClick={() => setPage(target)}><Icon size={19} /><span>{label}</span></button>)}</nav>
         <div className="sidebar-footer"><HardDrive size={17} /><span><strong>Salvo neste dispositivo</strong><small>{state.outbox.length} pendente{state.outbox.length === 1 ? '' : 's'}</small></span></div>
       </aside>
 
