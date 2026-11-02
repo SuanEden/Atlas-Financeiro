@@ -41,3 +41,5 @@ export function LocalBankWorkspace() {
       <PluggyReadPanel controller={{readBank:async (resource,id)=>bank.auth.readBank!(resource,id)}} />{error?<p role="alert">{error}</p>:null}</div>;
   return <FinancialWorkspace finance={finance} bankPanel={panel}/>;
 }
+
+export default LocalBankWorkspace;
