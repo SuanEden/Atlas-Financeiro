@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { prepareBankImportCommand } from './pluggy-bridge';
+import { bankImportEventId, prepareUniqueBankImportCommand, prepareBankImportCommand } from './pluggy-bridge';
 import type { FinancialDataset } from '../domain';
 
 const userId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -24,4 +24,13 @@ describe('Pluggy to Atlas command bridge', () => {
     expect(() => prepareBankImportCommand(candidate, { pluggyAccountId: 'other', atlasAccountId: accountId }, dataset, context)).toThrow();
     expect(() => prepareBankImportCommand(candidate, { pluggyAccountId: 'external-1', atlasAccountId: crypto.randomUUID() }, dataset, context)).toThrow();
   });
+  it('assigns stable owner-scoped IDs across sessions and ignores a previously imported event', async () => {
+    const first = await prepareUniqueBankImportCommand(candidate, { pluggyAccountId: 'external-1', atlasAccountId: accountId }, dataset, context);
+    const second = await prepareUniqueBankImportCommand(candidate, { pluggyAccountId: 'external-1', atlasAccountId: accountId }, dataset, context);
+    expect(first?.aggregate.events?.[0].id).toBe(second?.aggregate.events?.[0].id);
+    const stored = { ...dataset, events: [first!.aggregate.events![0]!] };
+    expect(await prepareUniqueBankImportCommand(candidate, { pluggyAccountId: 'external-1', atlasAccountId: accountId }, stored, context)).toBeNull();
+    expect(await bankImportEventId(userId, candidate.externalKey)).not.toBe(await bankImportEventId(crypto.randomUUID(), candidate.externalKey));
+  });
+
 });
