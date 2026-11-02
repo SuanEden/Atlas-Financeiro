@@ -51,7 +51,16 @@ export function adapterFromClient(client:ApiClient,origin:string,clearLocalSessi
   const auth:AuthPort={
     async verifyBankLogin() {
       const {data,error}=await client.auth.getUser();
-      return !error && Boolean(data.user && !data.user.is_anonymous && data.user.identities?.some(identity=>identity.provider==='google'));
+      const isGoogle=!error && Boolean(data.user && !data.user.is_anonymous && data.user.identities?.some(identity=>identity.provider==='google'));
+      if(!isGoogle)return false;
+      const {data:session,error:sessionError}=await client.auth.getSession();
+      if(sessionError || !session.session?.access_token)return false;
+      try{
+        const verified=await fetch('/api/pluggy?resource=session',{
+          headers:{Authorization:'Bearer '+session.session.access_token},cache:'no-store',
+        });
+        return verified.ok;
+      }catch{return false;}
     },
     async verify() {
       const {data,error}=await client.auth.getUser();
