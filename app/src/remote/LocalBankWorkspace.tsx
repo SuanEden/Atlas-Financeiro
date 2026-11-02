@@ -25,8 +25,8 @@ export function LocalBankWorkspace() {
       try {
         if(callback.kind==='error')throw new Error('O Google não confirmou o retorno.');
         if(callback.kind==='code')await bank.auth.callback(callback.code);
-        await bank.auth.verify();
-        if(live)setVerified(true);
+        const authorized=await bank.auth.verifyBankLogin?.();
+        if(live)setVerified(Boolean(authorized));
       }catch{if(live)setVerified(false);}
       finally{if(live)setWorking(false);}
     }
