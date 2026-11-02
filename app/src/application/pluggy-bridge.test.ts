@@ -27,7 +27,7 @@ describe('Pluggy to Atlas command bridge', () => {
   it('assigns stable owner-scoped IDs across sessions and ignores a previously imported event', async () => {
     const first = await prepareUniqueBankImportCommand(candidate, { pluggyAccountId: 'external-1', atlasAccountId: accountId }, dataset, context);
     const second = await prepareUniqueBankImportCommand(candidate, { pluggyAccountId: 'external-1', atlasAccountId: accountId }, dataset, context);
-    expect(first?.aggregate.events?.[0].id).toBe(second?.aggregate.events?.[0].id);
+    expect(first?.aggregate.events?.[0]?.id).toBe(second?.aggregate.events?.[0]?.id);
     const stored = { ...dataset, events: [first!.aggregate.events![0]!] };
     expect(await prepareUniqueBankImportCommand(candidate, { pluggyAccountId: 'external-1', atlasAccountId: accountId }, stored, context)).toBeNull();
     expect(await bankImportEventId(userId, candidate.externalKey)).not.toBe(await bankImportEventId(crypto.randomUUID(), candidate.externalKey));
