@@ -29,7 +29,10 @@ export default function LocalBankWorkspace(){
     const url=import.meta.env.VITE_SUPABASE_URL;
     const key=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     if(typeof url!=='string'||typeof key!=='string'||!url||!key)return undefined;
-    return createSupabaseAdapter({url,publishableKey:key,serverId:new URL(url).hostname},location.origin);
+    // OAuth in production must not inherit a temporary Vercel Preview origin.
+    const canonicalOrigin='https://atlas-financeiro-nine.vercel.app';
+    const origin=location.hostname==='localhost' ? location.origin : canonicalOrigin;
+    return createSupabaseAdapter({url,publishableKey:key,serverId:new URL(url).hostname},origin);
   });
   const [session,setSession]=useState<'checking'|'connected'|'disconnected'|'unavailable'>('checking');
   const [message,setMessage]=useState('');
