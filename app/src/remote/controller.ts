@@ -78,7 +78,7 @@ export class RemoteController {
     })();
     this.#verification=run;try {await run;}finally {if(this.#verification===run)this.#verification=undefined;}
   }
-  async readBank(resource:'items'|'accounts'|'transactions',id?:string):Promise<unknown> {
+  async readBank(resource:'item'|'accounts'|'transactions',id?:string):Promise<unknown> {
     if(!this.policy.snapshot.onlineVerified||!this.auth.readBank) throw new Error('A sessão bancária não está autorizada.');
     const epoch=this.policy.snapshot.epoch;
     const result=await this.auth.readBank(resource,id);
