@@ -18,6 +18,12 @@ describe('Pluggy import safety boundary', () => {
     expect(pluggyCandidate('item-1', { ...row, amount: 0 })).toBeNull();
     expect(pluggyCandidate('item-1', { ...row, status: 'PENDING' })).toBeNull();
   });
+  it('uses the provider CREDIT/DEBIT direction, never assumes the amount sign is authoritative', () => {
+    expect(pluggyCandidate('item-1', { ...row, amount: 25, type:'DEBIT' })?.kind).toBe('expense');
+    expect(pluggyCandidate('item-1', { ...row, amount: -25, type:'CREDIT' })?.kind).toBe('income');
+    expect(pluggyCandidate('item-1', { ...row, status:undefined })).toBeNull();
+    expect(() => pluggyCandidate('item-1', { ...row, type:'UNEXPECTED' as 'CREDIT' })).toThrow();
+  });
   it('deduplicates within a batch and against persisted external IDs', () => {
     expect(previewPluggyImport('item-1', [row, row])).toHaveLength(1);
     expect(previewPluggyImport('item-1', [row], new Set(['pluggy:item-1:account-1:transaction-1']))).toEqual([]);
