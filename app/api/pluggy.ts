@@ -74,8 +74,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     const itemId = original.searchParams.get('itemId');
     const accountId = original.searchParams.get('accountId');
     const after = original.searchParams.get('after');
+    const dateFrom = original.searchParams.get('dateFrom');
     const uuid = (v: string | null) => Boolean(v && /^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i.test(v));
-    if(resource==='session' && !itemId && !accountId && !after) {
+    if(resource==='session' && !itemId && !accountId && !after && !dateFrom) {
       return reply(res,200,{authorized:true});
     }
     if((resource==='item'||resource==='accounts') && (!itemId||!bankItems.has(itemId))) {
@@ -95,6 +96,11 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     } else if (resource === 'transactions' && uuid(accountId) && !itemId) {
       endpoint = new URL('https://api.pluggy.ai/v2/transactions');
       endpoint.searchParams.set('accountId', accountId!);
+      if(dateFrom){
+        const parsed=new Date(dateFrom+'T00:00:00.000Z');
+        if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(dateFrom)||Number.isNaN(parsed.getTime())||parsed.toISOString().slice(0,10)!==dateFrom)return reply(res,400,{error:'Data inicial inválida.'});
+        endpoint.searchParams.set('dateFrom',dateFrom);
+      }
       if (after) {
         if (after.length > 2048 || /[\x00-\x1f]/.test(after)) return reply(res, 400, { error: 'Cursor inválido.' });
         endpoint.searchParams.set('after', after);
