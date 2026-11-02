@@ -49,6 +49,7 @@ function AccessGate({controller}:{controller:RemoteController}) {
       {preview?<div><p>{preview.accounts} contas, {preview.events} lançamentos e {preview.pending} operações locais. A origem será preservada. Feche abas antigas de I2 antes de copiar.</p><button className="button button--secondary" disabled={busy||!confirmed} onClick={()=>void run(()=>controller.associateLocal(preview.digest))}>Confirmar cópia da base conferida</button></div>:null}
       <button className="text-button" disabled={busy||snapshot.syncing} onClick={()=>void run(()=>controller.sync())}>Retomar associação pendente</button>
     </section>:null}
+    {snapshot.session.onlineVerified ? <PluggyReadPanel controller={controller} /> : null}
     {snapshot.session.onlineVerified ? <SyncRecoveryPanel userId={snapshot.session.userId} serverId={controller.serverId} onRecover={json => controller.recoverBackup(json)} disabled={busy || snapshot.syncing} /> : null}
     <p className="warning-copy">Sair bloqueia a visualização neste perfil sem apagar pendências. Esta proteção local não é criptografia. O envio exige sessão verificada e liberação do servidor.</p>
   </section></main>;
