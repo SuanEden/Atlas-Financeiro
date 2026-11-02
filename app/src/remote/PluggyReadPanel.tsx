@@ -11,7 +11,6 @@ const rows=(payload:unknown):BankRow[]=>{
 };
 export function PluggyReadPanel({controller}:{controller:RemoteController}) {
   const [items,setItems]=useState<BankRow[]>([]);
-  const [itemId,setItemId]=useState('');
   const [accounts,setAccounts]=useState<BankRow[]>([]);
   const [transactions,setTransactions]=useState<BankRow[]>([]);
   const [selected,setSelected]=useState('');
@@ -25,8 +24,17 @@ export function PluggyReadPanel({controller}:{controller:RemoteController}) {
   return <section className="sync-panel" aria-label="Importação bancária Pluggy">
     <h2>Conexões bancárias — Pluggy</h2>
     <p>Consulta somente para leitura. Nenhum lançamento será incluído no Atlas nesta etapa.</p>
-    <label>Identificador da conexão (itemId)<input className="input" value={itemId} onChange={e=>setItemId(e.target.value.trim())} placeholder="UUID da conexão no painel Pluggy" /></label>
-    <button className="button button--secondary" disabled={busy||!/^\\w{8}-[\\w-]{27,}$/.test(itemId)} onClick={()=>void run(async()=>{const item=await controller.readBank('item',itemId) as BankRow; if(!item.id)throw new Error('Item inválido');setItems(current=>[...current.filter(x=>x.id!==item.id),item]);setAccounts([]);setTransactions([]);})}>Adicionar conexão pelo ID</button>
+    <p>Escolha seu banco. Os identificadores das conexões já estão configurados.</p>
+    {([
+      {name:'Nubank',id:'71c06153-0d24-45ac-81f6-9de6f0d04282'},
+      {name:'Infinite',id:'1c91ee97-e614-494f-b41a-5e203d5fa7ee'},
+    ] as const).map(bank=><button key={bank.id} className="button button--secondary" disabled={busy} onClick={()=>void run(async()=>{
+      const result=await controller.readBank('item',bank.id) as BankRow;
+      const item:BankRow={...result,id:result.id||bank.id,name:result.name||bank.name};
+      setItems(current=>[...current.filter(x=>x.id!==bank.id),item]);
+      setAccounts(rows(await controller.readBank('accounts',bank.id)));
+      setTransactions([]);
+    })}>Consultar {bank.name}</button>)}
     {items.map(item=><div key={item.id}><span>{item.name||'Conexão'} · {item.status||'Status não informado'}</span>{item.id?<button className="text-button" disabled={busy} onClick={()=>void run(async()=>{setAccounts(rows(await controller.readBank('accounts',item.id)));setTransactions([]);})}>Ver contas</button>:null}</div>)}
     {accounts.map(account=><div key={account.id}><span>{account.name||account.type||'Conta bancária'}</span>{account.id?<button className="text-button" disabled={busy} onClick={()=>void run(async()=>{setTransactions(rows(await controller.readBank('transactions',account.id)));setSelected(account.id!);})}>Ver movimentações</button>:null}</div>)}
     {transactions.length>0?<div><h3>Movimentações consultadas</h3><p>Conta consultada: {selected}. Prévia, sem lançamento automático.</p><ul>{transactions.slice(0,20).map(tx=><li key={tx.id}>{tx.date||'Sem data'} · {tx.description||'Sem descrição'} · {typeof tx.amount==='number'?tx.amount.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'Valor indisponível'}</li>)}</ul></div>:null}
