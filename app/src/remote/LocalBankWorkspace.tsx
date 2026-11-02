@@ -74,16 +74,15 @@ export default function LocalBankWorkspace(){
     finally{setBusy(false);}
   }
   const panel=<section className="sync-panel" aria-label="Bancos">
-    <h2>Bancos</h2>
-    <p>Conexões pessoais somente para leitura. Seus registros do Atlas continuam salvos neste dispositivo.</p>
-    {session==='checking'?<p role="status">Verificando a sessão bancária…</p>:null}
-    {session==='unavailable'?<p role="alert">A autenticação bancária não está configurada nesta publicação.</p>:null}
-    {session==='disconnected'&&adapter?<button className="button button--primary" onClick={()=>void adapter.auth.login().catch(()=>setMessage('Falha ao abrir autenticação Google.'))}>Conectar conta Google</button>:null}
-    {session==='connected'&&adapter?<div>
-      <p>Conta Google conectada para consulta bancária.</p>
-      {BANKS.map(b=><button key={b.itemId} className="button button--secondary" disabled={busy} onClick={()=>void consult(b.name,b.itemId)}>Consultar {b.name}</button>)}
-      <button className="text-button" disabled={busy} onClick={()=>void adapter.auth.logout().then(()=>{setSession('disconnected');setAccounts([]);setTransactions([]);}).catch(()=>setMessage('Não foi possível encerrar a sessão bancária.'))}>Desconectar Google</button>
-    </div>:null}
+    <h2>Meus bancos</h2>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:16,margin:'18px 0 24px'}}>
+      {BANKS.map(b=><button key={b.itemId} type="button" disabled={busy} className="button button--secondary" style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,minHeight:132,borderRadius:16}}
+        onClick={()=>{if(session==='connected')void consult(b.name,b.itemId);else setMessage('O banco '+b.name+' está cadastrado. A consulta de saldos exige autenticação; os seus dados locais continuam disponíveis.');}}>
+        <span aria-hidden="true" style={{width:58,height:58,display:'grid',placeItems:'center',borderRadius:16,background:b.name==='Nubank'?'#820ad1':'#1b2434',color:'#fff',fontSize:30,fontWeight:700}}>{b.name==='Nubank'?'nu':'∞'}</span>
+        <strong>{b.name}</strong>
+      </button>)}
+    </div>
+    {session==='connected'?<p>Consulta bancária disponível em modo leitura.</p>:null}
     {message?<p role="status">{message}</p>:null}
     {accounts.length>0?<section><h3>Contas de {bankName}</h3>{accounts.map(a=><div key={a.id}><strong>{a.name||a.type||'Conta'}</strong>{a.id?<button className="text-button" disabled={busy} onClick={()=>void movement(a.id!)}>Ver movimentações</button>:null}</div>)}</section>:null}
     {transactions.length>0?<section><h3>Movimentações da conta {selected}</h3><ul>{transactions.slice(0,30).map((tx,i)=><li key={tx.id||i}>{tx.date||'Sem data'} · {tx.description||'Sem descrição'} · {typeof tx.amount==='number'?tx.amount.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'Sem valor'}</li>)}</ul></section>:null}
