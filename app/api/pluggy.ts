@@ -51,18 +51,18 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     const resource = original.searchParams.get('resource');
     const itemId = original.searchParams.get('itemId');
     const accountId = original.searchParams.get('accountId');
-    const cursor = original.searchParams.get('cursor');
+    const after = original.searchParams.get('after');
     const uuid = (v: string | null) => Boolean(v && /^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i.test(v));
     let endpoint: URL;
-    if (resource === 'accounts' && uuid(itemId) && !accountId && !cursor) {
+    if (resource === 'accounts' && uuid(itemId) && !accountId && !after) {
       endpoint = new URL('https://api.pluggy.ai/accounts');
       endpoint.searchParams.set('itemId', itemId!);
     } else if (resource === 'transactions' && uuid(accountId) && !itemId) {
       endpoint = new URL('https://api.pluggy.ai/v2/transactions');
       endpoint.searchParams.set('accountId', accountId!);
-      if (cursor) {
-        if (!/^[\w-]{1,250}$/.test(cursor)) return reply(res, 400, { error: 'Cursor inválido.' });
-        endpoint.searchParams.set('cursor', cursor);
+      if (after) {
+        if (after.length > 2048 || /[\x00-\x1f]/.test(after)) return reply(res, 400, { error: 'Cursor inválido.' });
+        endpoint.searchParams.set('after', after);
       }
     } else return reply(res, 400, { error: 'Parâmetros inválidos.' });
     const r = await fetch(endpoint, { headers: { 'X-API-KEY': await key() }, signal: AbortSignal.timeout(15000) });
