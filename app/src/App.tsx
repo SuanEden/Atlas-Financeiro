@@ -1,6 +1,7 @@
 import {
   Download,
   HardDrive,
+  Landmark,
   Home,
   ListRestart,
   Moon,
@@ -47,9 +48,9 @@ export function App() {
   return <FinancialWorkspace finance={useLocalFinance()} />;
 }
 
-export function FinancialWorkspace({finance,sessionControls,integration=false,exportJson,serverId}:{finance:ReturnType<typeof useLocalFinance>;sessionControls?:ReactNode;integration?:boolean;exportJson?:()=>Promise<string>;serverId?:string}) {
+export function FinancialWorkspace({finance,sessionControls,integration=false,exportJson,serverId,bankPanel}:{finance:ReturnType<typeof useLocalFinance>;sessionControls?:ReactNode;integration?:boolean;exportJson?:()=>Promise<string>;serverId?:string;bankPanel?:ReactNode}) {
   const { state, loading, busy, error, clearError, execute, recover, readState, context, userId } = finance;
-  const [page, setPage] = useState<Page>('dashboard');
+  const [page, setPage] = useState<Page | 'banks'>('dashboard');
   const [modal, setModal] = useState<Modal>();
   const [notice, setNotice] = useState('');
   const [dark, setDark] = useState(() => localStorage.getItem('atlas-financeiro:theme:v1') === 'dark');
@@ -106,18 +107,19 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
     <main className="app-shell" data-theme={dark ? 'dark' : 'light'}>
       <aside className="sidebar">
         <Brand />
-        <nav aria-label="Navegação principal">{desktopNavigation.map(({ page: target, label, Icon }) => <button className={page === target ? 'is-active' : ''} key={target} onClick={() => setPage(target)}><Icon size={19} /><span>{label}</span></button>)}</nav>
+        <nav aria-label="Navegação principal">{[...desktopNavigation, ...(integration ? [{page:'banks' as const,label:'Bancos',Icon:Landmark}] : [])].map(({ page: target, label, Icon }) => <button className={page === target ? 'is-active' : ''} key={target} onClick={() => setPage(target)}><Icon size={19} /><span>{label}</span></button>)}</nav>
         <div className="sidebar-footer"><HardDrive size={17} /><span><strong>Salvo neste dispositivo</strong><small>{state.outbox.length} pendente{state.outbox.length === 1 ? '' : 's'}</small></span></div>
       </aside>
 
       <section className="workspace">
         <header className="topbar"><div className="mobile-brand"><Brand /></div>{page === 'dashboard' ? null : <button className="button button--primary topbar-create" onClick={openTransaction} disabled={state.accounts.length === 0}><Plus size={17} />Novo lançamento</button>}<span className="device-status"><HardDrive size={16} />Salvo neste dispositivo</span><button className="icon-button" type="button" onClick={toggleTheme} aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'} aria-pressed={dark}>{dark ? <Sun size={19} /> : <Moon size={19} />}</button></header>
-        {sessionControls}
+        {page === 'banks' ? null : sessionControls}
         {error === undefined ? null : <div className="error-banner" role="alert"><span>{error}</span><button onClick={clearError}>Fechar</button></div>}
         <div className="sr-only" role="status">{notice}</div>
         {loading ? <div className="loading-state"><span className="spinner" />Carregando dados locais…</div> : (
           <>
-            {page === 'dashboard' ? <Dashboard integration={integration} state={state} today={today} onAddAccount={() => setModal({ type: 'account' })} onAddTransaction={openTransaction} onNavigate={setPage} /> : null}
+            {page === 'banks' ? <section aria-label="Bancos"><h1>Bancos conectados</h1>{bankPanel ?? <p>Entre com Google para consultar seus bancos.</p>}</section> : null}
+            {page === 'dashboard' ? <Dashboard integration={integration} state={state} today={today} onAddAccount={() => setModal({ type: 'account' })} onAddTransaction={openTransaction} onNavigate={(next)=>setPage(next)} /> : null}
             {page === 'movements' ? <MovementsView integration={integration} state={state} onAdd={openTransaction} onEdit={(event) => setModal({ type: 'transaction', initial: event })} onReverse={(event) => setModal({ type: 'reverse', event })} /> : null}
             {page === 'accounts' ? <AccountsView state={state} onAdd={() => setModal({ type: 'account' })} onReconcile={(account) => setModal({ type: 'reconcile', account })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
             {page === 'categories' || page === 'backup' ? <div className="mobile-settings-tabs"><button className={page === 'categories' ? 'is-active' : ''} onClick={() => setPage('categories')}>Categorias</button><button className={page === 'backup' ? 'is-active' : ''} onClick={() => setPage('backup')}>Backup</button></div> : null}

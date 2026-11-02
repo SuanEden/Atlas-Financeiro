@@ -11,7 +11,9 @@ function createRuntime() {
   const authReturn=consumeAuthReturn(location.href,(path)=>history.replaceState(null,'',path));
   const config=readRemoteConfig(import.meta.env);
   if(!config)throw new Error('Modo de integração indisponível.');
-  const adapter=createSupabaseAdapter(config,location.origin);
+  const configuredOrigin=import.meta.env.VITE_ATLAS_AUTH_ORIGIN;
+  const loginOrigin=typeof configuredOrigin==='string'&&configuredOrigin?new URL(configuredOrigin).origin:location.origin;
+  const adapter=createSupabaseAdapter(config,loginOrigin);
   const controller=new RemoteController(config.serverId,adapter.auth,adapter.transport,localStorage,{
     async read() {
       const ownerId=getOrCreateLocalOwnerId();const store=createLocalFinancialStore(ownerId);

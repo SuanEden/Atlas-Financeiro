@@ -3,7 +3,7 @@ const APP_SHELL = [/* __PRECACHE__ */];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
-  // Wait for all existing tabs to close; never force a form reload.
+  // Preserve open forms; the new worker activates after existing tabs close.
 });
 
 self.addEventListener('activate', (event) => {
@@ -15,7 +15,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) return;
   event.respondWith(caches.open(CACHE_NAME).then(async (cache) => {
-    if (event.request.mode === 'navigate') return (await cache.match('/')) ?? fetch(event.request);
+    if (event.request.mode === 'navigate') {
+      try {const fresh=await fetch(event.request,{cache:'no-store'});if(fresh.ok)return fresh;} catch { /* Offline fallback */ }
+      return (await cache.match('/')) ?? Response.error();
+    }
     // Static assets are identical regardless of Origin (Vite preview sends Vary: Origin).
     return (await cache.match(event.request, { ignoreVary: true })) ?? fetch(event.request);
   }));
