@@ -11,6 +11,7 @@ export interface PluggyTransaction {
   amount: number;
   currencyCode?: string;
   status?: string;
+  type?: 'CREDIT' | 'DEBIT';
 }
 export interface BankImportCandidate {
   externalKey: string;
@@ -43,9 +44,10 @@ export function pluggyCandidate(itemId: string, row: PluggyTransaction): BankImp
   safeId(row.id, 'Transação');
   safeId(row.accountId, 'Conta');
   if (row.currencyCode !== undefined && row.currencyCode !== 'BRL') throw new TypeError('Somente transações BRL são suportadas.');
-  if (row.status !== undefined && row.status !== 'POSTED') return null; // pending/nonfinal is not money moved
+  if (row.status !== 'POSTED') return null; // missing/pending status never becomes settled money
   const amountCents = cents(row.amount);
   if (amountCents === 0n) return null;
+  if (row.type !== undefined && row.type !== 'CREDIT' && row.type !== 'DEBIT') throw new TypeError('Tipo de transação bancária inválido.');
   const description = row.description.trim();
   if (!description || description.length > 500) throw new TypeError('Descrição bancária inválida.');
   return {
@@ -54,7 +56,8 @@ export function pluggyCandidate(itemId: string, row: PluggyTransaction): BankImp
     date: calendarDate(row.date),
     description,
     amountCents: amountCents < 0n ? -amountCents : amountCents,
-    kind: amountCents < 0n ? 'expense' : 'income',
+    // Pluggy normalizes CREDIT/DEBIT; the type is authoritative when provided.
+    kind: row.type ? (row.type === 'DEBIT' ? 'expense' : 'income') : (amountCents < 0n ? 'expense' : 'income'),
   };
 }
 /** Idempotent preview; on refresh use the same persisted external keys. */
