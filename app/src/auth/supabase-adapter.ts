@@ -12,7 +12,7 @@ export interface AuthPort {
   logout():Promise<void>;
   callback(code:string):Promise<void>;
   onChange(callback:(userId?:string)=>void):()=>void;
-  readBank?(resource:'item'|'accounts'|'transactions'|'balance', id?:string):Promise<unknown>;
+  readBank?(resource:'item'|'accounts'|'transactions'|'balance', id?:string, after?:string):Promise<unknown>;
 }
 export interface RemoteConfig { url:string; publishableKey:string; serverId:string }
 
@@ -70,7 +70,7 @@ export function adapterFromClient(client:ApiClient,origin:string,clearLocalSessi
       if(error) throw mapRemoteError(error);
     },
     async callback(code) { const {error}=await client.auth.exchangeCodeForSession(code);if(error) throw mapRemoteError(error); },
-    async readBank(resource, id) {
+    async readBank(resource, id, after) {
       const session=await client.auth.getSession();
       const token=session.data.session?.access_token;
       if(session.error||!token) throw new SyncFailure('login_required','NO_SESSION');
@@ -78,6 +78,7 @@ export function adapterFromClient(client:ApiClient,origin:string,clearLocalSessi
       if(resource==='item'&&id)query.set('itemId',id);
       if(resource==='accounts'&&id)query.set('itemId',id);
       if(resource==='transactions'&&id)query.set('accountId',id);
+      if(resource==='transactions'&&after)query.set('after',after);
       if(resource==='balance'&&id)query.set('accountId',id);
       const response=await fetch('/api/pluggy?'+query.toString(),{headers:{Authorization:'Bearer '+token},cache:'no-store'});
       if(!response.ok){
