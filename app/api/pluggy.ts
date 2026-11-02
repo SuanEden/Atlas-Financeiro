@@ -98,7 +98,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       endpoint.searchParams.set('accountId', accountId!);
       if(dateFrom){
         const parsed=new Date(dateFrom+'T00:00:00.000Z');
-        if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(dateFrom)||Number.isNaN(parsed.getTime())||parsed.toISOString().slice(0,10)!==dateFrom)return reply(res,400,{error:'Data inicial inválida.'});
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(dateFrom)||Number.isNaN(parsed.getTime())||parsed.toISOString().slice(0,10)!==dateFrom)return reply(res,400,{error:'Data inicial inválida.'});
         endpoint.searchParams.set('dateFrom',dateFrom);
       }
       if (after) {
