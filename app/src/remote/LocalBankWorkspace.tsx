@@ -5,11 +5,11 @@ import { createSupabaseAdapter } from '../auth/supabase-adapter';
 import { consumeAuthReturn } from '../auth/callback';
 
 type BankAccount={id?:string;name?:string;type?:string;balance?:number;currencyCode?:string};
-type BankSnapshot={accounts:BankAccount[];lastUpdated:string;error?:string};
+type BankSnapshot={accounts:BankAccount[];lastUpdated:string;bankUpdatedAt?:string;status?:string;error?:string};
 const money=(value:number)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(value);
 const bankAccounts=(list:BankAccount[])=>list.filter(a=>(!a.type||a.type==='BANK')&&(!a.currencyCode||a.currencyCode==='BRL'));
 const balanceText=(list:BankAccount[])=>{const known=bankAccounts(list).filter(a=>typeof a.balance==='number'&&Number.isFinite(a.balance));return known.length?money(known.reduce((sum,a)=>sum+a.balance!,0)):'Saldo indisponível';};
-type BankItem={id?:string;name?:string;status?:string};
+type BankItem={id?:string;name?:string;status?:string;lastUpdatedAt?:string};
 type BankTransaction={id?:string;date?:string;description?:string;amount?:number};
 const BANKS=[
   {name:'Nubank',itemId:'71c06153-0d24-45ac-81f6-9de6f0d04282'},
@@ -70,9 +70,11 @@ export default function LocalBankWorkspace(){
     try{
       const info=await adapter.auth.readBank?.('item',itemId) as BankItem|undefined;
       if(!info||typeof info!=='object'||(!info.id&&!info.status))throw new Error('Conexão bancária não disponível.');
+      if(info.status==='LOGIN_ERROR')throw new Error('O banco exige nova autorização na Pluggy.');
+      if(info.status==='OUTDATED')throw new Error('A última sincronização bancária falhou; aguarde a Pluggy atualizar.');
       const response=await adapter.auth.readBank?.('accounts',itemId);
       const next=bankAccounts(records<BankAccount>(response));
-      setSnapshots(current=>({...current,[itemId]:{accounts:next,lastUpdated:new Date().toISOString()}}));
+      setSnapshots(current=>({...current,[itemId]:{accounts:next,lastUpdated:new Date().toISOString(),bankUpdatedAt:info.lastUpdatedAt,status:info.status}}));
       if(visible){setAccounts(next);setMessage(next.length?'Saldo e contas consultados.':'A Pluggy não retornou contas para este banco.');}
     }catch(e){
       const description=e instanceof Error?e.message:'Erro de conexão';
@@ -95,6 +97,18 @@ export default function LocalBankWorkspace(){
     document.addEventListener('visibilitychange',onVisible);
     return()=>{alive=false;window.clearInterval(timer);document.removeEventListener('visibilitychange',onVisible);};
   },[session,adapter]);
+  async function realTimeBalance(accountId:string){
+    if(!adapter)return;
+    setBusy(true);setMessage('Solicitando saldo em tempo real…');
+    try{
+      const response=await adapter.auth.readBank?.('balance',accountId) as {balance?:number;currencyCode?:string;updateDateTime?:string}|undefined;
+      if(!response||typeof response.balance!=='number'||!Number.isFinite(response.balance)||response.currencyCode!=='BRL')throw new Error('A Pluggy não confirmou um saldo válido em reais.');
+      setAccounts(existing=>existing.map(a=>a.id===accountId?{...a,balance:response.balance}:a));
+      setSnapshots(existing=>Object.fromEntries(Object.entries(existing).map(([id,s])=>[id,{...s,accounts:s.accounts.map(a=>a.id===accountId?{...a,balance:response.balance}:a),bankUpdatedAt:response.updateDateTime||s.bankUpdatedAt}])));
+      setMessage('Saldo atualizado pela instituição.');
+    }catch(e){setMessage('Saldo em tempo real indisponível: '+(e instanceof Error?e.message:'erro não identificado'));}
+    finally{setBusy(false);}
+  }
   async function movement(accountId:string){
     if(!adapter)return;
     setBusy(true);setSelected(accountId);setMessage('Consultando movimentações…');
@@ -112,7 +126,10 @@ export default function LocalBankWorkspace(){
         onClick={()=>{if(session==='connected')void consult(b.name,b.itemId);else if(session==='disconnected')void connectBank();else setMessage('Aguarde a verificação da conexão bancária.');}}>
         <span aria-hidden="true" style={{width:58,height:58,display:'grid',placeItems:'center',borderRadius:16,background:b.name==='Nubank'?'#820ad1':'#1b2434',color:'#fff',fontSize:30,fontWeight:700}}>{b.name==='Nubank'?'nu':'∞'}</span>
         <strong>{b.name}</strong>
-        {session==='connected' && snapshots[b.itemId]?.lastUpdated ? <span style={{fontWeight:600}}>{balanceText(snapshots[b.itemId]!.accounts)}</span>:null}
+        {session==='connected' && snapshots[b.itemId]?.lastUpdated ? <span style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5}}>
+          <strong>{balanceText(snapshots[b.itemId]!.accounts)}</strong>
+          {snapshots[b.itemId]!.bankUpdatedAt && !Number.isNaN(Date.parse(snapshots[b.itemId]!.bankUpdatedAt!))?<small>Saldo bancário de {new Date(snapshots[b.itemId]!.bankUpdatedAt!).toLocaleString('pt-BR')}</small>:<small>Última atualização bancária não informada</small>}
+        </span>:null}
         {session==='connected' && snapshots[b.itemId]?.error ? <small>{snapshots[b.itemId]!.error}</small>:null}
       </button>)}
     </div>
@@ -120,7 +137,7 @@ export default function LocalBankWorkspace(){
     {session==='disconnected'?<p>Toque em Nubank ou Infinite para autorizar a consulta pelo Google. Nenhuma senha bancária é solicitada pelo Atlas.</p>:null}
     {session==='unavailable'?<p role="alert">Serviço de autenticação bancária indisponível nesta publicação.</p>:null}
     {message?<p role="status">{message}</p>:null}
-    {accounts.length>0?<section><h3>Contas de {bankName}</h3>{accounts.map(a=><div key={a.id}><strong>{a.name||a.type||'Conta'}</strong>{a.id?<button className="text-button" disabled={busy} onClick={()=>void movement(a.id!)}>Ver movimentações</button>:null}</div>)}</section>:null}
+    {accounts.length>0?<section><h3>Contas de {bankName}</h3>{accounts.map(a=><div key={a.id}><strong>{a.name||a.type||'Conta'} — {a.currencyCode==='BRL'&&typeof a.balance==='number'?money(a.balance):'Saldo indisponível'}</strong>{a.id?<button className="text-button" disabled={busy} onClick={()=>void realTimeBalance(a.id!)}>Saldo em tempo real</button>:null}{a.id?<button className="text-button" disabled={busy} onClick={()=>void movement(a.id!)}>Ver movimentações</button>:null}</div>)}</section>:null}
     {transactions.length>0?<section><h3>Movimentações da conta {selected}</h3><ul>{transactions.slice(0,30).map((tx,i)=><li key={tx.id||i}>{tx.date||'Sem data'} · {tx.description||'Sem descrição'} · {typeof tx.amount==='number'?tx.amount.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'Sem valor'}</li>)}</ul></section>:null}
   </section>;
   return <FinancialWorkspace finance={finance} bankPanel={panel}/>;
