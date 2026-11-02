@@ -3,6 +3,8 @@ import { FinancialWorkspace } from '../App';
 import { useLocalFinance } from '../ui/use-local-finance';
 import { createSupabaseAdapter } from '../auth/supabase-adapter';
 import { consumeAuthReturn } from '../auth/callback';
+import { createAccountCommand } from '../application';
+import { syncLinkedBankAccount, type BankLink } from './bank-auto-import';
 
 type BankAccount={id?:string;name?:string;type?:string;balance?:number;currencyCode?:string};
 type BankSnapshot={accounts:BankAccount[];lastUpdated:string;bankUpdatedAt?:string;status?:string;error?:string};
@@ -38,6 +40,11 @@ export default function LocalBankWorkspace(){
   const [selected,setSelected]=useState('');
   const [snapshots,setSnapshots]=useState<Record<string,BankSnapshot>>({});
   const [refreshing,setRefreshing]=useState(false);
+  const [links,setLinks]=useState<Record<string,BankLink>>(()=>{
+    try { const saved=JSON.parse(localStorage.getItem('atlas:pluggy-mappings:v1:'+finance.userId)||'{}');return saved&&typeof saved==='object'&&!Array.isArray(saved)?saved:{}; }catch{return {};}
+  });
+  const [mappingTarget,setMappingTarget]=useState<Record<string,string>>({});
+  const [importing,setImporting]=useState(false);
   async function connectBank(){
     if(!adapter){setMessage('Integração bancária não configurada.');return;}
     if(location.hostname!=='atlas-financeiro-nine.vercel.app'){
@@ -97,6 +104,65 @@ export default function LocalBankWorkspace(){
     document.addEventListener('visibilitychange',onVisible);
     return()=>{alive=false;window.clearInterval(timer);document.removeEventListener('visibilitychange',onVisible);};
   },[session,adapter]);
+  async function activateImport(bankAccount:BankAccount,itemId:string){
+    if(!bankAccount.id||busy||importing)return;
+    const choice=mappingTarget[bankAccount.id];
+    if(!choice){setMessage('Selecione uma conta do Atlas ou escolha criar uma nova.');return;}
+    setBusy(true);
+    try{
+      let atlasAccountId=choice;
+      if(choice==='__new'){
+        if(typeof bankAccount.balance!=='number'||!Number.isFinite(bankAccount.balance))throw new Error('Saldo inicial bancário ainda indisponível.');
+        const initialCents=Math.round(bankAccount.balance*100);
+        if(!Number.isSafeInteger(initialCents))throw new Error('Saldo fora do limite para importação.');
+        const command=createAccountCommand({
+          name:bankName+' · '+(bankAccount.name||'Conta bancária'),
+          kind:'digital',availability:'free',openingDate:finance.context.today(),
+          openingBalanceCents:BigInt(initialCents),
+          openingBalanceSource:'Pluggy · saldo confirmado na ativação',
+          openingBalanceCertainty:'confirmed',
+        },finance.context);
+        atlasAccountId=command.aggregate.accounts?.[0]?.id||'';
+        if(!atlasAccountId)throw new Error('Identificador de conta não gerado.');
+        await finance.execute(command);
+      }else if(!finance.state.accounts.some(a=>a.id===choice))throw new Error('Conta do Atlas selecionada não existe.');
+      const next={...links,[bankAccount.id]:{itemId,pluggyAccountId:bankAccount.id,atlasAccountId,activatedOn:finance.context.today()}};
+      localStorage.setItem('atlas:pluggy-mappings:v1:'+finance.userId,JSON.stringify(next));
+      setLinks(next);
+      setMessage('Importação vinculada. Serão registrados automaticamente apenas lançamentos confirmados dos próximos dias, sem repetir IDs já importados.');
+    }catch(e){setMessage('Não foi possível vincular a conta: '+(e instanceof Error?e.message:'erro inesperado'));}
+    finally{setBusy(false);}
+  }
+  function stopImport(accountId:string){
+    const next={...links};delete next[accountId];
+    localStorage.setItem('atlas:pluggy-mappings:v1:'+finance.userId,JSON.stringify(next));
+    setLinks(next);setMessage('Importação futura desativada. O histórico já registrado foi preservado.');
+  }
+  useEffect(()=>{
+    if(session!=='connected'||!adapter||Object.keys(links).length===0)return;
+    let alive=true;
+    const sync=async()=>{
+      if(!alive||document.visibilityState==='hidden')return;
+      setImporting(true);
+      let imported=0;let firstError='';
+      for(const link of Object.values(links)){
+        try{
+          imported+=await syncLinkedBankAccount(link,{
+            readPage:(accountId,after)=>adapter.auth.readBank!('transactions',accountId,after),
+            readState:finance.readState,execute:finance.execute,context:finance.context,
+          });
+        }catch(e){firstError=e instanceof Error?e.message:'erro não identificado';break;}
+      }
+      if(alive){
+        if(firstError)setMessage('Importação automática interrompida: '+firstError);
+        else if(imported>0)setMessage(imported+' nova(s) movimentação(ões) importada(s) para o Atlas.');
+        setImporting(false);
+      }
+    };
+    void sync();
+    const timer=window.setInterval(()=>void sync(),6*60*60*1000);
+    return()=>{alive=false;window.clearInterval(timer);};
+  },[session,adapter,links]);
   async function realTimeBalance(accountId:string){
     if(!adapter)return;
     setBusy(true);setMessage('Solicitando saldo em tempo real…');
@@ -134,11 +200,25 @@ export default function LocalBankWorkspace(){
         {session==='connected' && snapshots[b.itemId]?.error ? <small>{snapshots[b.itemId]!.error}</small>:null}
       </button>)}
     </div>
+    {importing?<p role="status">Sincronizando movimentações autorizadas…</p>:null}
     {session==='connected'?<p role="status">{refreshing?'Atualizando saldos…':'Saldos consultados automaticamente ao abrir, retornar à aba e a cada 5 minutos enquanto o Atlas estiver aberto.'}</p>:null}
     {session==='disconnected'?<p>Toque em Nubank ou Infinite para autorizar a consulta pelo Google. Nenhuma senha bancária é solicitada pelo Atlas.</p>:null}
     {session==='unavailable'?<p role="alert">Serviço de autenticação bancária indisponível nesta publicação.</p>:null}
     {message?<p role="status">{message}</p>:null}
-    {accounts.length>0?<section><h3>Contas de {bankName}</h3>{accounts.map(a=><div key={a.id}><strong>{a.name||a.type||'Conta'} — {a.currencyCode==='BRL'&&typeof a.balance==='number'?money(a.balance):'Saldo indisponível'}</strong>{a.id?<button className="text-button" disabled={busy} onClick={()=>void realTimeBalance(a.id!)}>Saldo em tempo real</button>:null}{a.id?<button className="text-button" disabled={busy} onClick={()=>void movement(a.id!)}>Ver movimentações</button>:null}</div>)}</section>:null}
+    {accounts.length>0?<section><h3>Contas de {bankName}</h3>{accounts.map(a=><div key={a.id} style={{padding:'12px 0'}}>
+      <strong>{a.name||a.type||'Conta'} — {a.currencyCode==='BRL'&&typeof a.balance==='number'?money(a.balance):'Saldo indisponível'}</strong>
+      {a.id?<button className="text-button" disabled={busy} onClick={()=>void realTimeBalance(a.id!)}>Saldo em tempo real</button>:null}
+      {a.id?<button className="text-button" disabled={busy} onClick={()=>void movement(a.id!)}>Ver movimentações</button>:null}
+      {a.id&&links[a.id]?<p>Importação futura ativa desde {links[a.id]!.activatedOn}. <button className="text-button" disabled={busy||importing} onClick={()=>stopImport(a.id!)}>Parar importação</button></p>:null}
+      {a.id&&!links[a.id]?<div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:8}}>
+        <select aria-label={'Conta do Atlas para '+(a.name||'banco')} value={mappingTarget[a.id]||''} onChange={event=>setMappingTarget(current=>({...current,[a.id!]:event.target.value}))}>
+          <option value="">Selecione uma conta do Atlas</option>
+          <option value="__new">Criar uma conta com saldo inicial</option>
+          {finance.state.accounts.map(local=><option key={local.id} value={local.id}>{local.name}</option>)}
+        </select>
+        <button className="button button--secondary" disabled={busy||importing} onClick={()=>void activateImport(a, BANKS.find(b=>b.name===bankName)?.itemId||'')}>Ativar importação automática</button>
+      </div>:null}
+    </div>)}</section>:null}
     {transactions.length>0?<section><h3>Movimentações da conta {selected}</h3><ul>{transactions.slice(0,30).map((tx,i)=><li key={tx.id||i}>{tx.date||'Sem data'} · {tx.description||'Sem descrição'} · {typeof tx.amount==='number'?tx.amount.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'Sem valor'}</li>)}</ul></section>:null}
   </section>;
   return <FinancialWorkspace finance={finance} bankPanel={panel}/>;
