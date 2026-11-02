@@ -1,6 +1,7 @@
 import type { FinancialDataset } from '../domain';
 import { createTransactionCommand, type CommandContext, type LocalCommand } from './financial-commands';
 import type { BankImportCandidate } from './pluggy-import';
+import { serializeOperationPayload } from '../serialization';
 
 /** Explicit mapping reviewed by owner; never assume Pluggy account identifiers are Atlas UUIDs. */
 export interface BankImportMapping {
@@ -20,7 +21,7 @@ export function prepareBankImportCommand(
     throw new TypeError('Conta financeira do Atlas não encontrada para esta importação.');
   }
   if (candidate.amountCents <= 0n) throw new TypeError('Valor importado inválido.');
-  return createTransactionCommand({
+  const result = createTransactionCommand({
     kind: candidate.kind,
     accountId: mapping.atlasAccountId,
     amountCents: candidate.amountCents,
@@ -28,6 +29,11 @@ export function prepareBankImportCommand(
     date: candidate.date,
     realized: true,
   }, context);
+  // A bank-imported event must remain attributable as imported in both the
+  // local aggregate and its serialized operation, not be mislabeled 'manual'.
+  if (result.aggregate.events?.[0]) result.aggregate.events[0].source = 'import';
+  result.operation.payloadJson = serializeOperationPayload(result.aggregate, context.userId);
+  return result;
 }
 
 /**
