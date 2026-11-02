@@ -46,6 +46,13 @@ async function authorize(req: IncomingMessage): Promise<boolean> {
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== 'GET') return reply(res, 405, { error: 'Method not allowed' });
   try {
+    // Diagnostic endpoint: no Google session needed and no banking records returned.
+    // Intentionally expose only a generic readiness flag, never credentials or upstream details.
+    const diagnostic = new URL(req.url ?? '/', 'http://localhost');
+    if (diagnostic.searchParams.get('resource') === 'health' && diagnostic.searchParams.size === 1) {
+      try { await key(); return reply(res, 200, { service: 'pluggy', authentication: 'ok' }); }
+      catch { return reply(res, 503, { service: 'pluggy', authentication: 'unavailable' }); }
+    }
     if (!await authorize(req)) return reply(res, 403, { error: 'Acesso não autorizado ou configuração incompleta.' });
     const original = new URL(req.url ?? '/', 'http://localhost');
     const resource = original.searchParams.get('resource');
