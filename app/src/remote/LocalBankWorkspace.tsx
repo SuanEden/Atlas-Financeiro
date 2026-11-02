@@ -18,6 +18,18 @@ export function LocalBankWorkspace() {
   const [working,setWorking]=useState(true);
   const [error,setError]=useState('');
   const [diagnostic,setDiagnostic]=useState('');
+  const [authDiagnostic,setAuthDiagnostic]=useState('');
+  async function diagnoseBanks(){
+    if(!bank)return;
+    setAuthDiagnostic('Conferindo sessão Google…');
+    try {
+      const valid=await bank.auth.verifyBankLogin?.();
+      if(!valid){setVerified(false);setAuthDiagnostic('Google: nenhuma sessão válida neste domínio.');return;}
+      setVerified(true);
+      const response=await bank.auth.readBank?.('item','71c06153-0d24-45ac-81f6-9de6f0d04282');
+      setAuthDiagnostic(response?'Google: aprovado; Nubank: consulta aprovada.':'Google aprovado; Nubank sem resposta.');
+    }catch(reason){setAuthDiagnostic('Google aprovado; consulta bancária falhou: '+(reason instanceof Error?reason.message:'erro desconhecido'));}
+  }
   async function checkPluggy(){
     setDiagnostic('Verificando a API…');
     try {
@@ -47,7 +59,7 @@ export function LocalBankWorkspace() {
     !verified?<div><p>A consulta bancária exige sua conta Google. Seus dados financeiros locais permanecem acessíveis.</p>
       <button className="button button--primary" onClick={()=>void bank.auth.login().catch(()=>setError('Não foi possível iniciar o Google.'))}>Conectar Google para bancos</button>{error?<p role="alert">{error}</p>:null}</div>:
     <div><button className="button button--secondary" onClick={()=>void bank.auth.logout().then(()=>setVerified(false)).catch(()=>setError('Não foi possível sair da consulta bancária.'))}>Desconectar bancos</button>
-      <PluggyReadPanel controller={{readBank:async (resource,id)=>bank.auth.readBank!(resource,id)}} />{error?<p role="alert">{error}</p>:null}</div>;
+      <button className="button button--secondary" onClick={()=>void diagnoseBanks()}>Diagnosticar acesso ao Nubank</button>{authDiagnostic?<p role="status">{authDiagnostic}</p>:null}<PluggyReadPanel controller={{readBank:async (resource,id)=>bank.auth.readBank!(resource,id)}} />{error?<p role="alert">{error}</p>:null}</div>;
   return <FinancialWorkspace finance={finance} bankPanel={<section><button className="button button--secondary" onClick={()=>void checkPluggy()}>Diagnosticar conexão Pluggy (sem Google)</button>{diagnostic?<p role="status">{diagnostic}</p>:null}{panel}</section>}/>;
 }
 
