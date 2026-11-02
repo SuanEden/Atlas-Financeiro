@@ -11,6 +11,7 @@ export interface AuthPort {
   logout():Promise<void>;
   callback(code:string):Promise<void>;
   onChange(callback:(userId?:string)=>void):()=>void;
+  readBank?(resource:'items'|'accounts'|'transactions', id?:string):Promise<unknown>;
 }
 export interface RemoteConfig { url:string; publishableKey:string; serverId:string }
 
@@ -64,6 +65,17 @@ export function adapterFromClient(client:ApiClient,origin:string,clearLocalSessi
       if(error) throw mapRemoteError(error);
     },
     async callback(code) { const {error}=await client.auth.exchangeCodeForSession(code);if(error) throw mapRemoteError(error); },
+    async readBank(resource, id) {
+      const session=await client.auth.getSession();
+      const token=session.data.session?.access_token;
+      if(session.error||!token) throw new SyncFailure('login_required','NO_SESSION');
+      const query=new URLSearchParams({resource});
+      if(resource==='accounts'&&id)query.set('itemId',id);
+      if(resource==='transactions'&&id)query.set('accountId',id);
+      const response=await fetch('/api/pluggy?'+query.toString(),{headers:{Authorization:'Bearer '+token},cache:'no-store'});
+      if(!response.ok)throw new Error('Consulta bancária indisponível: HTTP '+response.status);
+      return response.json();
+    },
     async logout() {try {const {error}=await client.auth.signOut({scope:'local'});if(error) throw mapRemoteError(error);}finally {clearLocalSession();}},
     onChange(callback) {const {data}=client.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>callback(session?.user.id),0);});return ()=>data.subscription.unsubscribe();},
   };
