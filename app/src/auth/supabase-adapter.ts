@@ -7,6 +7,7 @@ import { assertEnvelope } from '../sync/protocol';
 export interface AuthIdentity { userId:string; expiresAt:number; writesEnabled:boolean }
 export interface AuthPort {
   verify():Promise<AuthIdentity>;
+  verifyBankLogin?():Promise<boolean>;
   login():Promise<void>;
   logout():Promise<void>;
   callback(code:string):Promise<void>;
@@ -48,6 +49,10 @@ export function adapterFromClient(client:ApiClient,origin:string,clearLocalSessi
     return data as T;
   };
   const auth:AuthPort={
+    async verifyBankLogin() {
+      const {data,error}=await client.auth.getUser();
+      return !error && Boolean(data.user && !data.user.is_anonymous && data.user.identities?.some(identity=>identity.provider==='google'));
+    },
     async verify() {
       const {data,error}=await client.auth.getUser();
       if(error||!data.user) throw error?mapRemoteError(error):new SyncFailure('login_required','NO_SESSION');
