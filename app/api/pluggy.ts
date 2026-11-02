@@ -66,6 +66,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     } else if (resource === 'accounts' && uuid(itemId) && !accountId && !after) {
       endpoint = new URL('https://api.pluggy.ai/accounts');
       endpoint.searchParams.set('itemId', itemId!);
+    } else if (resource === 'balance' && uuid(accountId) && !itemId && !after) {
+      endpoint = new URL('https://api.pluggy.ai/accounts/' + accountId + '/balance');
     } else if (resource === 'transactions' && uuid(accountId) && !itemId) {
       endpoint = new URL('https://api.pluggy.ai/v2/transactions');
       endpoint.searchParams.set('accountId', accountId!);
