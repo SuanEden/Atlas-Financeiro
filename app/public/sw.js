@@ -13,7 +13,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) return;
+  const target = new URL(event.request.url);
+  if (event.request.method !== 'GET' || target.origin !== self.location.origin || target.pathname.startsWith('/api/')) return;
   event.respondWith(caches.open(CACHE_NAME).then(async (cache) => {
     if (event.request.mode === 'navigate') {
       try {const fresh=await fetch(event.request,{cache:'no-store'});if(fresh.ok)return fresh;} catch { /* Offline fallback */ }
