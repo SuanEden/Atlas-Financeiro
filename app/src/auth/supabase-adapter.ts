@@ -12,7 +12,7 @@ export interface AuthPort {
   logout():Promise<void>;
   callback(code:string):Promise<void>;
   onChange(callback:(userId?:string)=>void):()=>void;
-  readBank?(resource:'item'|'accounts'|'transactions', id?:string):Promise<unknown>;
+  readBank?(resource:'item'|'accounts'|'transactions'|'balance', id?:string):Promise<unknown>;
 }
 export interface RemoteConfig { url:string; publishableKey:string; serverId:string }
 
@@ -78,8 +78,20 @@ export function adapterFromClient(client:ApiClient,origin:string,clearLocalSessi
       if(resource==='item'&&id)query.set('itemId',id);
       if(resource==='accounts'&&id)query.set('itemId',id);
       if(resource==='transactions'&&id)query.set('accountId',id);
+      if(resource==='balance'&&id)query.set('accountId',id);
       const response=await fetch('/api/pluggy?'+query.toString(),{headers:{Authorization:'Bearer '+token},cache:'no-store'});
-      if(!response.ok)throw new Error('Consulta bancária indisponível: HTTP '+response.status);
+      if(!response.ok){
+        let upstream: number|undefined;
+        try{
+          const body=await response.json() as {upstreamStatus?:number};
+          if(typeof body.upstreamStatus==='number')upstream=body.upstreamStatus;
+        }catch{/* Error body may be unavailable. */}
+        if(response.status===403)throw new Error('A sessão Google não está autorizada a consultar os bancos (HTTP 403).');
+        if(response.status===502 && upstream===403)throw new Error('A Pluggy recusou acesso à conexão (403). Confira se ela pertence ao mesmo aplicativo Pluggy.');
+        if(response.status===502 && upstream===404)throw new Error('A conexão não foi encontrada na Pluggy (404).');
+        if(response.status===502 && upstream===429)throw new Error('A Pluggy limitou consultas. Aguarde a próxima atualização (429).');
+        throw new Error('Consulta bancária indisponível (HTTP '+response.status+(upstream?' / Pluggy '+upstream:'')+').');
+      }
       return response.json();
     },
     async logout() {try {const {error}=await client.auth.signOut({scope:'local'});if(error) throw mapRemoteError(error);}finally {clearLocalSession();}},
