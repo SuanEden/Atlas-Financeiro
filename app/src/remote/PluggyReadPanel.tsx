@@ -18,7 +18,7 @@ export function PluggyReadPanel({controller}:{controller:RemoteController}) {
   const [error,setError]=useState('');
   async function run(action:()=>Promise<void>){
     setBusy(true);setError('');
-    try {await action();}catch {setError('Não foi possível consultar a Pluggy. Verifique a conexão e as credenciais de Preview.');}
+    try {await action();}catch (reason) {const message=reason instanceof Error?reason.message:'';const status=/HTTP (\d{3})/.exec(message)?.[1];setError(status ? 'Consulta bancária falhou (HTTP '+status+'). Informe esse número para diagnóstico.' : 'Consulta bancária indisponível. Verifique o login e tente novamente.');}
     finally {setBusy(false);}
   }
   return <section className="sync-panel" aria-label="Importação bancária Pluggy">
