@@ -21,7 +21,8 @@ describe('Pluggy import safety boundary', () => {
   it('uses the provider CREDIT/DEBIT direction, never assumes the amount sign is authoritative', () => {
     expect(pluggyCandidate('item-1', { ...row, amount: 25, type:'DEBIT' })?.kind).toBe('expense');
     expect(pluggyCandidate('item-1', { ...row, amount: -25, type:'CREDIT' })?.kind).toBe('income');
-    expect(pluggyCandidate('item-1', { ...row, status:undefined })).toBeNull();
+    const { status: _ignored, ...withoutStatus } = row;
+    expect(pluggyCandidate('item-1', withoutStatus)).toBeNull();
     expect(() => pluggyCandidate('item-1', { ...row, type:'UNEXPECTED' as 'CREDIT' })).toThrow();
   });
   it('deduplicates within a batch and against persisted external IDs', () => {
