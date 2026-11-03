@@ -14,7 +14,7 @@ const empty:LocalFinancialState={accounts:[],categories:[],events:[],settlements
 const batches=():ChangeBatch[]=>JSON.parse(localStorage.getItem('synthetic-remote-batches')??'[]');
 const transport:SyncTransport={
   async apply(envelope:SyncEnvelope) {
-    if(localStorage.getItem('synthetic-offline'))throw new SyncFailure('offline','SYNTHETIC_OFFLINE');
+    if(localStorage.getItem('synthetic-offline')||localStorage.getItem('synthetic-transport-offline'))throw new SyncFailure('offline','SYNTHETIC_OFFLINE');
     const rows=batches();const prior=rows.find((row)=>row.envelope.operationId===envelope.operationId);
     if(prior)return prior.receipt;
     const revision=String(rows.length+1);
@@ -22,7 +22,7 @@ const transport:SyncTransport={
     rows.push({revision,envelope,receipt});localStorage.setItem('synthetic-remote-batches',JSON.stringify(rows));return receipt;
   },
   async pull(after,through) {
-    if(localStorage.getItem('synthetic-offline'))throw new SyncFailure('offline','SYNTHETIC_OFFLINE');
+    if(localStorage.getItem('synthetic-offline')||localStorage.getItem('synthetic-transport-offline'))throw new SyncFailure('offline','SYNTHETIC_OFFLINE');
     const rows=batches();const end=through??String(rows.length);
     return {protocolVersion:1,userId:owner,after,through:end,cursor:end,batches:rows.filter((row)=>BigInt(row.revision)>BigInt(after)&&BigInt(row.revision)<=BigInt(end))};
   },
