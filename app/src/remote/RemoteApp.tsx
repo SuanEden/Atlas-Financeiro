@@ -60,6 +60,20 @@ function AccessGate({controller}:{controller:RemoteController}) {
 function RemoteWorkspace({controller}:{controller:RemoteController}) {
   const finance=useRemoteFinance(controller);
   const snapshot=useSyncExternalStore(controller.subscribe,controller.getSnapshot);
+  // Foreground-only synchronization. Never run while closed, offline, signed
+  // out, or while server writes remain disabled. The engine is idempotent.
+  const canTransmit=snapshot.session.canTransmit;
+  const canView=snapshot.session.canView;
+  useEffect(()=>{
+    if(!canView||!canTransmit)return;
+    const sync=()=>{if(document.visibilityState==='visible'&&navigator.onLine!==false)void controller.sync();};
+    sync();
+    const timer=window.setInterval(sync,60_000);
+    const focus=()=>sync();
+    window.addEventListener('online',focus);
+    document.addEventListener('visibilitychange',focus);
+    return()=>{window.clearInterval(timer);window.removeEventListener('online',focus);document.removeEventListener('visibilitychange',focus);};
+  },[controller,canView,canTransmit]);
   async function exportJson() {
     const current=controller.getSnapshot();const store=current.store;
     if(!current.session.canView||!store)throw new Error('Entre novamente antes de exportar.');
