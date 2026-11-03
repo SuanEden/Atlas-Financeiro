@@ -9,7 +9,7 @@ export interface BankLink {
   activatedOn:string;
 }
 export interface ImportSource {
-  readPage:(accountId:string,after?:string)=>Promise<unknown>;
+  readPage:(accountId:string,after?:string,dateFrom?:string)=>Promise<unknown>;
   readState:()=>Promise<LocalFinancialState>;
   execute:(command:LocalCommand)=>Promise<void>;
   context:CommandContext;
@@ -21,7 +21,7 @@ export async function syncLinkedBankAccount(link:BankLink,source:ImportSource):P
   let complete=false;
   const seen=new Set<string>();
   for(let i=0;i<10;i++){
-    const payload=await source.readPage(link.pluggyAccountId,after);
+    const payload=await source.readPage(link.pluggyAccountId,after,link.activatedOn);
     if(!payload||typeof payload!=='object')throw new Error('Resposta bancária inválida.');
     const page=payload as {results?:unknown;next?:unknown};
     if(!Array.isArray(page.results))throw new Error('Extrato bancário sem lista válida.');
