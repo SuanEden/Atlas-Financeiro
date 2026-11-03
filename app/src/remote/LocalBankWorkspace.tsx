@@ -151,7 +151,7 @@ export default function LocalBankWorkspace(){
       for(const link of Object.values(links)){
         try{
           imported+=await syncLinkedBankAccount(link,{
-            readPage:(accountId,after)=>adapter.auth.readBank!('transactions',accountId,after),
+            readPage:(accountId,after,dateFrom)=>adapter.auth.readBank!('transactions',accountId,after,dateFrom),
             readState:finance.readState,execute:finance.execute,context:finance.context,
           });
         }catch(e){firstError=e instanceof Error?e.message:'erro não identificado';break;}
