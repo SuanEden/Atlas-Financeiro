@@ -7,6 +7,8 @@ export interface BankLink {
   pluggyAccountId:string;
   atlasAccountId:string;
   activatedOn:string;
+  /** Bank snapshot timestamp, when available; avoids missing same-day movements. */
+  activatedAt?:string;
 }
 export interface ImportSource {
   readPage:(accountId:string,after?:string,dateFrom?:string)=>Promise<unknown>;
@@ -14,8 +16,20 @@ export interface ImportSource {
   execute:(command:LocalCommand)=>Promise<void>;
   context:CommandContext;
 }
+function occurredAfterBaseline(row:PluggyTransaction,link:BankLink):boolean {
+  if(row.status!=='POSTED'||typeof row.date!=='string')return false;
+  if(link.activatedAt && /^\\d{4}-\\d{2}-\\d{2}T/.test(row.date)){
+    const baseline=Date.parse(link.activatedAt);
+    const occurred=Date.parse(row.date);
+    if(Number.isFinite(baseline)&&Number.isFinite(occurred))return occurred>baseline;
+  }
+  // When the provider supplies only a day, conservatively skip the opening
+  // balance day instead of counting transactions already included in balance.
+  return row.date.slice(0,10)>link.activatedOn;
+}
 export async function syncLinkedBankAccount(link:BankLink,source:ImportSource):Promise<number>{
   if(!/^\d{4}-\d{2}-\d{2}$/.test(link.activatedOn))throw new Error('Data da autorização inválida.');
+  if(link.activatedAt && !Number.isFinite(Date.parse(link.activatedAt)))throw new Error('Data do saldo inicial inválida.');
   const collected:PluggyTransaction[]=[];
   let after:string|undefined;
   let complete=false;
@@ -27,7 +41,7 @@ export async function syncLinkedBankAccount(link:BankLink,source:ImportSource):P
     if(!Array.isArray(page.results))throw new Error('Extrato bancário sem lista válida.');
     const results=page.results as PluggyTransaction[];
     if(results.some(t=>!t||typeof t!=='object'||t.accountId!==link.pluggyAccountId))throw new Error('Transação vinculada à conta incorreta.');
-    collected.push(...results.filter(t=>t.status==='POSTED' && typeof t.date==='string' && t.date.slice(0,10)>link.activatedOn));
+    collected.push(...results.filter(t=>occurredAfterBaseline(t,link)));
     if(page.next==null){complete=true;break;}
     if(typeof page.next!=='string'||!page.next.startsWith('?'))throw new Error('Cursor bancário inválido.');
     const next=new URLSearchParams(page.next.slice(1));
