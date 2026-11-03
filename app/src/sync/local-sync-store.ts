@@ -106,7 +106,7 @@ export class LocalSyncStore {
       const existingPending = await this.#db.pending.orderBy('ordinal').toArray();
       const existingReceipts = await this.#db.receipts.toArray();
       let current = project(confirmed, existingPending, this.userId).data;
-      const compareRow = (row: unknown) => canonicalJson(JSON.parse(JSON.stringify(row, centsReplacer)));
+      const compareRow = (row: unknown) => canonicalJson(JSON.parse(JSON.stringify(row, (_key, value: unknown) => typeof value === 'bigint' ? value.toString() : value)));
       // A backup from a different history is NOT a safe source for merging.
       for (const table of DATA_TABLES) {
         const target = new Map((current[table] ?? []).map((row) => [row.id, compareRow(row)]));
