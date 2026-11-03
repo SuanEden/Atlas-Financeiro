@@ -264,5 +264,9 @@ export default function LocalBankWorkspace(){
     </div>)}</section>:null}
     {transactions.length>0?<section><h3>Movimentações da conta {selected}</h3><ul>{transactions.slice(0,30).map((tx,i)=><li key={tx.id||i}>{tx.date||'Sem data'} · {tx.description||'Sem descrição'} · {typeof tx.amount==='number'?tx.amount.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'Sem valor'}</li>)}</ul></section>:null}
   </section>;
-  return <FinancialWorkspace finance={finance} bankPanel={panel}/>;
+  return <FinancialWorkspace finance={finance} bankPanel={panel} sessionControls={<section className="sync-panel" aria-label="Sincronização em nuvem">
+    <strong>Dados locais preservados</strong>
+    <p>A sincronização financeira I3 é opcional e está desativada. Antes de associar sua base, exporte um backup atualizado em Backup.</p>
+    <a className="button button--secondary" href="/?cloud=1">Abrir configuração da nuvem (I3)</a>
+  </section>}/>;
 }
