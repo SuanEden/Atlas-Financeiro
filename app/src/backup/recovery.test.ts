@@ -35,7 +35,7 @@ describe('recuperação mínima de I2', () => {
   it.each(['version', 'count', 'owner', 'money', 'reference', 'duplicate', 'payload', 'operation-kind', 'partial-transfer', 'unknown'])('recusa arquivo inválido (%s) sem gravar parcialmente', async (fault) => {
     const state = recoveryFixture(); const owner = state.accounts[0]!.userId;
     const raw = JSON.parse(serializeLocalBackup(state, owner));
-    if (fault === 'version') raw.schemaVersion = 3;
+    if (fault === 'version') raw.schemaVersion = 4;
     if (fault === 'count') raw.manifest.accounts++;
     if (fault === 'owner') raw.data.accounts[0].userId = crypto.randomUUID();
     if (fault === 'money') raw.data.events[0].amountCents = 100003;
