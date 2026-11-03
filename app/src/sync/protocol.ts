@@ -34,20 +34,27 @@ export async function jsonDigest(value: unknown): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-/** The current remote SQL schema predates local recurrence rules and account-reconciliation records. */
-export function isI3SchemaCompatible(envelope: SyncEnvelope): boolean {
+/**
+ * Reject v3 financial data unless the authenticated server explicitly advertises
+ * the v3 migration. Older I3 installations are conservatively treated as v2.
+ */
+export function isI3SchemaCompatible(envelope: SyncEnvelope, serverSchemaVersion = 2): boolean {
+  if (serverSchemaVersion !== 2 && serverSchemaVersion !== 3) return false;
   const data = envelope.kind === 'bootstrap' ? envelope.data : envelope.operation.payload;
-  // The deployed SQL contract accepts schemaVersion 2. Version 3 requires a
-  // server-side migration; do not transmit a bootstrap that SQL would reject.
-  if (envelope.kind === 'bootstrap' && data.schemaVersion !== 2) return false;
-  if (envelope.kind === 'reconcile_account') return false;
-  if (Array.isArray(data.accountReconciliations) && data.accountReconciliations.length > 0) return false;
+  if (envelope.kind === 'bootstrap' && data.schemaVersion !== 2 &&
+      !(serverSchemaVersion >= 3 && data.schemaVersion === 3)) return false;
+  const hasReconciliations = Array.isArray(data.accountReconciliations) && data.accountReconciliations.length > 0;
+  if (serverSchemaVersion < 3 && (envelope.kind === 'reconcile_account' || hasReconciliations)) return false;
   const events = Array.isArray(data.events) ? data.events : [];
   return !events.some((value) => {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) return true;
     const event = value as Record<string, unknown>;
-    if (event.recurrenceJson !== undefined || event.recurrenceRuleId !== undefined || event.recurrenceMonth !== undefined) return true;
-    if (envelope.kind !== 'bootstrap' && envelope.kind === 'record_event' && event.source === 'opening_balance') return true;
+    if (serverSchemaVersion < 3 &&
+        (event.recurrenceJson !== undefined || event.recurrenceRuleId !== undefined ||
+         event.recurrenceMonth !== undefined)) return true;
+    // Recording an opening balance outside the account-creation/reconciliation
+    // contract remains forbidden even on v3.
+    if (envelope.kind === 'record_event' && event.source === 'opening_balance') return true;
     return false;
   });
 }
