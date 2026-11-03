@@ -1,11 +1,12 @@
 import { assertEntityId, type LocalFinancialState } from '../domain';
 import { serializeFinancialDataset } from '../serialization';
 import { assertPendingOperation } from '../serialization/pending-operation';
+import { validateBankLinks } from './bank-links';
 
-export const LOCAL_BACKUP_SCHEMA_VERSION = 2 as const;
+export const LOCAL_BACKUP_SCHEMA_VERSION = 3 as const;
 
 /** I2-compatible export. Limited empty-origin recovery is separate; full restore remains I4. */
-export function serializeLocalBackup(state: LocalFinancialState, userId: string, exportedAt = new Date().toISOString()): string {
+export function serializeLocalBackup(state: LocalFinancialState, userId: string, exportedAt = new Date().toISOString(), rawBankLinks: unknown = {}): string {
   assertEntityId(userId, 'Proprietário do backup');
   if (!Number.isFinite(Date.parse(exportedAt))) throw new TypeError('Instante da exportação inválido.');
   const operationIds = new Set<string>();
@@ -14,6 +15,7 @@ export function serializeLocalBackup(state: LocalFinancialState, userId: string,
     if (operationIds.has(operation.id)) throw new TypeError('Operação pendente duplicada no backup.');
     operationIds.add(operation.id);
   }
+  const bankLinks = validateBankLinks(rawBankLinks, new Set(state.accounts.map(account => account.id)));
   const dataset = JSON.parse(serializeFinancialDataset(state, userId)) as Record<string, unknown>;
   const outbox = state.outbox.map((operation) => ({
     id: operation.id,
@@ -37,9 +39,11 @@ export function serializeLocalBackup(state: LocalFinancialState, userId: string,
       accountReconciliations: (state.accountReconciliations ?? []).length,
       pendingOperations: state.outbox.length,
       attachmentsIncluded: false,
+      bankLinks: Object.keys(bankLinks).length,
     },
     data: dataset,
     outbox,
+    bankLinks,
   }, null, 2);
 }
 
