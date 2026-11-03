@@ -59,31 +59,10 @@ begin
       for k,val in select key,value from jsonb_each(r) loop
         if jsonb_typeof(val) is distinct from 'string' then raise exception 'Financial fields must be strings' using errcode='22023'; end if;
         if (k='id' or right(k,2)='Id') and (val#>>'{}') !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then raise exception 'Noncanonical UUID' using errcode='22023'; end if;
-        if k='balanceCents' and (val#>>'{}') !~ '^(0|-?[1-9][0-9]{0,10}) (val#>>'{}') !~ '^-?[1-9][0-9]{0,10}$' then raise exception 'Noncanonical cents' using errcode='22023'; end if;
-        if k='recurrenceMonth' and (val#>>'{}') !~ '^2[0-9]{3}-(0[1-9]|1[0-2])
-          if (val#>>'{}') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' or to_char((val#>>'{}')::date,'YYYY-MM-DD')<>(val#>>'{}') then raise exception 'Noncanonical date' using errcode='22023'; end if;
-        end if;
-      end loop;
-    end loop;
-  end loop;
-end $$; then raise exception 'Noncanonical balance cents' using errcode='22023'; end if;
+        if k='balanceCents' and (val#>>'{}') !~ '^(0|-?[1-9][0-9]{0,10})$' then raise exception 'Noncanonical balance cents' using errcode='22023'; end if;
         if k='amountCents' and (val#>>'{}') !~ '^-?[1-9][0-9]{0,10}$' then raise exception 'Noncanonical cents' using errcode='22023'; end if;
-        if right(k,4)='Date' then
-          if (val#>>'{}') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' or to_char((val#>>'{}')::date,'YYYY-MM-DD')<>(val#>>'{}') then raise exception 'Noncanonical date' using errcode='22023'; end if;
-        end if;
-      end loop;
-    end loop;
-  end loop;
-end $$; then raise exception 'Invalid recurrence month' using errcode='22023'; end if;
+        if k='recurrenceMonth' and (val#>>'{}') !~ '^2[0-9]{3}-(0[1-9]|1[0-2])$' then raise exception 'Invalid recurrence month' using errcode='22023'; end if;
         if k='recurrenceJson' and (length(val#>>'{}') > 5000 or not ((val#>>'{}') is json object)) then raise exception 'Invalid recurrence rule' using errcode='22023'; end if;
-        if right(k,4)='Date' then
-          if (val#>>'{}') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' or to_char((val#>>'{}')::date,'YYYY-MM-DD')<>(val#>>'{}') then raise exception 'Noncanonical date' using errcode='22023'; end if;
-        end if;
-      end loop;
-    end loop;
-  end loop;
-end $$; then raise exception 'Noncanonical balance cents' using errcode='22023'; end if;
-        if k='amountCents' and (val#>>'{}') !~ '^-?[1-9][0-9]{0,10}$' then raise exception 'Noncanonical cents' using errcode='22023'; end if;
         if right(k,4)='Date' then
           if (val#>>'{}') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' or to_char((val#>>'{}')::date,'YYYY-MM-DD')<>(val#>>'{}') then raise exception 'Noncanonical date' using errcode='22023'; end if;
         end if;
