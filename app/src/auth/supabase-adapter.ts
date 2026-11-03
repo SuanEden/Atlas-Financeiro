@@ -13,6 +13,7 @@ export interface AuthPort {
   callback(code:string):Promise<void>;
   onChange(callback:(userId?:string)=>void):()=>void;
   readBank?(resource:'item'|'accounts'|'transactions'|'balance', id?:string, after?:string, dateFrom?:string):Promise<unknown>;
+  refreshBank?(itemId:string):Promise<{started:boolean;status?:string;lastUpdatedAt?:string|null}>;
 }
 export interface RemoteConfig { url:string; publishableKey:string; serverId:string }
 
@@ -104,6 +105,26 @@ export function adapterFromClient(client:ApiClient,origin:string,clearLocalSessi
         throw new Error('Consulta bancária indisponível (HTTP '+response.status+(upstream?' / Pluggy '+upstream:'')+').');
       }
       return response.json();
+    },
+    async refreshBank(itemId) {
+      const session=await client.auth.getSession();
+      const token=session.data.session?.access_token;
+      if(session.error||!token)throw new SyncFailure('login_required','NO_SESSION');
+      const response=await fetch('/api/pluggy?'+new URLSearchParams({resource:'refresh',itemId}),{
+        method:'POST',
+        headers:{Authorization:'Bearer '+token},
+        cache:'no-store',
+      });
+      if(!response.ok){
+        let upstream:number|undefined;
+        try{const body=await response.json() as {upstreamStatus?:number};upstream=body.upstreamStatus;}catch{/* No sensitive upstream details. */}
+        if(response.status===403)throw new Error('Acesso Google não autorizado para atualizar a conexão.');
+        if(response.status===429||upstream===429)throw new Error('Limite de atualização: tente novamente mais tarde.');
+        if(upstream===409)throw new Error('A Pluggy já está atualizando essa conexão. Aguarde o término.');
+        if(upstream===400||upstream===403)throw new Error('A Pluggy não permitiu atualização direta. A conexão pode exigir autorização no Meu Pluggy ou no banco.');
+        throw new Error('Não foi possível solicitar atualização bancária (HTTP '+response.status+').');
+      }
+      return response.json() as Promise<{started:boolean;status?:string;lastUpdatedAt?:string|null}>;
     },
     async logout() {try {const {error}=await client.auth.signOut({scope:'local'});if(error) throw mapRemoteError(error);}finally {clearLocalSession();}},
     onChange(callback) {const {data}=client.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>callback(session?.user.id),0);});return ()=>data.subscription.unsubscribe();},
