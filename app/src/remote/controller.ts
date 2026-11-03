@@ -95,7 +95,8 @@ export class RemoteController {
   expireIfNeeded() {if(this.policy.snapshot.expiresAt>0&&!this.policy.snapshot.onlineVerified){this.policy.expire();this.publish({});}}
 
   async previewLocalSource() {
-    this.requireOnline();const epoch=this.policy.snapshot.epoch;const source=await this.source.read();
+    if(!this.policy.snapshot.onlineVerified||!this.#store)throw new Error('Entre com Google antes da conferência local.');
+    const epoch=this.policy.snapshot.epoch;const source=await this.source.read();
     const digest=await jsonDigest(JSON.parse(canonicalLocalState(source.state,source.ownerId)));
     if(epoch!==this.policy.snapshot.epoch)throw new Error('A sessão mudou durante a conferência.');
     return {ownerId:source.ownerId,accounts:source.state.accounts.length,events:source.state.events.length,pending:source.state.outbox.length,digest};
