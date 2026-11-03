@@ -2,7 +2,7 @@ import type { ChangePage, Receipt, SyncEnvelope } from './protocol';
 import { isI3SchemaCompatible, jsonDigest } from './protocol';
 import { LocalSyncStore } from './local-sync-store';
 
-export interface TransmissionGrant { userId: string; epoch: number; canTransmit: boolean }
+export interface TransmissionGrant { userId: string; epoch: number; canTransmit: boolean; serverSchemaVersion?: number }
 export interface SyncTransport {
   apply(envelope: SyncEnvelope): Promise<Receipt>;
   pull(after: string, through: string | null): Promise<ChangePage>;
@@ -55,7 +55,7 @@ export class SyncEngine {
           if(!current()) return 'login_required';
           // Refuse to transmit unsupported v3 financial data to the still-v2 I3 server.
           // Keep the original pending envelope and digest intact for the versioned migration.
-          if(!isI3SchemaCompatible(pending.envelope)) return 'retry_later';
+          if(!isI3SchemaCompatible(pending.envelope,grant.serverSchemaVersion)) return 'retry_later';
           try {
             const receipt=await this.transport.apply(pending.envelope);
             if(!current()) return 'login_required';
