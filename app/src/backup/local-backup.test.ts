@@ -27,7 +27,9 @@ it('exports a versioned local backup with canonical money and pending operations
   };
   const backup = JSON.parse(serializeLocalBackup(state, userId, '2026-10-26T15:00:00.000Z')) as Record<string, any>;
   expect(backup.format).toBe('atlas-financeiro-local-backup');
-  expect(backup.schemaVersion).toBe(2);
+  expect(backup.schemaVersion).toBe(3);
+  expect(backup.manifest.bankLinks).toBe(0);
+  expect(backup.bankLinks).toEqual({});
   expect(backup.manifest.accountReconciliations).toBe(1);
   expect(backup.manifest.pendingOperations).toBe(1);
   expect(backup.data.events[0].amountCents).toBe('9007');

@@ -220,7 +220,9 @@ export function BackupView({ state, userId, today, readState, onRecover, busy, i
   async function downloadBackup() {
     setFailure(undefined);
     try {
-      const json = exportJson?await exportJson():serializeLocalBackup(await readState(), userId);
+      const saved = localStorage.getItem('atlas:pluggy-mappings:v1:' + userId);
+      const bankLinks = saved ? JSON.parse(saved) as unknown : {};
+      const json = exportJson?await exportJson():serializeLocalBackup(await readState(), userId, new Date().toISOString(), bankLinks);
       const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
       const anchor = document.createElement('a');
       anchor.href = url;
@@ -239,7 +241,7 @@ export function BackupView({ state, userId, today, readState, onRecover, busy, i
       <PageHeading title="Backup local" subtitle="Uma cópia independente dos dados deste navegador." />
       <p role="status">{notice}</p>
       {failure === undefined ? null : <p className="form-error" role="alert">{failure}</p>}
-      <section className="backup-panel"><span className="backup-icon"><Download size={24} /></span><div><h2>Exportar arquivo JSON</h2><p>Inclui contas, categorias, lançamentos, histórico, centavos exatos e {state.outbox.length} {state.outbox.length === 1 ? 'operação pendente' : 'operações pendentes'}.</p><p className="warning-copy">O arquivo contém dados financeiros sem criptografia própria. Guarde-o em local privado.</p><button className="button button--primary" onClick={downloadBackup}><Download size={18} />Baixar backup</button></div></section>
+      <section className="backup-panel"><span className="backup-icon"><Download size={24} /></span><div><h2>Exportar arquivo JSON</h2><p>Inclui contas, categorias, lançamentos, histórico, centavos exatos, vínculos bancários locais (sem senhas ou tokens) e {state.outbox.length} {state.outbox.length === 1 ? 'operação pendente' : 'operações pendentes'}.</p><p className="warning-copy">O arquivo contém dados financeiros sem criptografia própria. Guarde-o em local privado.</p><button className="button button--primary" onClick={downloadBackup}><Download size={18} />Baixar backup</button></div></section>
       {integration?<section className="scope-panel"><RefreshCcw size={21} /><div><h2>Cópia de sincronização I3</h2><p>A exportação inclui base confirmada, pendências, conflitos, recibos, cursor e origem da associação. Não contém sessão. O importador I2 não aceita este formato; a recuperação abaixo aceita esta cópia somente na mesma conta e servidor, em destino vazio ou idêntico.</p></div></section>:<RecoveryPanel onRecover={onRecover} busy={busy} />}
       {integration && serverId ? <SyncRecoveryPanel userId={userId} serverId={serverId} onRecover={onRecover} disabled={busy} /> : null}
       <section className="scope-panel"><RefreshCcw size={21} /><div><h2>Restauração completa ainda não disponível</h2><p>A recuperação mínima aceita o formato indicado acima em destino vazio ou idêntico. A substituição de bases e as gerações continuam previstas para I4.</p></div></section>
