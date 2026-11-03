@@ -5,7 +5,7 @@ import type { SyncEnvelope } from '../sync/protocol';
 
 function sdk() {
   const user={id:crypto.randomUUID(),is_anonymous:false,identities:[{provider:'google'}]};
-  const rpc=vi.fn(async()=>({data:{protocolVersion:1,financialWritesEnabled:false},error:null}));
+  const rpc=vi.fn(async()=>({data:{protocolVersion:1,financialWritesEnabled:false,financialSchemaVersion:3},error:null}));
   const client={schema:vi.fn(()=>({rpc})),auth:{
     getUser:vi.fn(async()=>({data:{user},error:null})),
     getSession:vi.fn(async()=>({data:{session:{user,expires_at:2000}},error:null})),
@@ -25,7 +25,7 @@ describe('fronteira Auth local sem acesso a serviços',()=>{
     expect(()=>readRemoteConfig({...env,VITE_SUPABASE_PUBLISHABLE_KEY:'sb_secret_synthetic123456'})).toThrow(/publicável/);
   });
   it('verifica usuário no servidor, identidade Google e readiness antes de conceder sessão',async()=>{
-    const f=sdk();expect(await f.auth.verify()).toEqual({userId:f.user.id,expiresAt:2000000,writesEnabled:false});
+    const f=sdk();expect(await f.auth.verify()).toEqual({userId:f.user.id,expiresAt:2000000,writesEnabled:false,financialSchemaVersion:3});
     expect(f.client.auth.getUser).toHaveBeenCalledOnce();expect(f.rpc).toHaveBeenCalledWith('i3_readiness',{});
     f.user.identities=[];await expect(f.auth.verify()).rejects.toMatchObject({reason:'access_denied'});
   });
