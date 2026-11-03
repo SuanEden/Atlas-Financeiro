@@ -91,6 +91,50 @@ export class LocalSyncStore {
     });
   }
 
+  /** Merge only new operations from a validated I3 copy, preserving IDs and remote history. Atomic. */
+  async importPendingFromBackup(sourceConfirmed: FinancialDataset, operations: SyncEnvelope[]): Promise<number> {
+    if (operations.length > 500) throw new RangeError('Importe no máximo 500 operações por arquivo.');
+    const deliveries = await Promise.all(operations.map(async (envelope) => {
+      this.assertOwner(envelope);
+      if (envelope.kind === 'bootstrap') throw new Error('Não é permitido importar uma nova associação.');
+      return prepareDelivery(envelope);
+    }));
+    return this.#db.transaction('rw', ALL, async () => {
+      const meta = await this.meta();
+      if (meta.binding !== 'active') throw new Error('Associe e confira a base existente antes de importar.');
+      const confirmed = await this.confirmed();
+      const existingPending = await this.#db.pending.orderBy('ordinal').toArray();
+      const existingReceipts = await this.#db.receipts.toArray();
+      let current = project(confirmed, existingPending, this.userId).data;
+      const compareRow = (row: unknown) => canonicalJson(JSON.parse(JSON.stringify(row, centsReplacer)));
+      // A backup from a different history is NOT a safe source for merging.
+      for (const table of DATA_TABLES) {
+        const target = new Map((current[table] ?? []).map((row) => [row.id, compareRow(row)]));
+        for (const row of sourceConfirmed[table] ?? []) {
+          if (target.get(row.id) !== compareRow(row)) throw new Error('A base confirmada da cópia diverge da atual. Nada foi importado.');
+        }
+      }
+      const existingIds = new Set([...existingPending.map(row => row.id), ...existingReceipts.map(row => row.id)]);
+      let ordinal = meta.ordinal;
+      let imported = 0;
+      for (const row of deliveries) {
+        if (existingIds.has(row.id)) {
+          const prior = existingPending.find(item => item.id === row.id);
+          if (prior && canonicalJson(prior.envelope.operation) !== canonicalJson(row.envelope.operation))
+            throw new Error('Operação com mesmo identificador e dados divergentes.');
+          continue;
+        }
+        current = mergeAppendOnly(current, envelopeData(row.envelope), this.userId);
+        ordinal++;
+        await this.#db.pending.add({ ...row, ordinal });
+        existingIds.add(row.id);
+        imported++;
+      }
+      if (imported) await this.#db.meta.put({ ...meta, ordinal });
+      return imported;
+    });
+  }
+
   /** An acknowledgement is stored, but effects remain projected until the matching feed is applied. */
   async acknowledge(id: string, receipt: Receipt): Promise<void> {
     const pending=await this.#db.pending.get(id);
