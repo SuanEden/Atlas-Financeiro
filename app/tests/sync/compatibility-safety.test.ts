@@ -105,6 +105,27 @@ describe('compatibilidade local preserva bytes/IDs e falha antes do envio',()=>{
 });
 
 
+describe('I3 schema v3 migrado e protegido por capability do servidor',()=>{
+  it('importa conciliações v3 somente após confirmação explícita de suporte remoto',async()=>{
+    const f=await fixture(true);
+    expect(f.envelope.data.schemaVersion).toBe(3);
+    expect(isI3SchemaCompatible(f.envelope)).toBe(false);
+    expect(isI3SchemaCompatible(f.envelope,2)).toBe(false);
+    expect(isI3SchemaCompatible(f.envelope,3)).toBe(true);
+    const migrated=new SyncEngine(f.store,f.transport,()=>({
+      userId:f.owner,epoch:1,canTransmit:true,serverSchemaVersion:3,
+    }));
+    expect(await migrated.run()).toBe('unassociated');
+    expect((await f.store.read()).meta.binding).toBe('verifying_source');
+    await f.store.activateAssociation(f.envelope.source.digest);
+    expect(await migrated.run()).toBe('synced');
+    const after=await f.store.read();
+    expect(after.pending).toEqual([]);
+    expect(after.confirmed.accountReconciliations).toHaveLength(1);
+    expect((await server.counts(f.owner)).sync_batches).toBe('1');
+  });
+});
+
 describe('bloqueio seguro de recursos locais ainda não migrados no servidor', () => {
   it('não transmite uma associação com conciliação v3 ao backend v2', async () => {
     const f = await fixture(true);

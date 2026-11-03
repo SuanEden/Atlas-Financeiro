@@ -8,8 +8,9 @@ import { createLocalFinancialStore } from '../persistence';
 
 let runtime:RemoteController|undefined;
 function createRuntime() {
-  const authReturn=consumeAuthReturn(location.href,(path)=>history.replaceState(null,'',path));
-  const config=readRemoteConfig(import.meta.env);
+  const authReturn=consumeAuthReturn(location.href,(path)=>history.replaceState(null,'',path==='/'?'/?cloud=1':path));
+  // Entry is only reachable through the user's explicit cloud choice.
+  const config=readRemoteConfig({...import.meta.env,VITE_ATLAS_REMOTE_MODE:'integration'});
   if(!config)throw new Error('Modo de integração indisponível.');
   const configuredOrigin=import.meta.env.VITE_ATLAS_AUTH_ORIGIN;
   const loginOrigin=typeof configuredOrigin==='string'&&configuredOrigin?new URL(configuredOrigin).origin:location.origin;

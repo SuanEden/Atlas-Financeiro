@@ -63,7 +63,7 @@ export class RemoteController {
         if(!interactive&&this.policy.snapshot.blocked) return;
         const identity=await this.auth.verify();
         if(generation!==this.#generation) return;
-        this.policy.verify(identity.userId,identity.expiresAt,identity.writesEnabled,interactive);
+        this.policy.verify(identity.userId,identity.expiresAt,identity.writesEnabled,interactive,identity.financialSchemaVersion??2);
         await this.openStore();
         const store=this.#store;
         const state=await store?.read();
@@ -95,7 +95,8 @@ export class RemoteController {
   expireIfNeeded() {if(this.policy.snapshot.expiresAt>0&&!this.policy.snapshot.onlineVerified){this.policy.expire();this.publish({});}}
 
   async previewLocalSource() {
-    this.requireOnline();const epoch=this.policy.snapshot.epoch;const source=await this.source.read();
+    if(!this.policy.snapshot.onlineVerified||!this.#store)throw new Error('Entre com Google antes da conferência local.');
+    const epoch=this.policy.snapshot.epoch;const source=await this.source.read();
     const digest=await jsonDigest(JSON.parse(canonicalLocalState(source.state,source.ownerId)));
     if(epoch!==this.policy.snapshot.epoch)throw new Error('A sessão mudou durante a conferência.');
     return {ownerId:source.ownerId,accounts:source.state.accounts.length,events:source.state.events.length,pending:source.state.outbox.length,digest};
@@ -142,7 +143,7 @@ export class RemoteController {
         if(result==='login_required')this.policy.expire();
         if(result==='access_denied')this.policy.deny();
         const latestState=await store.read();
-        const incompatiblePending=latestState.pending.some((row)=>row.status==='pending'&&!isI3SchemaCompatible(row.envelope));
+        const incompatiblePending=latestState.pending.some((row)=>row.status==='pending'&&!isI3SchemaCompatible(row.envelope,this.policy.snapshot.serverSchemaVersion));
         const notice=incompatiblePending?'A cópia local contém recorrências ou conciliações ainda não suportadas pelo esquema remoto. A sincronização permanece pendente até uma migração versionada do servidor; não considere estes dados replicados. A cópia local e as pendências continuam preservadas.':syncMessage(result,latestState.meta.binding==='active');
         this.publish({dataRevision:this.#snapshot.dataRevision+1,notice});
         return result;
@@ -157,7 +158,7 @@ export class RemoteController {
     const store=this.#store;const epoch=this.policy.snapshot.epoch;const state=await store.read();
     if(epoch!==this.policy.snapshot.epoch||!this.policy.snapshot.canWriteLocal) throw new Error('A sessão mudou. Seus dados anteriores foram preservados.');
     await store.enqueue(commandEnvelope(command.operation,state.meta.cursor));
-    if(epoch===this.policy.snapshot.epoch)this.publish({dataRevision:this.#snapshot.dataRevision+1});
+    if(epoch===this.policy.snapshot.epoch){this.publish({dataRevision:this.#snapshot.dataRevision+1});if(this.policy.snapshot.canTransmit)void this.sync();}
   }
   async recoverBackup(json: string) {
     if (this.#syncing || this.#recovering) throw new Error('Aguarde a operação em andamento antes de recuperar.');

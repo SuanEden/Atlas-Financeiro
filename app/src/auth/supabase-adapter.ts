@@ -4,7 +4,7 @@ import { SyncFailure, type SyncTransport } from '../sync/engine';
 import type { ChangePage, Receipt, SyncEnvelope } from '../sync/protocol';
 import { assertEnvelope } from '../sync/protocol';
 
-export interface AuthIdentity { userId:string; expiresAt:number; writesEnabled:boolean }
+export interface AuthIdentity { userId:string; expiresAt:number; writesEnabled:boolean; financialSchemaVersion?:number }
 export interface AuthPort {
   verify():Promise<AuthIdentity>;
   verifyBankLogin?():Promise<boolean>;
@@ -69,11 +69,13 @@ export function adapterFromClient(client:ApiClient,origin:string,clearLocalSessi
       const user=data.user;
       assertEntityId(user.id);
       if(user.is_anonymous||!user.identities?.some((identity)=>identity.provider==='google')) throw new SyncFailure('access_denied','GOOGLE_IDENTITY_REQUIRED');
-      const readiness=await rpc<{protocolVersion:number;financialWritesEnabled:boolean}>('i3_readiness');
-      if(readiness.protocolVersion!==1||typeof readiness.financialWritesEnabled!=='boolean') throw new SyncFailure('access_denied','UNSUPPORTED_SERVER');
+      const readiness=await rpc<{protocolVersion:number;financialWritesEnabled:boolean;financialSchemaVersion?:number}>('i3_readiness');
+      if(readiness.protocolVersion!==1||typeof readiness.financialWritesEnabled!=='boolean'||
+         (readiness.financialSchemaVersion!==undefined&&!([2,3].includes(readiness.financialSchemaVersion))))
+        throw new SyncFailure('access_denied','UNSUPPORTED_SERVER');
       const session=await client.auth.getSession();
       if(session.error||!session.data.session||session.data.session.user.id!==user.id||!session.data.session.expires_at) throw new SyncFailure('login_required','SESSION_CHANGED');
-      return {userId:user.id,expiresAt:session.data.session.expires_at*1000,writesEnabled:readiness.financialWritesEnabled};
+      return {userId:user.id,expiresAt:session.data.session.expires_at*1000,writesEnabled:readiness.financialWritesEnabled,financialSchemaVersion:readiness.financialSchemaVersion??2};
     },
     async login() {
       const {error}=await client.auth.signInWithOAuth({provider:'google',options:{redirectTo:callbackUrl,queryParams:{prompt:'select_account'}}});

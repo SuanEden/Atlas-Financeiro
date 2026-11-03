@@ -25,6 +25,9 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   await page.getByRole('checkbox',{name:/Conferi a conta/}).check();
   await page.getByRole('button',{name:'Iniciar uma base vazia'}).click();
   await expect(page.getByRole('heading',{name:'Visão geral'})).toBeVisible();
+  // Hold the transport offline: a financial write must stay pending while
+  // authentication remains valid and the foreground timer is enabled.
+  await page.evaluate(()=>localStorage.setItem('synthetic-transport-offline','yes'));
   await page.getByRole('button',{name:'Criar minha primeira conta'}).click();
   await page.getByLabel('Nome da conta').fill('Conta sintética de sessão');
   await page.getByRole('dialog').getByRole('button',{name:'Criar conta',exact:true}).click();
@@ -65,6 +68,7 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   const repeatedDownload=page.waitForEvent('download');await page.getByRole('button',{name:'Baixar backup'}).click();
   const {exportedAt:_later,...reopenedCopy}=JSON.parse(readFileSync((await (await repeatedDownload).path())!,'utf8'));
   const {exportedAt:_earlier,...initialCopy}=backup;expect(reopenedCopy).toEqual(initialCopy);
+  await page.evaluate(()=>localStorage.removeItem('synthetic-transport-offline'));
   await page.getByRole('button',{name:'Sincronizar agora'}).click();
   await expect(page.getByRole('region',{name:'Sincronização',exact:true})).toContainText('Alterações confirmadas');
   const confirmed=await page.evaluate(async()=>{const path='/tests/auth-browser-entry.tsx';return (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).inspect();});
