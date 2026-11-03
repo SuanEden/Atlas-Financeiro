@@ -25,6 +25,9 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   await page.getByRole('checkbox',{name:/Conferi a conta/}).check();
   await page.getByRole('button',{name:'Iniciar uma base vazia'}).click();
   await expect(page.getByRole('heading',{name:'Visão geral'})).toBeVisible();
+  await expect(page.locator('.sidebar-footer')).toContainText('nuvem habilitada');
+  await expect(page.locator('.sidebar-footer')).not.toContainText('nuvem desligada');
+  await expect(page.locator('.device-status')).toContainText('Modo nuvem');
   // Hold the transport offline: a financial write must stay pending while
   // authentication remains valid and the foreground timer is enabled.
   await page.evaluate(()=>localStorage.setItem('synthetic-transport-offline','yes'));
