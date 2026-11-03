@@ -120,7 +120,7 @@ export class LocalSyncStore {
       for (const row of deliveries) {
         if (existingIds.has(row.id)) {
           const prior = existingPending.find(item => item.id === row.id);
-          if (prior && canonicalJson(prior.envelope.operation) !== canonicalJson(row.envelope.operation))
+          if (prior && (prior.envelope.kind === 'bootstrap' || row.envelope.kind === 'bootstrap' || canonicalJson(prior.envelope.operation) !== canonicalJson(row.envelope.operation)))
             throw new Error('Operação com mesmo identificador e dados divergentes.');
           continue;
         }
