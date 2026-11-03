@@ -75,7 +75,7 @@ describe('recuperação mínima de I2', () => {
     expect(await recoverIntoEmptyOrigin(json, originalOwner, storage)).toBe(owner);
     expect(saved.get(LOCAL_OWNER_KEY)).toBe(owner);
     expect(JSON.parse(saved.get('atlas:pluggy-mappings:v1:' + owner)!)).toEqual(mapping);
-    expect((await open(owner).readLocalState()).events).toEqual(state.events);
+    expect(canonicalLocalState(await open(owner).readLocalState(), owner)).toBe(canonicalLocalState(state, owner));
     const bad = { ...mapping, [externalId]: { ...mapping[externalId], access_token: 'fake' } };
     expect(() => serializeLocalBackup(state, owner, '2026-11-03T00:00:00.000Z', bad)).toThrow();
     const v2 = JSON.parse(json);
