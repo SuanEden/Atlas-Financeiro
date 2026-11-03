@@ -50,6 +50,58 @@ describe('recuperação mínima de I2', () => {
     expect(Object.values(await db.readLocalState()).every((rows) => rows.length === 0)).toBe(true);
   });
 
+  it('restaura o backup v3 com vínculos bancários validados, sem credenciais e sem substituir dados', async () => {
+    vi.stubGlobal('navigator', undefined);
+    const owner = crypto.randomUUID();
+    const state = recoveryFixture(owner);
+    const externalId = crypto.randomUUID();
+    const mapping = {
+      [externalId]: {
+        itemId: '71c06153-0d24-45ac-81f6-9de6f0d04282',
+        pluggyAccountId: externalId,
+        atlasAccountId: state.accounts[0]!.id,
+        activatedOn: '2026-11-02',
+      },
+    };
+    const json = serializeLocalBackup(state, owner, '2026-11-03T00:00:00.000Z', mapping);
+    expect(validateI2Backup(json).bankLinks).toEqual(mapping);
+    expect(json).not.toContain('access_token');
+    const originalOwner = crypto.randomUUID();
+    const saved = new Map([[LOCAL_OWNER_KEY, originalOwner]]);
+    const storage = {
+      getItem: (key: string) => saved.get(key) ?? null,
+      setItem: (key: string, value: string) => { saved.set(key, value); },
+    };
+    expect(await recoverIntoEmptyOrigin(json, originalOwner, storage)).toBe(owner);
+    expect(saved.get(LOCAL_OWNER_KEY)).toBe(owner);
+    expect(JSON.parse(saved.get('atlas:pluggy-mappings:v1:' + owner)!)).toEqual(mapping);
+    expect((await open(owner).readLocalState()).events).toEqual(state.events);
+    const bad = { ...mapping, [externalId]: { ...mapping[externalId], access_token: 'fake' } };
+    expect(() => serializeLocalBackup(state, owner, '2026-11-03T00:00:00.000Z', bad)).toThrow();
+    const v2 = JSON.parse(json);
+    v2.schemaVersion = 2;
+    delete v2.bankLinks;
+    delete v2.manifest.bankLinks;
+    expect(validateI2Backup(JSON.stringify(v2)).bankLinks).toEqual({});
+  });
+
+  it('permite recuperar eventos que foram importados legitimamente do banco', () => {
+    const state = recoveryFixture();
+    const event = state.events.find(row => row.source === 'manual' && row.kind === 'income')!;
+    expect(event).toBeDefined();
+    event.source = 'import';
+    const operation = state.outbox.find(row => {
+      const payload = JSON.parse(row.payloadJson) as { events?: { id: string }[] };
+      return payload.events?.some(row => row.id === event.id);
+    })!;
+    expect(operation).toBeDefined();
+    const payload = JSON.parse(operation.payloadJson);
+    payload.events.find((row: {id:string}) => row.id === event.id).source = 'import';
+    operation.payloadJson = JSON.stringify(payload);
+    expect(validateI2Backup(serializeLocalBackup(state, state.accounts[0]!.userId)).state.events)
+      .toContainEqual(event);
+  });
+
   it('aborta todas as tabelas se falhar a última escrita da outbox', async () => {
     const state = recoveryFixture(); const owner = state.accounts[0]!.userId; const db = open(owner);
     const originalAdd = FakeObjectStore.prototype.add;
