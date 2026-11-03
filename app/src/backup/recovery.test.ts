@@ -67,7 +67,7 @@ describe('recuperação mínima de I2', () => {
     expect(validateI2Backup(json).bankLinks).toEqual(mapping);
     expect(json).not.toContain('access_token');
     const originalOwner = crypto.randomUUID();
-    const saved = new Map([[LOCAL_OWNER_KEY, originalOwner]]);
+    const saved = new Map<string, string>([[LOCAL_OWNER_KEY, originalOwner]]);
     const storage = {
       getItem: (key: string) => saved.get(key) ?? null,
       setItem: (key: string, value: string) => { saved.set(key, value); },
