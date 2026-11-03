@@ -31,15 +31,15 @@ export function RecoveryPanel({ onRecover, busy }: { onRecover: (json: string) =
 
   return <section className="scope-panel recovery-panel" aria-labelledby="recovery-title"><div>
     <h2 id="recovery-title">Recuperar uma exportação de I2</h2>
-    <p>Use uma origem ou perfil vazio. IDs, valores, histórico e pendências serão preservados. A origem do arquivo não será alterada e nenhuma conta Google será associada.</p>
+    <p>Use uma origem ou perfil vazio. IDs, valores, histórico e pendências serão preservados. Backups v3 também recuperam vínculos bancários, sem tokens, e exigem login Google para consultar o banco.</p>
     <p>Não une nem substitui bases. Se já houver registros, somente uma cópia exatamente igual será reconhecida, sem duplicar operações. Limites: 10 MiB e 50 mil registros.</p>
     <label className="recovery-file">Arquivo JSON de I2<input type="file" accept="application/json,.json" onChange={(event) => void choose(event)} disabled={busy} /></label>
     {preview === undefined ? null : <div className="recovery-preview">
-      <p role="status">Arquivo validado: {preview.state.accounts.length} contas, {preview.state.categories.length} categorias, {preview.state.events.length} lançamentos, {preview.state.outbox.length} operações pendentes.</p>
+      <p role="status">Arquivo validado: {preview.state.accounts.length} contas, {preview.state.categories.length} categorias, {preview.state.events.length} lançamentos, {preview.state.outbox.length} operações pendentes, {Object.keys(preview.bankLinks).length} vínculos bancários.</p>
       <label className="recovery-confirm"><input type="checkbox" checked={confirmed} disabled={busy} onChange={(event) => setConfirmed(event.target.checked)} />Conferi o arquivo e confirmo a recuperação neste navegador, sem substituir dados.</label>
       <button className="button button--primary" disabled={!confirmed || busy} onClick={() => void recover()}>{busy ? 'Recuperando…' : 'Confirmar recuperação'}</button>
     </div>}
     {error === undefined ? null : <p role="alert" className="form-error">{error}</p>}
-    <p>Restauração completa, substituição de bases e backups de versões futuras continuam fora desta função. Dados locais não têm criptografia própria.</p>
+    <p>Não substitui bases existentes e não recupera sessão Google nem senhas bancárias. O JSON contém dados sensíveis sem criptografia própria.</p>
   </div></section>;
 }
