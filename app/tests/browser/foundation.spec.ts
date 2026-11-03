@@ -32,6 +32,13 @@ test('dashboard local renderiza, alterna tema e mantém o primeiro uso vazio', a
   expect(remoteRequests).toEqual([]);
 });
 
+test('modo local preservado e nuvem acessível apenas por escolha explícita',async({page})=>{
+  await page.goto('/');
+  await expect(page.getByRole('heading',{name:'Visão geral'})).toBeVisible();
+  await expect(page.getByRole('link',{name:'Abrir configuração da nuvem (I3)'})).toHaveAttribute('href','/?cloud=1');
+  await expect(page.getByRole('heading',{name:'Atlas Financeiro'})).toHaveCount(0);
+});
+
 test('aba Bancos aparece e funciona na navegação móvel sem perder Ajustes',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='mobile-edge','Somente interface móvel');
   await page.goto('/');
