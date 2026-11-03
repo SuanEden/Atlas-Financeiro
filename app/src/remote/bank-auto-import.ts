@@ -18,7 +18,7 @@ export interface ImportSource {
 }
 function occurredAfterBaseline(row:PluggyTransaction,link:BankLink):boolean {
   if(row.status!=='POSTED'||typeof row.date!=='string')return false;
-  if(link.activatedAt && /^\\d{4}-\\d{2}-\\d{2}T/.test(row.date)){
+  if(link.activatedAt && /^\d{4}-\d{2}-\d{2}T/.test(row.date)){
     const baseline=Date.parse(link.activatedAt);
     const occurred=Date.parse(row.date);
     if(Number.isFinite(baseline)&&Number.isFinite(occurred))return occurred>baseline;
