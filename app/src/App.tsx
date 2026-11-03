@@ -108,7 +108,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
       <aside className="sidebar">
         <Brand />
         <nav aria-label="Navegação principal">{[...desktopNavigation, ...(integration || bankPanel !== undefined ? [{page:'banks' as const,label:'Bancos',Icon:Landmark}] : [])].map(({ page: target, label, Icon }) => <button className={page === target ? 'is-active' : ''} key={target} onClick={() => setPage(target)}><Icon size={19} /><span>{label}</span></button>)}</nav>
-        <div className="sidebar-footer"><HardDrive size={17} /><span><strong>Salvo neste dispositivo</strong><small>{state.outbox.length} pendente{state.outbox.length === 1 ? '' : 's'}</small></span></div>
+        <div className="sidebar-footer"><HardDrive size={17} /><span><strong>Salvo neste dispositivo</strong><small title="Operações registradas localmente que aguardam uma futura sincronização; o envio entre dispositivos está desativado.">{state.outbox.length} pendente{state.outbox.length === 1 ? '' : 's'} · nuvem desligada</small></span></div>
       </aside>
 
       <section className="workspace">
