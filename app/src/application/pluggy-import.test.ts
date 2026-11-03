@@ -30,6 +30,10 @@ describe('Pluggy import safety boundary', () => {
     expect(previewPluggyImport('item-1', [row], new Set(['pluggy:item-1:account-1:transaction-1']))).toEqual([]);
     expect(previewPluggyImport('item-2', [row])).toHaveLength(1);
   });
+  it('converts Pluggy UTC posting timestamps into local Fortaleza accounting days', () => {
+    expect(pluggyCandidate('item-1', { ...row,date:'2026-11-03T01:30:00.000Z' })?.date).toBe('2026-11-02');
+    expect(pluggyCandidate('item-1', { ...row,date:'2026-11-03T12:00:00.000Z' })?.date).toBe('2026-11-03');
+  });
   it('rejects currencies and imprecise values rather than posting wrong money', () => {
     expect(() => pluggyCandidate('item-1', { ...row, currencyCode: 'USD' })).toThrow();
     expect(() => pluggyCandidate('item-1', { ...row, amount: 1.001 })).toThrow();
