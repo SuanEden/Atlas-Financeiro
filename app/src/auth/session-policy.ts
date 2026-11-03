@@ -13,6 +13,7 @@ export class SessionPolicy {
   #verified=false;
   #expiresAt=0;
   #writesEnabled=false;
+  #serverSchemaVersion=2;
   readonly storageKey:string;
   constructor(context:string,private readonly storage:Pick<Storage,'getItem'|'setItem'|'removeItem'>,private readonly now=()=>Date.now()) {
     if(!/^[a-z0-9.-]{1,100}$/.test(context)) throw new TypeError('Contexto de acesso inválido.');
@@ -35,17 +36,19 @@ export class SessionPolicy {
       userId:saved?.userId??'',epoch:this.#epoch,onlineVerified,expiresAt:this.#expiresAt,
       canView,canWriteLocal:canView,blocked:saved?.blocked===true,
       canTransmit:onlineVerified&&!!saved&&!saved.blocked&&this.#writesEnabled,
+      serverSchemaVersion:onlineVerified?this.#serverSchemaVersion:2,
       message:!saved||saved.blocked?'Entre com Google para acessar seus dados.':!saved.associated?'Confirme a associação inicial online.':!onlineVerified?'Dados locais preservados. Entre novamente antes de sincronizar.':!this.#writesEnabled?'Envio remoto desativado pelo responsável.':'Sessão verificada.',
     };
   }
-  verify(userId:string,expiresAt:number,writesEnabled:boolean,interactive=false) {
+  verify(userId:string,expiresAt:number,writesEnabled:boolean,interactive=false,serverSchemaVersion=2) {
+    if(serverSchemaVersion!==2&&serverSchemaVersion!==3)throw new Error('Esquema remoto desconhecido.');
     assertEntityId(userId);
     if(this.#saved?.blocked&&!interactive) throw new Error('A saída explícita exige um novo login Google.');
     if(!Number.isSafeInteger(expiresAt)||expiresAt<=this.now()) throw new Error('A sessão já expirou.');
     const old=this.#saved;
     // A different account never inherits an offline grant, association or visibility.
     this.#saved={version:1,userId,associated:old?.userId===userId&&old.associated===true,blocked:false};
-    this.#verified=true;this.#expiresAt=expiresAt;this.#writesEnabled=writesEnabled;this.#epoch++;
+    this.#verified=true;this.#expiresAt=expiresAt;this.#writesEnabled=writesEnabled;this.#serverSchemaVersion=serverSchemaVersion;this.#epoch++;
     this.persist();
   }
   markAssociated(userId:string) {
