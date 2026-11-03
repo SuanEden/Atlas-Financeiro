@@ -95,6 +95,19 @@ export default function LocalBankWorkspace(){
     }finally{if(visible)setBusy(false);}
   }
   async function consult(name:string,itemId:string){await refreshBank(name,itemId,true);}
+  async function requestBankRefresh(name:string,itemId:string){
+    if(!adapter||busy||importing)return;
+    setBusy(true);
+    setMessage('Solicitando atualização de '+name+' na Pluggy…');
+    try{
+      const result=await adapter.auth.refreshBank?.(itemId);
+      if(!result?.started)throw new Error('A atualização não foi confirmada.');
+      setMessage('Atualização de '+name+' solicitada à Pluggy. Aguarde a instituição concluir antes de consultar o saldo e importar novas movimentações; nenhum lançamento local foi alterado.');
+    }catch(e){
+      setMessage('Atualização de '+name+' não iniciada: '+(e instanceof Error?e.message:'erro inesperado'));
+    }finally{setBusy(false);}
+  }
+
   useEffect(()=>{
     if(session!=='connected'||!adapter)return;
     let alive=true;
@@ -175,6 +188,7 @@ export default function LocalBankWorkspace(){
       if(alive){
         if(firstError)setMessage('Importação automática interrompida: '+firstError);
         else if(imported>0)setMessage(imported+' nova(s) movimentação(ões) importada(s) para o Atlas.');
+        else setMessage('Consulta concluída: ainda não há novas movimentações elegíveis disponibilizadas pela Pluggy.');
         setImporting(false);
       }
       syncRunning.current=false;
@@ -229,7 +243,12 @@ export default function LocalBankWorkspace(){
     {session==='disconnected'?<p>Toque em Nubank ou Infinite para autorizar a consulta pelo Google. Nenhuma senha bancária é solicitada pelo Atlas.</p>:null}
     {session==='unavailable'?<p role="alert">Serviço de autenticação bancária indisponível nesta publicação.</p>:null}
     {message?<p role="status">{message}</p>:null}
-    {accounts.length>0?<section><h3>Contas de {bankName}</h3>{accounts.map(a=><div key={a.id} style={{padding:'12px 0'}}>
+    {accounts.length>0?<section><h3>Contas de {bankName}</h3>
+      <button className="button button--secondary" disabled={busy||importing||refreshing} onClick={()=>{
+        const item=BANKS.find(b=>b.name===bankName);if(item)void requestBankRefresh(item.name,item.itemId);
+      }}>Solicitar atualização do banco na Pluggy</button>
+      <p className="warning-copy">Esta ação atualiza a conexão na Pluggy, não altera diretamente o saldo ou os lançamentos do Atlas. Pode depender de autorização adicional do banco.</p>
+      {accounts.map(a=><div key={a.id} style={{padding:'12px 0'}}> 
       <strong>{a.name||a.type||'Conta'} — {a.currencyCode==='BRL'&&typeof a.balance==='number'?money(a.balance):'Saldo indisponível'}</strong>
       {a.id?<button className="text-button" disabled={busy} onClick={()=>void realTimeBalance(a.id!)}>Saldo em tempo real</button>:null}
       {a.id?<button className="text-button" disabled={busy} onClick={()=>void movement(a.id!)}>Ver movimentações</button>:null}

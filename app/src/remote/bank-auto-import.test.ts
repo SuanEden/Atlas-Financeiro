@@ -69,6 +69,60 @@ describe('automatic Pluggy bank imports',()=>{
     expect(count).toBe(2);
     expect(events).toEqual(['PIX','PIX']);
   });
+  it('recovers the original account creation time for the Nov 2 Nubank transaction without importing an older one',async()=>{
+    const createdAt='2026-11-03T00:44:10.318Z'; // 21:44 on Nov 2 in Sao Paulo
+    const state:LocalFinancialState={
+      accounts:[{id:atlasAccountId,userId,name:'Nubank',kind:'digital',availability:'free'}],
+      events:[],categories:[],settlements:[],postings:[],
+      outbox:[{
+        id:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',userId,kind:'create_account',createdAt,
+        payloadJson:JSON.stringify({
+          accounts:[{id:atlasAccountId,userId}],
+          events:[{accountId:atlasAccountId,source:'opening_balance'}],
+        }),
+      }],
+    };
+    const link={itemId,pluggyAccountId:accountId,atlasAccountId,activatedOn:'2026-11-02'};
+    let next=0;
+    const context:CommandContext={
+      userId,nextId:()=>('00000000-0000-4000-8000-'+(++next).toString(16).padStart(12,'0')),
+      now:()=>createdAt,today:()=> '2026-11-03',
+    };
+    const imported=await syncLinkedBankAccount(link,{
+      readPage:async()=>({results:[
+        row('older','2026-11-03T00:40:00.000Z'),
+        row('expense20','2026-11-03T00:56:00.000Z'),
+        row('date-only','2026-11-03'),
+      ],next:null}),
+      readState:async()=>state,
+      execute:async command=>{
+        state.events.push(...command.aggregate.events||[]);
+        state.settlements.push(...command.aggregate.settlements||[]);
+        state.postings.push(...command.aggregate.postings||[]);
+      },
+      context,
+    });
+    expect(imported).toBe(1);
+    expect(state.events).toHaveLength(1);
+    expect(state.events[0]?.description).toBe('PIX');
+  });
+  it('does not relax the cutoff for an account created manually or much earlier',async()=>{
+    const {withRecoveredOpeningBaseline}=await import('./bank-auto-import');
+    const link={itemId,pluggyAccountId:accountId,atlasAccountId,activatedOn:'2026-11-02'};
+    const manual:LocalFinancialState={
+      accounts:[{id:atlasAccountId,userId,name:'Nubank',kind:'digital',availability:'free'}],
+      events:[],categories:[],settlements:[],postings:[],
+      outbox:[{
+        id:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',userId,kind:'create_account',
+        createdAt:'2026-10-20T12:00:00.000Z',
+        payloadJson:JSON.stringify({accounts:[{id:atlasAccountId}],events:[{accountId:atlasAccountId,source:'opening_balance'}]}),
+      }],
+    };
+    expect(withRecoveredOpeningBaseline(link,manual)).toEqual(link);
+    manual.outbox[0]!.createdAt='2026-11-03T00:44:10.318Z';
+    manual.outbox[0]!.payloadJson=JSON.stringify({accounts:[{id:atlasAccountId}],events:[{accountId:atlasAccountId,source:'manual'}]});
+    expect(withRecoveredOpeningBaseline(link,manual)).toEqual(link);
+  });
   it('does not post any transaction when a cursor is malformed',async()=>{
     const link={itemId,pluggyAccountId:accountId,atlasAccountId,activatedOn:'2026-11-02'};
     let committed=0;
