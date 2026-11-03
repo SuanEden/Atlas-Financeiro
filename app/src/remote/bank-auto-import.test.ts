@@ -41,6 +41,34 @@ describe('automatic Pluggy bank imports',()=>{
     expect(state.events).toHaveLength(2);
     expect(cursors).toEqual(['start','cursor','start','cursor']);
   });
+  it('imports only same-day transactions after the confirmed bank snapshot',async()=>{
+    const events: string[]=[];
+    const context:CommandContext={
+      userId, nextId:()=>crypto.randomUUID(), now:()=>new Date().toISOString(),today:()=> '2026-11-02',
+    };
+    const state:LocalFinancialState={
+      accounts:[{id:atlasAccountId,userId,name:'Nubank',kind:'digital',availability:'free'}],
+      events:[],categories:[],settlements:[],postings:[],outbox:[],
+    };
+    const link={itemId,pluggyAccountId:accountId,atlasAccountId,activatedOn:'2026-11-02',activatedAt:'2026-11-02T18:00:00.000Z'};
+    const count=await syncLinkedBankAccount(link,{
+      readPage:async()=>({results:[
+        row('old','2026-11-02T17:00:00.000Z'),
+        row('same-minute','2026-11-02T18:00:00.000Z'),
+        row('new','2026-11-02T19:00:00.000Z'),
+        row('no-time','2026-11-02'),
+        row('tomorrow','2026-11-03'),
+      ],next:null}),
+      readState:async()=>state,
+      execute:async(command)=>{
+        events.push(command.aggregate.events?.[0]?.description||'');
+        state.events.push(...command.aggregate.events||[]);
+      },
+      context,
+    });
+    expect(count).toBe(2);
+    expect(events).toEqual(['PIX','PIX']);
+  });
   it('does not post any transaction when a cursor is malformed',async()=>{
     const link={itemId,pluggyAccountId:accountId,atlasAccountId,activatedOn:'2026-11-02'};
     let committed=0;
