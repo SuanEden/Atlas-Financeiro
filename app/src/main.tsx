@@ -8,7 +8,7 @@ if (!root) throw new Error('Elemento principal indisponível.');
 
 const CLOUD_INTENT = 'atlas-financeiro:cloud-auth-intent';
 const url = new URL(location.href);
-const callback = url.pathname === '/auth/callback';
+const callback = url.pathname === '/auth/callback' || (url.pathname === '/' && (url.searchParams.has('code') || url.searchParams.has('error')));
 const explicitCloud = url.pathname === '/' && url.searchParams.get('cloud') === '1';
 // OAuth redirectTo must stay at the allowlisted /auth/callback. The tab-scoped
 // marker routes only this tab's callback back to the explicitly chosen mode.
