@@ -3,8 +3,8 @@ import { SessionPolicy, type SessionView } from '../auth/session-policy';
 import type { AuthPort } from '../auth/supabase-adapter';
 import type { AuthReturn } from '../auth/callback';
 import { SyncEngine, SyncFailure, type SyncResult, type SyncTransport } from '../sync/engine';
-import { LocalSyncStore } from '../sync/local-sync-store';
-import { commandEnvelope, isI3SchemaCompatible, prepareBootstrap, type BootstrapEnvelope } from '../sync/protocol';
+import { LocalSyncStore, validateSyncBackup } from '../sync/local-sync-store';
+import { commandEnvelope, isI3SchemaCompatible, prepareBootstrap, type BootstrapEnvelope, type SyncEnvelope } from '../sync/protocol';
 import { canonicalLocalState } from '../backup/validate-i2-backup';
 import { jsonDigest } from '../sync/protocol';
 import type { LocalFinancialState } from '../domain';
@@ -185,6 +185,31 @@ export class RemoteController {
     this.publish({dataRevision: this.#snapshot.dataRevision + 1,
       notice: 'Cópia recuperada localmente. Nenhuma operação foi enviada; confira os dados antes de sincronizar.'});
     } finally { this.#recovering = false; }
+  }
+
+  /** Import only additional operations from the same I3 history. Never overwrite receipts or replace a base. */
+  async importBackupOperations(json: string): Promise<number> {
+    if(this.#syncing || this.#recovering) throw new Error('Aguarde a sincronização terminar antes de importar.');
+    const session=this.policy.snapshot;
+    const store=this.#store;
+    if(!session.onlineVerified || !session.canWriteLocal || !store || store.userId!==session.userId)
+      throw new Error('Entre com a conta Google correta antes de importar.');
+    const backup=await validateSyncBackup(json,store.userId,this.serverId);
+    if(backup.pending.some(row=>row.status!=='pending'||row.envelope.kind==='bootstrap'))
+      throw new Error('A importação aceita somente operações novas e pendentes. Conflitos e cargas iniciais exigem recuperação separada.');
+    const current=await store.read();
+    const operations:SyncEnvelope[]=backup.pending.map(row=>{
+      if(row.envelope.kind==='bootstrap') throw new Error('Carga inicial não é importável.');
+      const wire=row.envelope.operation;
+      return commandEnvelope({id:wire.id,userId:wire.userId,kind:wire.kind,createdAt:wire.createdAt,
+        payloadJson:JSON.stringify(wire.payload)},current.meta.cursor);
+    });
+    if(this.policy.snapshot.epoch!==session.epoch || !this.policy.snapshot.canWriteLocal) throw new Error('A sessão mudou. Nenhum dado foi importado.');
+    // Do not auto-trigger a send from this method. The usual foreground sync may send later.
+    const imported=await store.importPendingFromBackup(backup.confirmed,operations);
+    this.publish({dataRevision:this.#snapshot.dataRevision+1,
+      notice: imported ? `${imported} operações importadas localmente. A sincronização normal poderá enviá-las à nuvem.` : 'Nenhuma operação nova para importar.'});
+    return imported;
   }
 
   async acceptRemoteConflict(id:string) {
