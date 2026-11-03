@@ -112,7 +112,7 @@ begin
   insert into atlas_private.postings select owner_id,(r->>'id')::uuid,(r->>'settlementId')::uuid,(r->>'accountId')::uuid,(r->>'amountCents')::bigint from jsonb_array_elements(coalesce(d->'postings','[]')) r;
   insert into atlas_private.account_reconciliations (user_id,id,account_id,balance_cents,reference_date,source_description,certainty,event_id,replaces_reconciliation_id)
     select owner_id,(r->>'id')::uuid,(r->>'accountId')::uuid,(r->>'balanceCents')::bigint,(r->>'referenceDate')::date,r->>'sourceDescription',r->>'certainty',(r->>'eventId')::uuid,(r->>'replacesReconciliationId')::uuid from jsonb_array_elements(coalesce(d->'accountReconciliations','[]')) r;
-end $;
+end $$;
 create or replace function api.i3_apply(p_envelope jsonb) returns jsonb
 language plpgsql security invoker set search_path=pg_catalog as $$
 declare owner_id uuid:=auth.uid(); op_id uuid; head bigint; base bigint; kind text; hash text; existing atlas_private.operation_receipts%rowtype;
