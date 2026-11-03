@@ -1,4 +1,5 @@
 import { SyncRecoveryPanel } from './SyncRecoveryPanel';
+import { SyncImportPanel } from './SyncImportPanel';
 import { FinanceCharts } from './FinanceCharts';
 import {
   ArrowDownLeft,
@@ -214,7 +215,7 @@ export function CategoriesView({ state, onAdd }: { state: LocalFinancialState; o
   );
 }
 
-export function BackupView({ state, userId, today, readState, onRecover, busy, integration=false, exportJson, serverId }: { state: LocalFinancialState; userId: string; today: string; readState: () => Promise<LocalFinancialState>; onRecover: (json: string) => Promise<void>; busy: boolean; integration?:boolean; exportJson?:()=>Promise<string>; serverId?:string }) {
+export function BackupView({ state, userId, today, readState, onRecover, busy, integration=false, exportJson, importJson, serverId }: { state: LocalFinancialState; userId: string; today: string; readState: () => Promise<LocalFinancialState>; onRecover: (json: string) => Promise<void>; busy: boolean; integration?:boolean; exportJson?:()=>Promise<string>; importJson?:(json:string)=>Promise<number>; serverId?:string }) {
   const [notice, setNotice] = useState('');
   const [failure, setFailure] = useState<string>();
   async function downloadBackup() {
@@ -243,6 +244,7 @@ export function BackupView({ state, userId, today, readState, onRecover, busy, i
       {failure === undefined ? null : <p className="form-error" role="alert">{failure}</p>}
       <section className="backup-panel"><span className="backup-icon"><Download size={24} /></span><div><h2>Exportar arquivo JSON</h2><p>Inclui contas, categorias, lançamentos, histórico, centavos exatos, vínculos bancários locais (sem senhas ou tokens) e {state.outbox.length} {state.outbox.length === 1 ? 'operação pendente' : 'operações pendentes'}.</p><p className="warning-copy">O arquivo contém dados financeiros sem criptografia própria. Guarde-o em local privado.</p><button className="button button--primary" onClick={downloadBackup}><Download size={18} />Baixar backup</button></div></section>
       {integration?<section className="scope-panel"><RefreshCcw size={21} /><div><h2>Cópia de sincronização I3</h2><p>A exportação inclui base confirmada, pendências, conflitos, recibos, cursor e origem da associação. Não contém sessão. O importador I2 não aceita este formato; a recuperação abaixo aceita esta cópia somente na mesma conta e servidor, em destino vazio ou idêntico.</p></div></section>:<RecoveryPanel onRecover={onRecover} busy={busy} />}
+      {integration && serverId && importJson ? <SyncImportPanel userId={userId} serverId={serverId} onImport={importJson} disabled={busy} /> : null}
       {integration && serverId ? <SyncRecoveryPanel userId={userId} serverId={serverId} onRecover={onRecover} disabled={busy} /> : null}
       <section className="scope-panel"><RefreshCcw size={21} /><div><h2>Restauração completa ainda não disponível</h2><p>A recuperação mínima aceita o formato indicado acima em destino vazio ou idêntico. A substituição de bases e as gerações continuam previstas para I4.</p></div></section>
     </div>
