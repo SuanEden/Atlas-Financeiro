@@ -1,5 +1,5 @@
 /**
- * Server-side read-only Pluggy gateway for Vercel Node Functions.
+ * Pluggy gateway: read-only financial access plus explicit item refresh (no bank writes).
  * Requires authenticated, allowlisted Supabase owner; NEVER returns API keys.
  * Configure PLUGGY_CLIENT_ID, PLUGGY_CLIENT_SECRET, ATLAS_PLUGGY_OWNER_ID,
  * VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in Production.
@@ -7,9 +7,10 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 let cachedKey: { value: string; expires: number } | undefined;
-// Only two owner-approved Pluggy items may be read through this endpoint.
+// Only two owner-approved Pluggy items may be read or explicitly refreshed.
 const bankItems = new Set(['71c06153-0d24-45ac-81f6-9de6f0d04282','1c91ee97-e614-494f-b41a-5e203d5fa7ee']);
 const accountPermissions = new Map<string,number>();
+const refreshCooldowns = new Map<string,number>(); // Best-effort per-function guard; Pluggy also enforces its limits.
 const reply = (res: ServerResponse, status: number, body: unknown) => {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -59,12 +60,12 @@ async function accountBelongsToOwner(id: string): Promise<boolean> {
   return true;
 }
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
-  if (req.method !== 'GET') return reply(res, 405, { error: 'Method not allowed' });
+  if (req.method !== 'GET' && req.method !== 'POST') return reply(res, 405, { error: 'Method not allowed' });
   try {
     // Diagnostic endpoint: no Google session needed and no banking records returned.
     // Intentionally expose only a generic readiness flag, never credentials or upstream details.
     const diagnostic = new URL(req.url ?? '/', 'http://localhost');
-    if (diagnostic.searchParams.get('resource') === 'health' && diagnostic.searchParams.size === 1) {
+    if (req.method === 'GET' && diagnostic.searchParams.get('resource') === 'health' && diagnostic.searchParams.size === 1) {
       try { await key(); return reply(res, 200, { service: 'pluggy', authentication: 'ok' }); }
       catch { return reply(res, 503, { service: 'pluggy', authentication: 'unavailable' }); }
     }
@@ -76,6 +77,33 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     const after = original.searchParams.get('after');
     const dateFrom = original.searchParams.get('dateFrom');
     const uuid = (v: string | null) => Boolean(v && /^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i.test(v));
+    if (req.method === 'POST') {
+      // A refresh changes only the Pluggy-side data snapshot; never a bank balance
+      // or any Atlas financial entry. User action and verified owner are required.
+      if (resource !== 'refresh' || !itemId || !bankItems.has(itemId) ||
+          original.searchParams.size !== 2 || !uuid(itemId))
+        return reply(res, 400, { error: 'Parâmetros de atualização inválidos.' });
+      const until = refreshCooldowns.get(itemId) || 0;
+      if (until > Date.now()) return reply(res, 429, { error: 'Atualização solicitada recentemente. Aguarde.' });
+      refreshCooldowns.set(itemId, Date.now() + 60*60*1000);
+      const response = await fetch('https://api.pluggy.ai/items/' + itemId, {
+        method: 'PATCH',
+        headers: { 'X-API-KEY': await key(), 'Content-Type': 'application/json' },
+        body: '{}',
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!response.ok) {
+        refreshCooldowns.delete(itemId);
+        return reply(res, 502, { error: 'A Pluggy não iniciou a atualização.', upstreamStatus: response.status });
+      }
+      const result = await response.json() as {status?:string;lastUpdatedAt?:string};
+      return reply(res, 202, {
+        started: true,
+        status: typeof result.status === 'string' ? result.status : 'UPDATING',
+        lastUpdatedAt: typeof result.lastUpdatedAt === 'string' ? result.lastUpdatedAt : null,
+      });
+    }
+
     if(resource==='session' && !itemId && !accountId && !after && !dateFrom) {
       return reply(res,200,{authorized:true});
     }
