@@ -48,7 +48,7 @@ export function App({bankPanel}:{bankPanel?:ReactNode}={}) {
   return <FinancialWorkspace finance={useLocalFinance()} bankPanel={bankPanel} />;
 }
 
-export function FinancialWorkspace({finance,sessionControls,integration=false,exportJson,serverId,bankPanel}:{finance:ReturnType<typeof useLocalFinance>;sessionControls?:ReactNode;integration?:boolean;exportJson?:()=>Promise<string>;serverId?:string;bankPanel?:ReactNode}) {
+export function FinancialWorkspace({finance,sessionControls,integration=false,exportJson,importJson,serverId,bankPanel}:{finance:ReturnType<typeof useLocalFinance>;sessionControls?:ReactNode;integration?:boolean;exportJson?:()=>Promise<string>;importJson?:(json:string)=>Promise<number>;serverId?:string;bankPanel?:ReactNode}) {
   const { state, loading, busy, error, clearError, execute, recover, readState, context, userId } = finance;
   const [page, setPage] = useState<Page | 'banks'>('dashboard');
   const [modal, setModal] = useState<Modal>();
@@ -124,7 +124,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
             {page === 'accounts' ? <AccountsView state={state} onAdd={() => setModal({ type: 'account' })} onReconcile={(account) => setModal({ type: 'reconcile', account })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
             {page === 'categories' || page === 'backup' ? <div className="mobile-settings-tabs"><button className={page === 'categories' ? 'is-active' : ''} onClick={() => setPage('categories')}>Categorias</button><button className={page === 'backup' ? 'is-active' : ''} onClick={() => setPage('backup')}>Backup</button></div> : null}
             {page === 'categories' ? <CategoriesView state={state} onAdd={() => setModal({ type: 'category' })} /> : null}
-            {page === 'backup' ? <BackupView integration={integration} {...(serverId?{serverId}:{})} {...(exportJson?{exportJson}:{})} onRecover={recover} busy={busy} readState={readState} state={state} userId={userId} today={today} /> : null}
+            {page === 'backup' ? <BackupView integration={integration} {...(serverId?{serverId}:{})} {...(exportJson?{exportJson}:{})} {...(importJson?{importJson}:{})} onRecover={recover} busy={busy} readState={readState} state={state} userId={userId} today={today} /> : null}
           </>
         )}
       </section>
