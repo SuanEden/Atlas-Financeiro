@@ -32,6 +32,20 @@ test('dashboard local renderiza, alterna tema e mantém o primeiro uso vazio', a
   expect(remoteRequests).toEqual([]);
 });
 
+test('aba Bancos aparece e funciona na navegação móvel sem perder Ajustes',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='mobile-edge','Somente interface móvel');
+  await page.goto('/');
+  const nav=page.getByRole('navigation',{name:'Navegação móvel'});
+  const banks=nav.getByRole('button',{name:'Bancos',exact:true});
+  await expect(banks).toBeVisible();
+  await banks.click();
+  await expect(page.getByRole('heading',{name:'Bancos conectados'})).toBeVisible();
+  await nav.getByRole('button',{name:'Ajustes',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Backup',exact:true})).toBeVisible();
+  const noHorizontalOverflow=await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth);
+  expect(noHorizontalOverflow).toBe(true);
+});
+
 test('documentos, cópias privadas e Git não são servidos', async ({ request }) => {
   const originals = ['00_COMECE_AQUI.md', 'PROMPT_CODEX.md', 'REQUISITOS_ATLAS.md', 'REFERENCIAS_E_DECISOES.md'];
   const workspace = fileURLToPath(new URL('../../..', import.meta.url)).replaceAll('\\', '/').replace(/\/$/, '');

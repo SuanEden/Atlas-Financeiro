@@ -129,11 +129,12 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
         )}
       </section>
 
-      <nav className="bottom-nav" aria-label="Navegação móvel">
+      <nav className={'bottom-nav'+(integration || bankPanel !== undefined ? ' bottom-nav--with-banks' : '')} aria-label="Navegação móvel">
         <MobileNavButton active={page === 'dashboard'} label="Início" Icon={Home} onClick={() => setPage('dashboard')} />
         <MobileNavButton active={page === 'movements'} label="Movimentos" Icon={ListRestart} onClick={() => setPage('movements')} />
         <button className="bottom-add" onClick={openTransaction} disabled={state.accounts.length === 0} aria-label="Novo lançamento"><Plus size={28} /></button>
         <MobileNavButton active={page === 'accounts'} label="Contas" Icon={WalletCards} onClick={() => setPage('accounts')} />
+        {(integration || bankPanel !== undefined) ? <MobileNavButton active={page === 'banks'} label="Bancos" Icon={Landmark} onClick={() => setPage('banks')} /> : null}
         <MobileNavButton active={page === 'categories' || page === 'backup'} label="Ajustes" Icon={Settings} onClick={() => setPage('categories')} />
       </nav>
 
