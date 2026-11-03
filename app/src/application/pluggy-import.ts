@@ -26,11 +26,20 @@ function safeId(value: unknown, label: string): string {
   return value;
 }
 function calendarDate(date: string): string {
-  if (!/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(date)) throw new TypeError('Data bancária inválida.');
-  const day = date.slice(0, 10);
-  const parsed = new Date(day + 'T00:00:00.000Z');
-  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== day) throw new TypeError('Data bancária inválida.');
-  return day;
+  if (typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}/.test(date)) throw new TypeError('Data bancária inválida.');
+  const day=date.slice(0,10);
+  const base=new Date(day+'T00:00:00.000Z');
+  if (Number.isNaN(base.getTime())||base.toISOString().slice(0,10)!==day) throw new TypeError('Data bancária inválida.');
+  if(date.length===10)return day;
+  if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(date))throw new TypeError('Data bancária inválida.');
+  const instant=new Date(date);
+  if(Number.isNaN(instant.getTime()))throw new TypeError('Data bancária inválida.');
+  // Pluggy timestamps are UTC. Atlas accounting dates follow Fortaleza.
+  const parts=new Intl.DateTimeFormat('en-US',{
+    timeZone:'America/Fortaleza',year:'numeric',month:'2-digit',day:'2-digit',
+  }).formatToParts(instant);
+  const field=(kind:string)=>parts.find(part=>part.type===kind)?.value;
+  return field('year')+'-'+field('month')+'-'+field('day');
 }
 /** Exact integer-cent conversion; no silent floating-point rounding. */
 function cents(amount: number): bigint {
