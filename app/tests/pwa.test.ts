@@ -22,7 +22,9 @@ describe('PWA local', () => {
   it('mantém cache offline separado do IndexedDB financeiro', () => {
     const worker = readFileSync(join(appRoot, 'public/sw.js'), 'utf8');
     expect(worker).toContain("const CACHE_NAME = 'atlas-shell-__BUILD_VERSION__'");
-    expect(worker).toContain("cache.match('/')");
+    expect(worker).toContain("caches.match('/index.html')");
+    expect(worker).toContain("target.pathname === '/auth/callback'");
+    expect(worker).toContain("target.pathname.startsWith('/api/')");
     expect(worker).not.toMatch(/indexedDB|deleteDatabase|\.clear\(/);
   });
 });
