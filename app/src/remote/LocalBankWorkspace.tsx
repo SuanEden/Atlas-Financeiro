@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FinancialWorkspace } from '../App';
 import { useLocalFinance } from '../ui/use-local-finance';
 import { createSupabaseAdapter } from '../auth/supabase-adapter';
@@ -48,6 +48,8 @@ export default function LocalBankWorkspace(){
   });
   const [mappingTarget,setMappingTarget]=useState<Record<string,string>>({});
   const [importing,setImporting]=useState(false);
+  const syncRunning=useRef(false);
+  const triggerBankSync=useRef<()=>void>(()=>{});
   async function connectBank(){
     if(!adapter){setMessage('Integração bancária não configurada.');return;}
     if(location.hostname!=='atlas-financeiro-nine.vercel.app'){
@@ -115,6 +117,13 @@ export default function LocalBankWorkspace(){
     try{
       let atlasAccountId=choice;
       if(choice==='__new'){
+        if(finance.state.accounts.some(a=>a.name.toLocaleLowerCase('pt-BR').includes(bankName.toLocaleLowerCase('pt-BR'))))
+          throw new Error('Já existe uma conta com este banco no Atlas. Selecione-a para evitar saldo duplicado.');
+        const snapshot=snapshots[itemId];
+        if(!snapshot?.bankUpdatedAt||!Number.isFinite(Date.parse(snapshot.bankUpdatedAt)))
+          throw new Error('O horário do saldo bancário não está disponível; não é seguro criar o saldo inicial automaticamente.');
+        if(Date.now()-Date.parse(snapshot.bankUpdatedAt)>48*60*60*1000)
+          throw new Error('O saldo bancário está desatualizado. Atualize a conexão antes de criar a conta.');
         if(typeof bankAccount.balance!=='number'||!Number.isFinite(bankAccount.balance))throw new Error('Saldo inicial bancário ainda indisponível.');
         const initialCents=Math.round(bankAccount.balance*100);
         if(!Number.isSafeInteger(initialCents))throw new Error('Saldo fora do limite para importação.');
@@ -129,7 +138,13 @@ export default function LocalBankWorkspace(){
         if(!atlasAccountId)throw new Error('Identificador de conta não gerado.');
         await finance.execute(command);
       }else if(!finance.state.accounts.some(a=>a.id===choice))throw new Error('Conta do Atlas selecionada não existe.');
-      const next={...links,[bankAccount.id]:{itemId,pluggyAccountId:bankAccount.id,atlasAccountId,activatedOn:finance.context.today()}};
+      const bankTime=snapshots[itemId]?.bankUpdatedAt;
+      const activatedAt=choice==='__new'&&bankTime&&Number.isFinite(Date.parse(bankTime))?bankTime:undefined;
+      const next={...links,[bankAccount.id]:{
+        itemId,pluggyAccountId:bankAccount.id,atlasAccountId,
+        activatedOn:activatedAt?activatedAt.slice(0,10):finance.context.today(),
+        ...(activatedAt?{activatedAt}:{}),
+      }};
       localStorage.setItem('atlas:pluggy-mappings:v1:'+finance.userId,JSON.stringify(next));
       setLinks(next);
       setMessage('Importação vinculada. Serão registrados automaticamente apenas lançamentos confirmados dos próximos dias, sem repetir IDs já importados.');
@@ -145,7 +160,8 @@ export default function LocalBankWorkspace(){
     if(session!=='connected'||!adapter||Object.keys(links).length===0)return;
     let alive=true;
     const sync=async()=>{
-      if(!alive||document.visibilityState==='hidden')return;
+      if(!alive||syncRunning.current||document.visibilityState==='hidden')return;
+      syncRunning.current=true;
       setImporting(true);
       let imported=0;let firstError='';
       for(const link of Object.values(links)){
@@ -161,10 +177,14 @@ export default function LocalBankWorkspace(){
         else if(imported>0)setMessage(imported+' nova(s) movimentação(ões) importada(s) para o Atlas.');
         setImporting(false);
       }
+      syncRunning.current=false;
     };
+    triggerBankSync.current=()=>void sync();
     void sync();
-    const timer=window.setInterval(()=>void sync(),6*60*60*1000);
-    return()=>{alive=false;window.clearInterval(timer);};
+    const timer=window.setInterval(()=>void sync(),10*60*1000);
+    const onVisible=()=>{if(document.visibilityState==='visible')void sync();};
+    document.addEventListener('visibilitychange',onVisible);
+    return()=>{alive=false;window.clearInterval(timer);document.removeEventListener('visibilitychange',onVisible);triggerBankSync.current=()=>{};};
   },[session,adapter,links]);
   async function realTimeBalance(accountId:string){
     if(!adapter)return;
@@ -204,6 +224,7 @@ export default function LocalBankWorkspace(){
       </button>)}
     </div>
     {importing?<p role="status">Sincronizando movimentações autorizadas…</p>:null}
+    {session==='connected'&&Object.keys(links).length>0?<p><button className="button button--secondary" disabled={importing||finance.busy} onClick={()=>triggerBankSync.current()}>Sincronizar movimentações agora</button> A importação também é executada automaticamente ao abrir e retornar ao aplicativo e a cada 10 minutos enquanto estiver aberto.</p>:null}
     {session==='connected'?<p role="status">{refreshing?'Atualizando saldos…':'Saldos consultados automaticamente ao abrir, retornar à aba e a cada 5 minutos enquanto o Atlas estiver aberto.'}</p>:null}
     {session==='disconnected'?<p>Toque em Nubank ou Infinite para autorizar a consulta pelo Google. Nenhuma senha bancária é solicitada pelo Atlas.</p>:null}
     {session==='unavailable'?<p role="alert">Serviço de autenticação bancária indisponível nesta publicação.</p>:null}
