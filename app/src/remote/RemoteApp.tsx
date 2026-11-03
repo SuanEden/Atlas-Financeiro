@@ -40,6 +40,7 @@ function AccessGate({controller}:{controller:RemoteController}) {
     {failure?<p role="alert">{failure}</p>:null}
     {!snapshot.session.onlineVerified?<button className="button button--primary" disabled={busy} onClick={()=>void controller.login()}>Entrar com Google</button>:null}
     {snapshot.session.onlineVerified?<button className="button button--ghost" disabled={busy} onClick={()=>void controller.logout()}>Sair e bloquear acesso local</button>:null}
+    {snapshot.session.onlineVerified&&!snapshot.session.canTransmit?<section className="association-panel"><p>O servidor ainda não liberou gravações financeiras. Nenhum envio será executado.</p><button className="text-button" disabled={busy} onClick={()=>void run(async()=>{setPreview(await controller.previewLocalSource());})}>Conferir base local sem enviar</button>{preview?<p>Base local: {preview.accounts} contas, {preview.events} lançamentos e {preview.pending} operações pendentes. A origem permanece neste dispositivo.</p>:null}</section>:null}
     {canAssociate?<section className="association-panel" aria-label="Associação inicial">
       <h2>Escolha como começar neste navegador</h2><p>Confirme a conta Google antes de continuar. Dados de teste não devem ser usados como sua base pessoal.</p>
       <label><input type="checkbox" checked={confirmed} onChange={(event)=>setConfirmed(event.target.checked)} />Conferi a conta e autorizo somente a opção que escolher abaixo.</label>
@@ -51,6 +52,7 @@ function AccessGate({controller}:{controller:RemoteController}) {
     </section>:null}
     {snapshot.session.onlineVerified ? <PluggyReadPanel controller={controller} /> : null}
     {snapshot.session.onlineVerified ? <SyncRecoveryPanel userId={snapshot.session.userId} serverId={controller.serverId} onRecover={json => controller.recoverBackup(json)} disabled={busy || snapshot.syncing} /> : null}
+    <p><a className="text-button" href="/">Voltar ao Atlas local (sem migrar)</a></p>
     <p className="warning-copy">Sair bloqueia a visualização neste perfil sem apagar pendências. Esta proteção local não é criptografia. O envio exige sessão verificada e liberação do servidor.</p>
   </section></main>;
 }
