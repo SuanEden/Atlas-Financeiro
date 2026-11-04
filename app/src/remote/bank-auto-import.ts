@@ -78,7 +78,16 @@ export async function syncLinkedBankAccount(link:BankLink,source:ImportSource):P
     if(typeof page.next!=='string'||!page.next.startsWith('?'))throw new Error('Cursor bancário inválido.');
     const next=new URLSearchParams(page.next.slice(1));
     const cursor=next.get('after');
-    if(next.get('accountId')!==link.pluggyAccountId||!cursor||cursor.length>2048||seen.has(cursor))throw new Error('Paginação bancária inconsistente.');
+    // Pluggy's cursor is opaque; its next query may omit filters already
+    // supplied in the original request. Our gateway restores accountId/dateFrom.
+    const accountIds=next.getAll('accountId');
+    const fromDates=next.getAll('dateFrom');
+    if([...next.keys()].some(key=>!['after','accountId','dateFrom'].includes(key))||
+       next.getAll('after').length!==1||
+       accountIds.length>1||(accountIds.length===1&&accountIds[0]!==link.pluggyAccountId)||
+       fromDates.length>1||(fromDates.length===1&&fromDates[0]!==link.activatedOn)||
+       !cursor||cursor.length>2048||/[\x00-\x1f]/.test(cursor)||seen.has(cursor))
+      throw new Error('Paginação bancária inconsistente.');
     seen.add(cursor);after=cursor;
   }
   if(!complete)throw new Error('Extrato excede limite de consulta segura; nenhuma importação realizada.');
