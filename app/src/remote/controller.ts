@@ -78,10 +78,10 @@ export class RemoteController {
     })();
     this.#verification=run;try {await run;}finally {if(this.#verification===run)this.#verification=undefined;}
   }
-  async readBank(resource:'item'|'accounts'|'transactions',id?:string):Promise<unknown> {
+  async readBank(resource:'item'|'accounts'|'transactions',id?:string,after?:string,dateFrom?:string,continuation?:string):Promise<unknown> {
     if(!this.policy.snapshot.onlineVerified||!this.auth.readBank) throw new Error('A sessão bancária não está autorizada.');
     const epoch=this.policy.snapshot.epoch;
-    const result=await this.auth.readBank(resource,id);
+    const result=await this.auth.readBank(resource,id,after,dateFrom,continuation);
     if(epoch!==this.policy.snapshot.epoch||!this.policy.snapshot.onlineVerified) throw new Error('A sessão mudou durante a consulta.');
     return result;
   }
