@@ -86,7 +86,7 @@ describe('automatic Pluggy bank imports',()=>{
       const source={
         readPage:async(_id:string,after?:string)=>({
           results:[row('first','2026-11-03')],
-          next:after?next:(next==='?after=cursor'?next:next),
+          next,
         }),
         readState:async():Promise<LocalFinancialState>=>({
           accounts:[{id:atlasAccountId,userId,name:'Nubank',kind:'digital',availability:'free'}],
