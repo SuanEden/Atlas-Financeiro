@@ -345,7 +345,7 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
     if(!organizing||!freeBoard||event.button!==0)return;
     moveRef.current={id:chart.id,startX:event.clientX,startY:event.clientY,x:chart.gridX??0,y:chart.gridY??0,targetX:chart.gridX??0,targetY:chart.gridY??0};
     setDragId(chart.id);setDragPreview({id:chart.id,x:chart.gridX??0,y:chart.gridY??0});
-    event.currentTarget.setPointerCapture(event.pointerId);
+    try{event.currentTarget.setPointerCapture(event.pointerId);}catch{/* A synthetic or unsupported pointer still offers keyboard controls. */}
     event.preventDefault();
   };
   const movePointer=(event:ReactPointerEvent<HTMLButtonElement>)=>{
@@ -414,7 +414,7 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
       height: chart.heightPx ?? Math.max(250, Math.round(card.getBoundingClientRect().height)),
       columnWidth, desktop,
     };
-    event.currentTarget.setPointerCapture(event.pointerId);
+    try{event.currentTarget.setPointerCapture(event.pointerId);}catch{/* A synthetic or unsupported pointer still offers keyboard controls. */}
     event.preventDefault();
   };
   const resizeMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -447,7 +447,7 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
     </div>
     {organizing ? <p className="chart-organize-help" role="status">Arraste pela alça para posicionar livremente. Cada bolinha representa uma unidade: você pode deixar cinco ou mais bolinhas entre os gráficos. Posições são salvas ao soltar. As setas movem cinco bolinhas.</p> : null}
     {storageError ? <p className="chart-storage-warning" role="alert">Não foi possível salvar o layout neste navegador. Verifique o armazenamento disponível.</p> : null}
-    {charts.length === 0 ? <div className="chart-empty-board"><BarChart3 size={34} /><h3>Seu painel está pronto para começar</h3><p>Crie seu primeiro gráfico para visualizar os dados que importam.</p><button className="button button--primary" onClick={create}><Plus size={17} />Criar gráfico</button><button className="text-button" onClick={() => setCharts(defaultCharts())}>Restaurar gráficos sugeridos</button></div> : <div ref={gridRef} className={'finance-chart-grid chart-studio-grid' + (freeBoard ? ' chart-studio-grid--free' : '') + (dragId || resizingId ? ' chart-studio-grid--guides' : '')} aria-label="Área de organização dos gráficos" onDragOver={organizing ? (event) => event.preventDefault() : undefined} onDrop={organizing ? (event) => { event.preventDefault(); if (dragId) move(dragId, charts.length - 1); setDragId(null); } : undefined}>
+    {charts.length === 0 ? <div className="chart-empty-board"><BarChart3 size={34} /><h3>Seu painel está pronto para começar</h3><p>Crie seu primeiro gráfico para visualizar os dados que importam.</p><button className="button button--primary" onClick={create}><Plus size={17} />Criar gráfico</button><button className="text-button" onClick={() => setCharts(defaultCharts())}>Restaurar gráficos sugeridos</button></div> : <div ref={gridRef} className={'finance-chart-grid chart-studio-grid' + (freeBoard ? ' chart-studio-grid--free' : '') + (organizing && freeBoard ? ' chart-studio-grid--lattice' : '') + (dragId || resizingId ? ' chart-studio-grid--guides' : '')} aria-label="Área de organização dos gráficos" onDragOver={organizing ? (event) => event.preventDefault() : undefined} onDrop={organizing ? (event) => { event.preventDefault(); if (dragId) move(dragId, charts.length - 1); setDragId(null); } : undefined}>
       {charts.map((chart, index) => {
         const rows = buildChartRows(state, month, chart);
         const requestedColumns = chart.widthColumns ?? ({compact:4,half:6,wide:12} as const)[chart.size];
