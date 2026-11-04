@@ -14,6 +14,14 @@ async function navigateBackup(page:Page) {
   await nav.getByRole('button',{name:mobile?'Ajustes':'Backup',exact:true}).click();
   if(mobile)await page.getByRole('button',{name:'Backup',exact:true}).click();
 }
+async function expandCloudControls(page:Page) {
+  if ((page.viewportSize()?.width ?? 1280) < 761) {
+    const panel = page.locator('.mobile-cloud-controls');
+    if (!(await panel.evaluate(element => (element as HTMLDetailsElement).open))) {
+      await panel.locator('summary').click();
+    }
+  }
+}
 test('Auth sintético: associação explícita, expiração offline, exportação I3 e logout bloqueiam sem apagar',async({page},info)=>{
   const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
   page.on('console',message=>{if(['error','warning'].includes(message.type()))errors.push(message.text());});
@@ -36,6 +44,7 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   await page.getByRole('dialog').getByRole('button',{name:'Criar conta',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Nova conta'})).toHaveCount(0);
   await page.evaluate(async()=>{const path='/tests/auth-browser-entry.tsx';await (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).expireAndDisconnect();});
+  await expandCloudControls(page);
   await expect(page.getByText('Acesso offline',{exact:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'Sincronizar agora'})).toBeDisabled();
   await page.reload();await expect(page.getByRole('heading',{name:'Visão geral'})).toBeVisible();
@@ -74,6 +83,7 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   const {exportedAt:_later,...reopenedCopy}=JSON.parse(readFileSync((await (await repeatedDownload).path())!,'utf8'));
   const {exportedAt:_earlier,...initialCopy}=backup;expect(reopenedCopy).toEqual(initialCopy);
   await page.evaluate(()=>localStorage.removeItem('synthetic-transport-offline'));
+  await expandCloudControls(page);
   await page.getByRole('button',{name:'Sincronizar agora'}).click();
   await expect(page.getByRole('region',{name:'Sincronização',exact:true})).toContainText('Alterações confirmadas');
   const confirmed=await page.evaluate(async()=>{const path='/tests/auth-browser-entry.tsx';return (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).inspect();});
@@ -89,6 +99,7 @@ test('logout na segunda aba remove a visão da primeira sem apagar o namespace',
   await expect(page.getByRole('heading',{name:'Visão geral'})).toBeVisible();
   const second=await context.newPage();await second.route('**/src/main.tsx',route=>route.fulfill({contentType:'application/javascript',body:"import '/tests/auth-browser-entry.tsx';"}));
   await second.goto('/');await expect(second.getByRole('heading',{name:'Visão geral'})).toBeVisible();
+  await expandCloudControls(second);
   await second.getByRole('button',{name:'Sair e bloquear',exact:true}).click();
   await expect(page.getByRole('button',{name:'Entrar com Google',exact:true})).toBeVisible();
   await expect(page.getByRole('heading',{name:'Visão geral'})).toHaveCount(0);
@@ -121,6 +132,7 @@ test('perda do IndexedDB: arquivo I3 recupera pendência em perfil vazio e sincr
     await expect(target.getByText('Conta a recuperar',{exact:true})).toBeVisible();
     const state=await target.evaluate(async()=>{const path='/tests/auth-browser-entry.tsx';return (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).inspect();});
     expect(state.pending).toEqual(original.pending);expect(state.meta).toEqual(original.meta);
+    await expandCloudControls(target);
     await target.getByRole('button',{name:'Sincronizar agora'}).click();
     await expect(target.getByRole('region',{name:'Sincronização',exact:true})).toContainText('Alterações confirmadas');
     const after=await target.evaluate(async()=>{const path='/tests/auth-browser-entry.tsx';return (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).inspect();});
