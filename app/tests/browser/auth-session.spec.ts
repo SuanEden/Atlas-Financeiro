@@ -68,6 +68,7 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   expect(backup.pending[0].envelope.operation.payload.accounts).toEqual(backup.projection.accounts);
   expect(json).not.toMatch(/access_token|refresh_token|provider_token/);
   await expect(page.getByLabel('Arquivo JSON de I2')).toHaveCount(0);
+  await expandCloudControls(page);
   await page.getByRole('button',{name:'Sair e bloquear',exact:true}).click();
   await expect(page.getByRole('button',{name:'Entrar com Google',exact:true})).toBeVisible();
   await expect(page.getByText('Conta sintética de sessão',{exact:true})).toHaveCount(0);
