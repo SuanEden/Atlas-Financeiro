@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BarChart3, GripVertical, Maximize2, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { calculateFinancialForecast, formatBRL, type LocalFinancialState } from '../domain';
 import { DialogFrame } from './Forms';
@@ -373,6 +373,14 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
       return current.map(c=>c.id===id?{...c,gridX:spot.x,gridY:spot.y}:c);
     });
   };
+  const positionByKeyboard=(event:ReactKeyboardEvent<HTMLButtonElement>,id:string)=>{
+    if(!freeBoard)return;
+    const direction:Record<string,[number,number]>={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
+    const offset=direction[event.key];
+    if(!offset)return;
+    event.preventDefault();
+    shiftChart(id,offset[0]*(event.shiftKey?5:1),offset[1]*(event.shiftKey?5:1));
+  };
   const resizeWithPosition=(id:string,widthColumns:number,heightPx:number)=>{
     setCharts(current=>{
       const chart=current.find(c=>c.id===id);
@@ -449,7 +457,7 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
         const y=dragPreview?.id===chart.id?dragPreview.y:chart.gridY??0;
         return <article key={chart.id} data-chart-id={chart.id} style={placed?{gridColumn:`${Math.min(BOARD_COLUMNS-columnsFor(chart,minimumColumns),x)+1} / span ${columnsFor(chart,minimumColumns)}`,gridRow:`${y+1} / span ${rowsFor(chart)}`,minHeight:chart.heightPx??380}:{gridColumn:`span ${visibleColumns}`,...(chart.heightPx?{minHeight:chart.heightPx}:{})}} className={'finance-chart-card chart-studio-card chart-studio-card--' + chart.size + (dragId === chart.id ? ' chart-studio-card--dragging' : '')} onDragOver={!freeBoard&&organizing ? (event) => event.preventDefault() : undefined} onDrop={!freeBoard&&organizing ? (event) => { event.preventDefault(); event.stopPropagation(); if (dragId) move(dragId, index); setDragId(null); } : undefined}>
           <div className="chart-card-heading"><div className="chart-card-title"><h3>{chart.title}</h3><p>{chart.source === 'realized' ? 'Realizado' : 'Previsto'} · {chart.months === 1 ? '1 mês' : chart.months + ' meses'} · por {dimensionLabel[chart.dimension].toLocaleLowerCase('pt-BR')}</p></div><div className="chart-card-actions">
-            {organizing ? <><button type="button" className="chart-drag-handle" draggable={!freeBoard} onPointerDown={(event)=>moveStart(event,chart)} onPointerMove={movePointer} onPointerUp={moveEnd} onPointerCancel={moveEnd} onDragStart={!freeBoard?(event)=>{setDragId(chart.id);event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',chart.id);}:undefined} onDragEnd={!freeBoard?()=>setDragId(null):undefined} title="Arrastar gráfico para qualquer posição livre" aria-label={'Posicionar '+chart.title}><GripVertical size={18}/></button><button type="button" onClick={()=>freeBoard?shiftChart(chart.id,-5,0):move(chart.id,index-1)} disabled={!freeBoard&&index===0} title="Mover cinco bolinhas para esquerda" aria-label={'Mover '+chart.title+' para antes'}><ArrowLeft size={17}/><ArrowUp className="chart-move-mobile" size={17}/></button><button type="button" onClick={()=>freeBoard?shiftChart(chart.id,5,0):move(chart.id,index+1)} disabled={!freeBoard&&index===charts.length-1} title="Mover cinco bolinhas para direita" aria-label={'Mover '+chart.title+' para depois'}><ArrowRight size={17}/><ArrowDown className="chart-move-mobile" size={17}/></button></> : null}
+            {organizing ? <><button type="button" className="chart-drag-handle" draggable={!freeBoard} onPointerDown={(event)=>moveStart(event,chart)} onPointerMove={movePointer} onPointerUp={moveEnd} onPointerCancel={moveEnd} onKeyDown={(event)=>positionByKeyboard(event,chart.id)} onDragStart={!freeBoard?(event)=>{setDragId(chart.id);event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',chart.id);}:undefined} onDragEnd={!freeBoard?()=>setDragId(null):undefined} title="Arrastar gráfico para qualquer posição livre" aria-label={'Posicionar '+chart.title}><GripVertical size={18}/></button><button type="button" onClick={()=>freeBoard?shiftChart(chart.id,-5,0):move(chart.id,index-1)} disabled={!freeBoard&&index===0} title="Mover cinco bolinhas para esquerda" aria-label={'Mover '+chart.title+' para antes'}><ArrowLeft size={17}/><ArrowUp className="chart-move-mobile" size={17}/></button><button type="button" onClick={()=>freeBoard?shiftChart(chart.id,5,0):move(chart.id,index+1)} disabled={!freeBoard&&index===charts.length-1} title="Mover cinco bolinhas para direita" aria-label={'Mover '+chart.title+' para depois'}><ArrowRight size={17}/><ArrowDown className="chart-move-mobile" size={17}/></button></> : null}
             {organizing ? <><button type="button" className="chart-size-toggle" onClick={() => setSizeMenu(sizeMenu === chart.id ? null : chart.id)} aria-label={'Tamanho de ' + chart.title} aria-expanded={sizeMenu === chart.id} title="Alterar tamanho"><Maximize2 size={16} /><span>Tamanho</span></button>
             <button type="button" onClick={() => setEditing(chart)} aria-label={'Editar ' + chart.title} title="Editar gráfico"><Pencil size={17} /></button>
             <button type="button" onClick={() => { if (window.confirm('Excluir o gráfico "' + chart.title + '"? Os lançamentos financeiros não serão afetados.')) setCharts((current) => current.filter((item) => item.id !== chart.id)); }} aria-label={'Excluir ' + chart.title} title="Excluir gráfico"><Trash2 size={17} /></button></> : null}
