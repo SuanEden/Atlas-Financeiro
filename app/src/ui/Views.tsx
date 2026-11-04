@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   Download,
   FolderOpen,
+  History,
   Plus,
   RefreshCcw,
   ShieldCheck,
@@ -26,7 +27,7 @@ import {
   type LocalFinancialState,
 } from '../domain';
 import { backupFilename, serializeLocalBackup } from '../backup';
-import { activeEventIds, accountKindLabels, availabilityLabels, eventAmountSign, eventLabel, eventStatusLabel, formatFinancialDate, financialMonthPeriod, isRecurringTemplate } from './financial-view';
+import { groupMovementHistory, activeEventIds, accountKindLabels, availabilityLabels, eventAmountSign, eventLabel, eventStatusLabel, formatFinancialDate, financialMonthPeriod, isRecurringTemplate } from './financial-view';
 
 type Page = 'dashboard' | 'movements' | 'accounts' | 'categories' | 'backup';
 
@@ -149,28 +150,29 @@ export function MovementsView({ state, onAdd, onEdit, onReverse, integration=fal
   const [selectedMonth, setSelectedMonth] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [query, setQuery] = useState('');
-  const events = [...state.events].sort((left, right) => right.competenceDate.localeCompare(left.competenceDate));
-  const filteredEvents = events.filter((event) => {
+  const groups = groupMovementHistory(state.events);
+  const filteredGroups = groups.filter(({ current: event, history, cancelled }) => {
     if (selectedMonth !== 'all' && event.competenceDate.slice(0, 7) !== selectedMonth) return false;
-    const category = state.categories.find((item) => item.id === event.categoryId);
+    const category = state.categories.find(item => item.id === event.categoryId);
     const label = eventStatusLabel(event, category);
-    if (statusFilter === 'realized' && event.status !== 'confirmed') return false;
-    if (statusFilter === 'pending' && label !== 'Pendente') return false;
-    if (statusFilter === 'planned' && label !== 'Previsto') return false;
-    if (statusFilter === 'recurring' && !isRecurringTemplate(event)) return false;
-    if (statusFilter === 'cancelled' && event.status !== 'cancelled') return false;
-    if (statusFilter === 'superseded' && activeIds.has(event.id)) return false;
+    if (statusFilter === 'realized' && (event.status !== 'confirmed' || cancelled)) return false;
+    if (statusFilter === 'pending' && (label !== 'Pendente' || cancelled)) return false;
+    if (statusFilter === 'planned' && (label !== 'Previsto' || cancelled)) return false;
+    if (statusFilter === 'recurring' && (!isRecurringTemplate(event) || cancelled)) return false;
+    if (statusFilter === 'cancelled' && !cancelled) return false;
+    if (statusFilter === 'superseded' && history.length === 0) return false;
     if (query.trim()) {
-      const account = state.accounts.find((item) => item.id === event.accountId)?.name ?? '';
+      const account = state.accounts.find(item => item.id === event.accountId)?.name ?? '';
       const categoryName = category?.name ?? '';
-      const searchable = `${event.description} ${account} ${categoryName}`.toLocaleLowerCase('pt-BR');
+      const searchable = [event.description, account, categoryName,
+        ...history.map(item => item.description)].join(' ').toLocaleLowerCase('pt-BR');
       if (!searchable.includes(query.trim().toLocaleLowerCase('pt-BR'))) return false;
     }
     return true;
   });
   return (
     <div className="page-content">
-      <PageHeading title="Movimentações" subtitle="Histórico completo, incluindo correções e estornos." action={<button className="button button--primary" onClick={onAdd} disabled={state.accounts.length === 0}><Plus size={18} />Novo lançamento</button>} />
+      <PageHeading title="Movimentações" subtitle="Lançamentos atuais, com correções e estornos preservados dentro de cada histórico." action={<button className="button button--primary" onClick={onAdd} disabled={state.accounts.length === 0}><Plus size={18} />Novo lançamento</button>} />
       <div className="local-status"><span><ShieldCheck size={17} />{state.outbox.length} {state.outbox.length === 1 ? 'operação local pendente' : 'operações locais pendentes'}</span><small>{integration?'Confira o envio e eventuais conflitos no painel de sincronização.':'Sincronização remota ainda não disponível.'}</small></div>
       <div className="movement-filters">
         <label>Período <input aria-label="Filtrar movimentações por mês" type="month" value={selectedMonth === 'all' ? '' : selectedMonth} onChange={(event) => setSelectedMonth(event.target.value || 'all')} /></label>
@@ -178,11 +180,22 @@ export function MovementsView({ state, onAdd, onEdit, onReverse, integration=fal
         <label className="movement-search">Buscar<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Descrição, conta ou categoria" /></label>
         {selectedMonth !== 'all' ? <button className="text-button" onClick={() => setSelectedMonth('all')}>Todos os meses</button> : null}
       </div>
-      {events.length === 0 ? <EmptyPanel icon={<ArrowLeftRight />} title="Ainda não há movimentações" description="Crie uma conta e registre sua primeira receita, despesa ou transferência." action="Novo lançamento" onAction={onAdd} disabled={state.accounts.length === 0} /> : filteredEvents.length === 0 ? <CompactEmpty text="Nenhuma movimentação corresponde aos filtros selecionados." /> : (
-        <div className="history-list">{filteredEvents.map((event) => {
-          const active = activeIds.has(event.id);
-          const editable = active && event.status !== 'cancelled' && event.kind !== 'adjustment' && event.reversesEventId === undefined;
-          return <article className={`history-row${active ? '' : ' history-row--superseded'}`} key={event.id}><MovementRow event={event} state={state} detailed /><div className="history-actions">{editable ? <><button className="text-button" onClick={() => onEdit(event)}>Editar</button><button className="text-button text-button--danger" onClick={() => onReverse(event)}>Estornar</button></> : <span>{event.reversesEventId !== undefined ? 'Contrapartida preservada' : event.status === 'cancelled' ? 'Cancelamento preservado' : event.replacesEventId !== undefined ? 'Versão atual' : 'Histórico preservado'}</span>}</div></article>;
+      {groups.length === 0 ? <EmptyPanel icon={<ArrowLeftRight />} title="Ainda não há movimentações" description="Crie uma conta e registre sua primeira receita, despesa ou transferência." action="Novo lançamento" onAction={onAdd} disabled={state.accounts.length === 0} /> : filteredGroups.length === 0 ? <CompactEmpty text="Nenhuma movimentação corresponde aos filtros selecionados." /> : (
+        <div className="history-list">{filteredGroups.map(({ current: event, history, cancelled }) => {
+          const editable = !cancelled && activeIds.has(event.id) && event.status !== 'cancelled' && event.kind !== 'adjustment' && event.reversesEventId === undefined;
+          return <article className={`history-row${cancelled ? ' history-row--superseded' : ''}`} key={event.id}>
+            <MovementRow event={event} state={state} detailed />
+            <div className="history-actions">
+              {editable ? <><button className="text-button" onClick={() => onEdit(event)}>Editar</button><button className="text-button text-button--danger" onClick={() => onReverse(event)}>Estornar</button></> : <span>{cancelled ? 'Estornado ou cancelado · histórico preservado' : 'Lançamento preservado'}</span>}
+            </div>
+            {history.length > 0 ? <details className="movement-history">
+              <summary><History size={16} aria-hidden="true" /> Histórico de alterações ({history.length})</summary>
+              <ol>{history.map(previous => <li key={previous.id}>
+                <span><strong>{previous.reversesEventId !== undefined ? 'Estorno técnico' : previous.status === 'cancelled' ? 'Cancelamento' : 'Versão anterior'}</strong> · {previous.description}</span>
+                <span>{eventAmountSign(previous)}{formatBRL(previous.amountCents)} · {formatFinancialDate(previous.competenceDate)}</span>
+              </li>)}</ol>
+            </details> : null}
+          </article>;
         })}</div>
       )}
     </div>
