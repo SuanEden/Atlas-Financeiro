@@ -137,8 +137,17 @@ test('perda do IndexedDB: arquivo I3 recupera pendência em perfil vazio e sincr
     const state=await target.evaluate(async()=>{const path='/tests/auth-browser-entry.tsx';return (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).inspect();});
     expect(state.pending).toEqual(original.pending);expect(state.meta).toEqual(original.meta);
     await expandCloudControls(target);
-    await target.getByRole('button',{name:'Sincronizar agora'}).click();
-    await expect(target.getByRole('region',{name:'Sincronização',exact:true})).toContainText('Alterações confirmadas');
+    // Foreground synchronization may finish before the user can click. The action
+    // is deliberately hidden once there is nothing left to send.
+    const synchronize = target.getByRole('button', {name:'Sincronizar agora'});
+    if (await synchronize.isVisible()) {
+      try { await synchronize.click({timeout:2000}); } catch { /* The automatic sync may have hidden it. */ }
+    }
+    await expect.poll(async () => (await target.evaluate(async () => {
+      const path = '/tests/auth-browser-entry.tsx';
+      return (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).inspect();
+    })).pending.length).toBe(0);
+    await expect(synchronize).toHaveCount(0);
     const after=await target.evaluate(async()=>{const path='/tests/auth-browser-entry.tsx';return (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).inspect();});
     expect(after.pending).toEqual([]);expect(after.confirmed!.accounts).toHaveLength(1);
     expect(after.meta!.cursor).toBe('2');expect(errors).toEqual([]);
