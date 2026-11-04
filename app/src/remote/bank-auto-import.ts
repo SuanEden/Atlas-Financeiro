@@ -1,4 +1,4 @@
-import { prepareUniqueBankImportCommand, previewPluggyImport, type PluggyTransaction, type CommandContext, type LocalCommand } from '../application';
+import { prepareUniqueBankImportCommand, previewPluggyImport, type PluggyTransaction, type BankImportCandidate, type CommandContext, type LocalCommand } from '../application';
 import type { LocalFinancialState } from '../domain';
 
 /** One approved bank-account-to-Atlas-account mapping. No financial writes occur without it. */
@@ -15,6 +15,7 @@ export interface ImportSource {
   readState:()=>Promise<LocalFinancialState>;
   execute:(command:LocalCommand)=>Promise<void>;
   context:CommandContext;
+  onProgress?:(pages:number,received:number)=>void;
 }
 /**
  * Recover a time boundary only for an account whose original local operation
@@ -58,43 +59,73 @@ function occurredAfterBaseline(row:PluggyTransaction,link:BankLink):boolean {
   return row.date.slice(0,10)>link.activatedOn;
 }
 
-export async function syncLinkedBankAccount(link:BankLink,source:ImportSource):Promise<number>{
+
+/** The bank continuation is never used as a URL or forwarded verbatim. */
+export function parseBankContinuation(next:unknown, accountId:string):string|null {
+  if(next===null||next===undefined)return null;
+  if(typeof next!=='string'||next.length===0||next.length>8192)
+    throw new Error('Não foi possível interpretar a próxima página do banco (formato de paginação).');
+  let query:string;
+  if(next.startsWith('?'))query=next.slice(1);
+  else if(next.startsWith('https://')){
+    let url:URL;
+    try{url=new URL(next);}catch{throw new Error('Endereço da próxima página inválido.');}
+    if(url.origin!=='https://api.pluggy.ai'||url.pathname!=='/v2/transactions'||url.hash||url.username||url.password)
+      throw new Error('Endereço de paginação não pertence à API autorizada.');
+    query=url.search.slice(1);
+  }else if(next.startsWith('/v2/transactions?'))query=next.slice('/v2/transactions?'.length);
+  else if(next.startsWith('after=')||next.startsWith('accountId='))query=next;
+  else throw new Error('Formato da próxima página não reconhecido.');
+  const params=new URLSearchParams(query);
+  const cursors=params.getAll('after');
+  const ids=params.getAll('accountId');
+  if(ids.length>1||ids.some(id=>id!==accountId))throw new Error('A paginação retornou uma conta bancária diferente.');
+  if(cursors.length!==1||!cursors[0]||cursors[0].length>2048||/[\x00-\x1f]/.test(cursors[0]))
+    throw new Error('O banco não forneceu um cursor válido para continuar.');
+  // Untrusted parameters (including dateFrom, pageSize, other filters) are
+  // discarded; the gateway always reapplies the approved account and period.
+  return cursors[0];
+}
+export interface BankImportPreview {
+  candidates:BankImportCandidate[];
+  pages:number;
+  received:number;
+  eligible:number;
+  pendingOrIgnored:number;
+}
+export async function previewLinkedBankAccount(link:BankLink,source:ImportSource):Promise<BankImportPreview>{
   if(!/^\d{4}-\d{2}-\d{2}$/.test(link.activatedOn))throw new Error('Data da autorização inválida.');
   if(link.activatedAt && !Number.isFinite(Date.parse(link.activatedAt)))throw new Error('Data do saldo inicial inválida.');
   const effectiveLink=withRecoveredOpeningBaseline(link,await source.readState());
   const collected:PluggyTransaction[]=[];
   let after:string|undefined;
-  let complete=false;
   const seen=new Set<string>();
-  for(let i=0;i<10;i++){
-    const payload=await source.readPage(link.pluggyAccountId,after,link.activatedOn);
-    if(!payload||typeof payload!=='object')throw new Error('Resposta bancária inválida.');
+  let received=0;
+  for(let i=0;i<30;i++){
+    let payload:unknown;
+    try{payload=await source.readPage(link.pluggyAccountId,after,link.activatedOn);}
+    catch(error){throw new Error('Falha na consulta da página '+(i+1)+': '+(error instanceof Error?error.message:'serviço indisponível'));}
+    if(!payload||typeof payload!=='object')throw new Error('A página '+(i+1)+' retornou uma resposta inválida.');
     const page=payload as {results?:unknown;next?:unknown};
-    if(!Array.isArray(page.results))throw new Error('Extrato bancário sem lista válida.');
-    const results=page.results as PluggyTransaction[];
-    if(results.some(t=>!t||typeof t!=='object'||t.accountId!==link.pluggyAccountId))throw new Error('Transação vinculada à conta incorreta.');
-    collected.push(...results.filter(t=>occurredAfterBaseline(t,effectiveLink)));
-    if(page.next==null){complete=true;break;}
-    if(typeof page.next!=='string'||!page.next.startsWith('?'))throw new Error('Cursor bancário inválido.');
-    const next=new URLSearchParams(page.next.slice(1));
-    const cursor=next.get('after');
-    // Pluggy's cursor is opaque; its next query may omit filters already
-    // supplied in the original request. Our gateway restores accountId/dateFrom.
-    const accountIds=next.getAll('accountId');
-    // The Pluggy next query can include additional filters. They are NOT
-    // forwarded: the authenticated gateway reapplies the approved account and
-    // original dateFrom and accepts only this opaque after value.
-    if(next.getAll('after').length!==1||!cursor||cursor.length>2048||
-       /[\x00-\x1f]/.test(cursor))
-      throw new Error('Paginação bancária inconsistente (cursor ausente ou inválido).');
-    if(accountIds.length>1||accountIds.some(id=>id!==link.pluggyAccountId))
-      throw new Error('Paginação bancária inconsistente (conta divergente).');
-    if(seen.has(cursor))
-      throw new Error('Paginação bancária inconsistente (cursor repetido).');
+    if(!Array.isArray(page.results))throw new Error('A página '+(i+1)+' não contém uma lista válida.');
+    const rows=page.results as PluggyTransaction[];
+    if(rows.some(row=>!row||typeof row!=='object'||row.accountId!==link.pluggyAccountId))
+      throw new Error('A página '+(i+1)+' contém uma transação de conta divergente.');
+    received+=rows.length;
+    collected.push(...rows.filter(row=>occurredAfterBaseline(row,effectiveLink)));
+    source.onProgress?.(i+1,received);
+    const cursor=parseBankContinuation(page.next,link.pluggyAccountId);
+    if(cursor===null){
+      const candidates=previewPluggyImport(link.itemId,collected);
+      return {candidates,pages:i+1,received,eligible:collected.length,pendingOrIgnored:received-collected.length};
+    }
+    if(seen.has(cursor))throw new Error('O banco repetiu o cursor na página '+(i+1)+'. Nenhum lançamento foi gravado.');
     seen.add(cursor);after=cursor;
   }
-  if(!complete)throw new Error('Extrato excede limite de consulta segura; nenhuma importação realizada.');
-  const candidates=previewPluggyImport(link.itemId,collected);
+  throw new Error('Extrato muito extenso (mais de 30 páginas). Escolha um período mais recente; nenhum lançamento foi gravado.');
+}
+/** Run only after a complete validated preview and explicit user approval. */
+export async function commitBankImportPreview(link:BankLink,candidates:BankImportCandidate[],source:ImportSource):Promise<number>{
   let count=0;
   for(const candidate of candidates){
     const current=await source.readState();
@@ -102,8 +133,13 @@ export async function syncLinkedBankAccount(link:BankLink,source:ImportSource):P
       candidate,{pluggyAccountId:link.pluggyAccountId,atlasAccountId:link.atlasAccountId},current,source.context,
     );
     if(!prepared)continue;
-    await source.execute(prepared);
+    try{await source.execute(prepared);}
+    catch(error){throw new Error('Importação interrompida após '+count+' lançamento(s). Os itens anteriores foram preservados, e a repetição é protegida por ID bancário. '+(error instanceof Error?error.message:''));}
     count++;
   }
   return count;
+}
+export async function syncLinkedBankAccount(link:BankLink,source:ImportSource):Promise<number>{
+  const preview=await previewLinkedBankAccount(link,source);
+  return commitBankImportPreview(link,preview.candidates,source);
 }
