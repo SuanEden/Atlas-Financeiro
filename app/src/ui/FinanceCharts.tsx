@@ -294,22 +294,94 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
   const [gridWidth, setGridWidth] = useState(0);
   const [sizeMenu, setSizeMenu] = useState<string | null>(null);
   const resizeRef = useRef<{ id: string; startX: number; startY: number; columns: number; height: number; columnWidth: number; desktop: boolean } | null>(null);
+  const moveRef = useRef<{ id:string; startX:number; startY:number; x:number; y:number } | null>(null);
+  const [dragPreview,setDragPreview] = useState<{id:string;x:number;y:number}|null>(null);
+  const [desktop,setDesktop] = useState(()=>typeof window!=='undefined'&&window.innerWidth>780);
   // A narrow dashboard must not put editable controls and legends into 200px cards.
   // Width overrides remain stored unchanged; the visible width is clamped to fit.
   const minimumColumns = gridWidth > 0 ? Math.min(12, Math.max(3, Math.ceil(12 * (330 + 16) / (gridWidth + 16)))) : 6;
   useEffect(() => {
     const grid = gridRef.current;
     if (!grid) return;
-    const update = () => setGridWidth(grid.getBoundingClientRect().width);
+    const update = () => { setGridWidth(grid.getBoundingClientRect().width); setDesktop(window.innerWidth>780); };
+    window.addEventListener('resize',update);
     update();
     const observer = new ResizeObserver(update);
     observer.observe(grid);
-    return () => observer.disconnect();
+    return () => { observer.disconnect(); window.removeEventListener('resize',update); };
   }, [charts.length === 0]);
   useEffect(() => {
     try { localStorage.setItem(storageKey, JSON.stringify({ version: 1, charts })); setStorageError(false); }
     catch { setStorageError(true); }
   }, [storageKey, charts]);
+  const freeBoard=desktop&&gridWidth>0&&charts.length>0&&charts.every(chart=>chart.gridX!==undefined&&chart.gridY!==undefined);
+  const rectangles=(list:readonly ChartConfig[]):BoardRect[]=>list.filter(chart=>chart.gridX!==undefined&&chart.gridY!==undefined).map(chart=>({
+    id:chart.id,x:Math.min(60-columnsFor(chart,minimumColumns),chart.gridX!),y:chart.gridY!,
+    w:columnsFor(chart,minimumColumns),h:rowsFor(chart),
+  }));
+  const startOrganizing=()=>{
+    if(organizing){setOrganizing(false);setDragPreview(null);setDragId(null);setSizeMenu(null);return;}
+    if(!freeBoard&&desktop&&gridRef.current){
+      const board=gridRef.current;
+      const root=board.getBoundingClientRect();
+      const unit=root.width/BOARD_COLUMNS;
+      const measured:BoardRect[]=[];
+      const next=charts.map(chart=>{
+        const card=[...board.querySelectorAll<HTMLElement>('.chart-studio-card')].find(element=>element.dataset.chartId===chart.id);
+        if(!card)return chart;
+        const rect=card.getBoundingClientRect();
+        const width=columnsFor(chart,minimumColumns);
+        const heightPx=Math.min(800,Math.max(250,Math.ceil(rect.height/BOARD_ROW)*BOARD_ROW));
+        const height=Math.ceil(heightPx/BOARD_ROW);
+        const spot=findFreeChartPosition(measured,chart.id,Math.round((rect.left-root.left)/unit),Math.round((rect.top-root.top)/BOARD_ROW),width,height);
+        measured.push({id:chart.id,x:spot.x,y:spot.y,w:width,h:height});
+        return {...chart,gridX:spot.x,gridY:spot.y,heightPx};
+      });
+      setCharts(next);
+    }
+    setOrganizing(true);
+  };
+  const moveStart=(event:ReactPointerEvent<HTMLButtonElement>,chart:ChartConfig)=>{
+    if(!organizing||!freeBoard||event.button!==0)return;
+    moveRef.current={id:chart.id,startX:event.clientX,startY:event.clientY,x:chart.gridX??0,y:chart.gridY??0};
+    setDragId(chart.id);setDragPreview({id:chart.id,x:chart.gridX??0,y:chart.gridY??0});
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  };
+  const movePointer=(event:ReactPointerEvent<HTMLButtonElement>)=>{
+    const origin=moveRef.current;
+    if(!origin||!freeBoard)return;
+    const chart=charts.find(item=>item.id===origin.id);
+    if(!chart)return;
+    const desiredX=origin.x+Math.round((event.clientX-origin.startX)/(gridWidth/BOARD_COLUMNS));
+    const desiredY=origin.y+Math.round((event.clientY-origin.startY)/BOARD_ROW);
+    const spot=findFreeChartPosition(rectangles(charts),origin.id,desiredX,desiredY,columnsFor(chart,minimumColumns),rowsFor(chart));
+    setDragPreview({id:origin.id,...spot});
+  };
+  const moveEnd=()=>{
+    const preview=dragPreview,origin=moveRef.current;
+    if(origin&&preview&&origin.id===preview.id)
+      setCharts(current=>current.map(chart=>chart.id===origin.id?{...chart,gridX:preview.x,gridY:preview.y}:chart));
+    moveRef.current=null;setDragPreview(null);setDragId(null);
+  };
+  const shiftChart=(id:string,dx:number,dy:number)=>{
+    setCharts(current=>{
+      const chart=current.find(c=>c.id===id);
+      if(!chart||chart.gridX===undefined||chart.gridY===undefined)return current;
+      const spot=findFreeChartPosition(rectangles(current),id,chart.gridX+dx,chart.gridY+dy,columnsFor(chart,minimumColumns),rowsFor(chart));
+      return current.map(c=>c.id===id?{...c,gridX:spot.x,gridY:spot.y}:c);
+    });
+  };
+  const resizeWithPosition=(id:string,widthColumns:number,heightPx:number)=>{
+    setCharts(current=>{
+      const chart=current.find(c=>c.id===id);
+      if(!chart)return current;
+      const resized={...chart,widthColumns,heightPx};
+      if(!freeBoard||chart.gridX===undefined||chart.gridY===undefined)return current.map(c=>c.id===id?resized:c);
+      const spot=findFreeChartPosition(rectangles(current),id,chart.gridX,chart.gridY,columnsFor(resized,minimumColumns),rowsFor(resized));
+      return current.map(c=>c.id===id?{...resized,gridX:spot.x,gridY:spot.y}:c);
+    });
+  };
   const move = (id: string, to: number) => setCharts((current) => {
     const from = current.findIndex((chart) => chart.id === id);
     if (from < 0 || to < 0 || to >= current.length || from === to) return current;
@@ -317,14 +389,14 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
     next.splice(to, 0, next.splice(from, 1)[0]!);
     return next;
   });
-  const resizeChart = (id: string, widthColumns: number, heightPx: number) => setCharts((current) => current.map((chart) => chart.id === id ? { ...chart, widthColumns, heightPx } : chart));
+  const resizeChart = resizeWithPosition;
   const resizeStart = (event: ReactPointerEvent<HTMLButtonElement>, chart: ChartConfig) => {
     if (!organizing || event.button !== 0) return;
     const grid = event.currentTarget.closest('.chart-studio-grid');
     const card = event.currentTarget.closest('.chart-studio-card');
     if (!(grid instanceof HTMLElement) || !(card instanceof HTMLElement)) return;
     const desktop = window.innerWidth > 760;
-    const gap = Number.parseFloat(getComputedStyle(grid).columnGap) || 16;
+    const gap = freeBoard?0:(Number.parseFloat(getComputedStyle(grid).columnGap) || 16);
     const columnWidth = (grid.clientWidth + gap) / 12;
     setResizingId(chart.id);
     resizeRef.current = {
@@ -340,13 +412,19 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
     const origin = resizeRef.current;
     if (!origin) return;
     const widthColumns = origin.desktop ? Math.max(minimumColumns, Math.min(12, Math.round(origin.columns + (event.clientX - origin.startX) / origin.columnWidth))) : origin.columns;
-    const heightPx = Math.max(250, Math.min(800, Math.round((origin.height + event.clientY - origin.startY) / 20) * 20));
+    const heightPx = Math.max(250, Math.min(800, Math.round((origin.height + event.clientY - origin.startY) / BOARD_ROW) * BOARD_ROW));
     resizeChart(origin.id, widthColumns, heightPx);
   };
   const resizeEnd = () => { resizeRef.current = null; setResizingId(null); };
   const save = (chart: ChartConfig) => {
-    setCharts((current) => current.some((item) => item.id === chart.id)
-      ? current.map((item) => item.id === chart.id ? chart : item) : [...current, chart]);
+    setCharts((current) => {
+      if(current.some(item=>item.id===chart.id))return current.map(item=>item.id===chart.id?chart:item);
+      if(!freeBoard)return [...current,chart];
+      const maxBottom=Math.max(0,...rectangles(current).map(rect=>rect.y+rect.h));
+      const width=columnsFor(chart,minimumColumns);
+      const spot=findFreeChartPosition(rectangles(current),chart.id,0,maxBottom+5,width,rowsFor(chart));
+      return [...current,{...chart,gridX:spot.x,gridY:spot.y,heightPx:chart.heightPx??380}];
+    });
     setEditing(null);
   };
   const create = () => {
@@ -356,25 +434,28 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
   return <section className="finance-charts" aria-label="Gráficos financeiros">
     <div className="chart-studio-heading">
       <div><p className="section-kicker">Análise visual · seu painel</p><h2>Gráficos financeiros</h2><p>Escolha os dados, personalize os gráficos e organize o espaço do seu jeito.</p></div>
-      <div className="chart-studio-actions"><button type="button" className={'button button--secondary' + (organizing ? ' chart-organize-active' : '')} onClick={() => { setOrganizing((current) => !current); setSizeMenu(null); setDragId(null); }} aria-pressed={organizing}><GripVertical size={17} />{organizing ? 'Concluir' : 'Organizar'}</button><button type="button" className="button button--primary" onClick={create} disabled={charts.length >= 20}><Plus size={17} />Novo gráfico</button></div>
+      <div className="chart-studio-actions"><button type="button" className={'button button--secondary' + (organizing ? ' chart-organize-active' : '')} onClick={startOrganizing} aria-pressed={organizing}><GripVertical size={17} />{organizing ? 'Concluir' : 'Organizar'}</button><button type="button" className="button button--primary" onClick={create} disabled={charts.length >= 20}><Plus size={17} />Novo gráfico</button></div>
     </div>
-    {organizing ? <p className="chart-organize-help" role="status">Arraste os gráficos para mudar a ordem; use Tamanho, editar ou excluir em cada cartão. Ao puxar um gráfico, as bolinhas mostram os espaços livres. Clique em Concluir para ocultar os controles.</p> : null}
+    {organizing ? <p className="chart-organize-help" role="status">Arraste pela alça para posicionar livremente. Cada bolinha representa uma unidade: você pode deixar cinco ou mais bolinhas entre os gráficos. Posições são salvas ao soltar. As setas movem cinco bolinhas.</p> : null}
     {storageError ? <p className="chart-storage-warning" role="alert">Não foi possível salvar o layout neste navegador. Verifique o armazenamento disponível.</p> : null}
-    {charts.length === 0 ? <div className="chart-empty-board"><BarChart3 size={34} /><h3>Seu painel está pronto para começar</h3><p>Crie seu primeiro gráfico para visualizar os dados que importam.</p><button className="button button--primary" onClick={create}><Plus size={17} />Criar gráfico</button><button className="text-button" onClick={() => setCharts(defaultCharts())}>Restaurar gráficos sugeridos</button></div> : <div ref={gridRef} className={'finance-chart-grid chart-studio-grid' + (dragId || resizingId ? ' chart-studio-grid--guides' : '')} aria-label="Área de organização dos gráficos" onDragOver={organizing ? (event) => event.preventDefault() : undefined} onDrop={organizing ? (event) => { event.preventDefault(); if (dragId) move(dragId, charts.length - 1); setDragId(null); } : undefined}>
+    {charts.length === 0 ? <div className="chart-empty-board"><BarChart3 size={34} /><h3>Seu painel está pronto para começar</h3><p>Crie seu primeiro gráfico para visualizar os dados que importam.</p><button className="button button--primary" onClick={create}><Plus size={17} />Criar gráfico</button><button className="text-button" onClick={() => setCharts(defaultCharts())}>Restaurar gráficos sugeridos</button></div> : <div ref={gridRef} className={'finance-chart-grid chart-studio-grid' + (freeBoard ? ' chart-studio-grid--free' : '') + (dragId || resizingId ? ' chart-studio-grid--guides' : '')} aria-label="Área de organização dos gráficos" onDragOver={organizing ? (event) => event.preventDefault() : undefined} onDrop={organizing ? (event) => { event.preventDefault(); if (dragId) move(dragId, charts.length - 1); setDragId(null); } : undefined}>
       {charts.map((chart, index) => {
         const rows = buildChartRows(state, month, chart);
         const requestedColumns = chart.widthColumns ?? ({compact:4,half:6,wide:12} as const)[chart.size];
         const visibleColumns = Math.max(minimumColumns, requestedColumns);
-        return <article key={chart.id} style={{ gridColumn: `span ${visibleColumns}`, ...(chart.heightPx ? { minHeight: chart.heightPx } : {}) }} className={'finance-chart-card chart-studio-card chart-studio-card--' + chart.size + (dragId === chart.id ? ' chart-studio-card--dragging' : '')} onDragOver={organizing ? (event) => event.preventDefault() : undefined} onDrop={organizing ? (event) => { event.preventDefault(); event.stopPropagation(); if (dragId) move(dragId, index); setDragId(null); } : undefined}>
+        const placed=freeBoard&&chart.gridX!==undefined&&chart.gridY!==undefined;
+        const x=dragPreview?.id===chart.id?dragPreview.x:chart.gridX??0;
+        const y=dragPreview?.id===chart.id?dragPreview.y:chart.gridY??0;
+        return <article key={chart.id} data-chart-id={chart.id} style={placed?{gridColumn:`${Math.min(BOARD_COLUMNS-columnsFor(chart,minimumColumns),x)+1} / span ${columnsFor(chart,minimumColumns)}`,gridRow:`${y+1} / span ${rowsFor(chart)}`,minHeight:chart.heightPx??380}:{gridColumn:`span ${visibleColumns}`,...(chart.heightPx?{minHeight:chart.heightPx}:{})} className={'finance-chart-card chart-studio-card chart-studio-card--' + chart.size + (dragId === chart.id ? ' chart-studio-card--dragging' : '')} onDragOver={!freeBoard&&organizing ? (event) => event.preventDefault() : undefined} onDrop={!freeBoard&&organizing ? (event) => { event.preventDefault(); event.stopPropagation(); if (dragId) move(dragId, index); setDragId(null); } : undefined}>
           <div className="chart-card-heading"><div className="chart-card-title"><h3>{chart.title}</h3><p>{chart.source === 'realized' ? 'Realizado' : 'Previsto'} · {chart.months === 1 ? '1 mês' : chart.months + ' meses'} · por {dimensionLabel[chart.dimension].toLocaleLowerCase('pt-BR')}</p></div><div className="chart-card-actions">
-            {organizing ? <><span className="chart-drag-handle" draggable onDragStart={(event) => { setDragId(chart.id); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', chart.id); }} onDragEnd={() => setDragId(null)} title="Arrastar gráfico" aria-label="Arrastar gráfico"><GripVertical size={18} /></span><button type="button" onClick={() => move(chart.id, index - 1)} disabled={index === 0} title="Mover para cima ou esquerda" aria-label={'Mover ' + chart.title + ' para antes'}><ArrowLeft size={17} /><ArrowUp className="chart-move-mobile" size={17} /></button><button type="button" onClick={() => move(chart.id, index + 1)} disabled={index === charts.length - 1} title="Mover para baixo ou direita" aria-label={'Mover ' + chart.title + ' para depois'}><ArrowRight size={17} /><ArrowDown className="chart-move-mobile" size={17} /></button></> : null}
+            {organizing ? <><button type="button" className="chart-drag-handle" draggable={!freeBoard} onPointerDown={(event)=>moveStart(event,chart)} onPointerMove={movePointer} onPointerUp={moveEnd} onPointerCancel={moveEnd} onDragStart={!freeBoard?(event)=>{setDragId(chart.id);event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',chart.id);}:undefined} onDragEnd={!freeBoard?()=>setDragId(null):undefined} title="Arrastar gráfico para qualquer posição livre" aria-label={'Posicionar '+chart.title}><GripVertical size={18}/></button><button type="button" onClick={()=>freeBoard?shiftChart(chart.id,-5,0):move(chart.id,index-1)} disabled={!freeBoard&&index===0} title="Mover cinco bolinhas para esquerda" aria-label={'Mover '+chart.title+' para antes'}><ArrowLeft size={17}/><ArrowUp className="chart-move-mobile" size={17}/></button><button type="button" onClick={()=>freeBoard?shiftChart(chart.id,5,0):move(chart.id,index+1)} disabled={!freeBoard&&index===charts.length-1} title="Mover cinco bolinhas para direita" aria-label={'Mover '+chart.title+' para depois'}><ArrowRight size={17}/><ArrowDown className="chart-move-mobile" size={17}/></button></> : null}
             {organizing ? <><button type="button" className="chart-size-toggle" onClick={() => setSizeMenu(sizeMenu === chart.id ? null : chart.id)} aria-label={'Tamanho de ' + chart.title} aria-expanded={sizeMenu === chart.id} title="Alterar tamanho"><Maximize2 size={16} /><span>Tamanho</span></button>
             <button type="button" onClick={() => setEditing(chart)} aria-label={'Editar ' + chart.title} title="Editar gráfico"><Pencil size={17} /></button>
             <button type="button" onClick={() => { if (window.confirm('Excluir o gráfico "' + chart.title + '"? Os lançamentos financeiros não serão afetados.')) setCharts((current) => current.filter((item) => item.id !== chart.id)); }} aria-label={'Excluir ' + chart.title} title="Excluir gráfico"><Trash2 size={17} /></button></> : null}
           </div></div>
           {organizing && sizeMenu === chart.id ? <div className="chart-size-panel" aria-label={'Ajustar tamanho de ' + chart.title}>
-            <div><strong>Largura</strong><div className="chart-size-options">{([['compact', 'P'], ['half', 'M'], ['wide', 'G']] as const).map(([size, label]) => <button key={size} type="button" className={(chart.widthColumns ?? ({compact:4,half:6,wide:12} as const)[chart.size]) === ({compact:4,half:6,wide:12} as const)[size] ? 'is-selected' : ''} onClick={() => setCharts((current) => current.map((item) => item.id === chart.id ? { ...item, size, widthColumns: ({compact:4,half:6,wide:12} as const)[size] } : item))} aria-label={'Largura ' + sizeLabel[size]}>{label}</button>)}</div></div>
-            <div><strong>Altura</strong><div className="chart-size-options">{([['Baixo', 280], ['Médio', 380], ['Alto', 540]] as const).map(([label, height]) => <button key={height} type="button" className={chart.heightPx === height ? 'is-selected' : ''} onClick={() => setCharts((current) => current.map((item) => item.id === chart.id ? { ...item, heightPx: height } : item))}>{label}</button>)}</div></div>
+            <div><strong>Largura</strong><div className="chart-size-options">{([['compact', 'P'], ['half', 'M'], ['wide', 'G']] as const).map(([size, label]) => <button key={size} type="button" className={(chart.widthColumns ?? ({compact:4,half:6,wide:12} as const)[chart.size]) === ({compact:4,half:6,wide:12} as const)[size] ? 'is-selected' : ''} onClick={() => resizeWithPosition(chart.id,({compact:4,half:6,wide:12} as const)[size],chart.heightPx??380)} aria-label={'Largura ' + sizeLabel[size]}>{label}</button>)}</div></div>
+            <div><strong>Altura</strong><div className="chart-size-options">{([['Baixo', 280], ['Médio', 380], ['Alto', 540]] as const).map(([label, height]) => <button key={height} type="button" className={chart.heightPx === height ? 'is-selected' : ''} onClick={() => resizeWithPosition(chart.id,chart.widthColumns??({compact:4,half:6,wide:12} as const)[chart.size],height)}>{label}</button>)}</div></div>
             {requestedColumns < minimumColumns ? <span className="chart-size-limit">A largura mínima é ajustada automaticamente para não cortar o gráfico.</span> : null}
             <button type="button" className="chart-size-close" onClick={() => setSizeMenu(null)} aria-label="Fechar opções de tamanho">Concluir</button>
           </div> : null}
@@ -383,7 +464,7 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
           {organizing ? <button type="button" className="chart-resize-handle" aria-label={'Arraste para redimensionar ' + chart.title} title="Arraste para ajustar largura e altura" onPointerDown={(event) => resizeStart(event, chart)} onPointerMove={resizeMove} onPointerUp={resizeEnd} onPointerCancel={resizeEnd}><Maximize2 size={16} /></button> : null}
         </article>;
       })}
-      {dragId || resizingId ? <div className="chart-guides-hint" role="status">{resizingId ? 'Bolinhas: espaço disponível para ampliar o gráfico' : 'Bolinhas: área livre para reposicionar o gráfico'}</div> : null}
+      {!freeBoard&&(dragId || resizingId) ? <div className="chart-guides-hint" role="status">{resizingId ? 'Bolinhas: espaço disponível para ampliar o gráfico' : 'Bolinhas: área livre para reposicionar o gráfico'}</div> : null}
     </div>}
     <div className="chart-studio-footer"><span>As configurações dos gráficos ficam salvas neste navegador, separadas dos lançamentos financeiros.</span>{charts.length > 0 ? <button className="text-button" type="button" onClick={() => { if (window.confirm('Restaurar os três gráficos sugeridos e substituir o layout atual?')) setCharts(defaultCharts()); }}><RotateCcw size={14} />Restaurar padrão</button> : null}</div>
     {editing ? <ChartEditor key={editing.id} initial={editing} state={state} month={month} onSave={save} onCancel={() => setEditing(null)} /> : null}
