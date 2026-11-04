@@ -73,7 +73,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .sidebar-footer strong { color: var(--ink); font-size: .75rem; }
 .sidebar-footer small { font-size: .72rem; }
 
-.workspace { min-height: 100svh; margin-left: 258px; }
+.workspace { position: relative; z-index: 0; isolation: isolate; min-height: 100svh; margin-left: 258px; }
 .topbar { display: flex; height: 72px; align-items: center; justify-content: flex-end; gap: 18px; border-bottom: 1px solid var(--line); padding: 0 clamp(24px, 4vw, 56px); }
 .mobile-brand { display: none; }
 .topbar-create { margin-right: auto; }
