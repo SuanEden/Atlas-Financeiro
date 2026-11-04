@@ -85,37 +85,20 @@ test('gráficos compactos se adaptam ao espaço sem quebrar títulos e legendas'
 });
 
 
-test('grade pontilhada aparece somente enquanto arrasta ou redimensiona', async ({ page }) => {
+test('a grade de bolinhas aparece no modo organizar e some ao concluir',async({page})=>{
+  await page.setViewportSize({width:1440,height:920});
   await page.goto('/');
-  const grid = page.locator('.chart-studio-grid');
-  await expect(page.getByRole('button', { name: 'Arraste para redimensionar Entradas e saídas realizadas' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Organizar', exact:true }).click();
-  const resize = page.getByRole('button', { name: 'Arraste para redimensionar Entradas e saídas realizadas' });
-  await expect(grid).not.toHaveClass(/chart-studio-grid--guides/);
-  const bounds = await resize.boundingBox();
-  expect(bounds).not.toBeNull();
-  await page.mouse.move(bounds!.x + bounds!.width / 2, bounds!.y + bounds!.height / 2);
-  await page.mouse.down();
-  await expect(grid).toHaveClass(/chart-studio-grid--guides/);
+  const grid=page.locator('.chart-studio-grid');
+  await expect(grid).not.toHaveClass(/chart-studio-grid--lattice/);
+  await page.getByRole('button',{name:'Organizar',exact:true}).click();
   await expect(grid).toHaveClass(/chart-studio-grid--free/);
-  await page.mouse.up();
-  await expect(grid).not.toHaveClass(/chart-studio-grid--guides/);
-  const handle = page.getByRole('button', { name: 'Posicionar Despesas pagas por categoria' });
-  const card = page.locator('.chart-studio-card').filter({ has: page.getByRole('heading', { name: 'Despesas pagas por categoria' }) });
-  const yBefore = await card.evaluate(element=>parseInt(getComputedStyle(element).gridRowStart));
-  const box = await handle.boundingBox();
-  expect(box).not.toBeNull();
-  await page.mouse.move(box!.x+box!.width/2, box!.y+box!.height/2);
-  await page.mouse.down();
-  await page.mouse.move(box!.x+box!.width/2, box!.y+box!.height/2+95, {steps:8});
-  await expect(grid).toHaveClass(/chart-studio-grid--guides/);
-  await page.mouse.up();
-  await expect(grid).not.toHaveClass(/chart-studio-grid--guides/);
-  const yAfter = await card.evaluate(element=>parseInt(getComputedStyle(element).gridRowStart));
-  expect(yAfter).toBeGreaterThan(yBefore);
+  await expect(grid).toHaveClass(/chart-studio-grid--lattice/);
+  await expect(page.getByRole('button',{name:'Posicionar Entradas e saídas realizadas'})).toBeVisible();
+  await page.getByRole('button',{name:'Concluir',exact:true}).click();
+  await expect(grid).not.toHaveClass(/chart-studio-grid--lattice/);
   await page.reload();
-  const persisted = page.locator('.chart-studio-card').filter({has:page.getByRole('heading',{name:'Despesas pagas por categoria'})});
-  await expect(persisted).toHaveCSS('grid-row-start',String(yAfter));
+  await expect(grid).toHaveClass(/chart-studio-grid--free/);
+  await expect(grid).not.toHaveClass(/chart-studio-grid--lattice/);
 });
 
 
