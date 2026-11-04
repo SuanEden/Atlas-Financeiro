@@ -252,6 +252,7 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
   const [editing, setEditing] = useState<ChartConfig | null>(null);
   const [organizing, setOrganizing] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [resizingId, setResizingId] = useState<string | null>(null);
   const [storageError, setStorageError] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
   const [gridWidth, setGridWidth] = useState(0);
@@ -289,6 +290,7 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
     const desktop = window.innerWidth > 760;
     const gap = Number.parseFloat(getComputedStyle(grid).columnGap) || 16;
     const columnWidth = (grid.clientWidth + gap) / 12;
+    setResizingId(chart.id);
     resizeRef.current = {
       id: chart.id, startX: event.clientX, startY: event.clientY,
       columns: Math.max(minimumColumns, chart.widthColumns ?? ({ compact: 4, half: 6, wide: 12 } as const)[chart.size]),
@@ -305,7 +307,7 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
     const heightPx = Math.max(250, Math.min(800, Math.round((origin.height + event.clientY - origin.startY) / 20) * 20));
     resizeChart(origin.id, widthColumns, heightPx);
   };
-  const resizeEnd = () => { resizeRef.current = null; };
+  const resizeEnd = () => { resizeRef.current = null; setResizingId(null); };
   const save = (chart: ChartConfig) => {
     setCharts((current) => current.some((item) => item.id === chart.id)
       ? current.map((item) => item.id === chart.id ? chart : item) : [...current, chart]);
@@ -320,14 +322,14 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
       <div><p className="section-kicker">Análise visual · seu painel</p><h2>Gráficos financeiros</h2><p>Escolha os dados, personalize os gráficos e organize o espaço do seu jeito.</p></div>
       <div className="chart-studio-actions"><button type="button" className={'button button--secondary' + (organizing ? ' chart-organize-active' : '')} onClick={() => setOrganizing(!organizing)} aria-pressed={organizing}><GripVertical size={17} />{organizing ? 'Concluir' : 'Organizar'}</button><button type="button" className="button button--primary" onClick={create} disabled={charts.length >= 20}><Plus size={17} />Novo gráfico</button></div>
     </div>
-    {organizing ? <p className="chart-organize-help" role="status">Arraste pela alça para mudar a ordem, ajuste a largura e a altura pelo canto inferior direito ou use o botão Tamanho de cada gráfico.</p> : null}
+    {organizing ? <p className="chart-organize-help" role="status">Arraste pela alça para mudar a ordem. Ao puxar um gráfico, as bolinhas mostram as áreas livres do painel; solte em outro cartão ou numa área livre para enviar ao final.</p> : null}
     {storageError ? <p className="chart-storage-warning" role="alert">Não foi possível salvar o layout neste navegador. Verifique o armazenamento disponível.</p> : null}
-    {charts.length === 0 ? <div className="chart-empty-board"><BarChart3 size={34} /><h3>Seu painel está pronto para começar</h3><p>Crie seu primeiro gráfico para visualizar os dados que importam.</p><button className="button button--primary" onClick={create}><Plus size={17} />Criar gráfico</button><button className="text-button" onClick={() => setCharts(defaultCharts())}>Restaurar gráficos sugeridos</button></div> : <div ref={gridRef} className="finance-chart-grid chart-studio-grid">
+    {charts.length === 0 ? <div className="chart-empty-board"><BarChart3 size={34} /><h3>Seu painel está pronto para começar</h3><p>Crie seu primeiro gráfico para visualizar os dados que importam.</p><button className="button button--primary" onClick={create}><Plus size={17} />Criar gráfico</button><button className="text-button" onClick={() => setCharts(defaultCharts())}>Restaurar gráficos sugeridos</button></div> : <div ref={gridRef} className={'finance-chart-grid chart-studio-grid' + (dragId || resizingId ? ' chart-studio-grid--guides' : '')} aria-label="Área de organização dos gráficos" onDragOver={organizing ? (event) => event.preventDefault() : undefined} onDrop={organizing ? (event) => { event.preventDefault(); if (dragId) move(dragId, charts.length - 1); setDragId(null); } : undefined}>
       {charts.map((chart, index) => {
         const rows = buildChartRows(state, month, chart);
         const requestedColumns = chart.widthColumns ?? ({compact:4,half:6,wide:12} as const)[chart.size];
         const visibleColumns = Math.max(minimumColumns, requestedColumns);
-        return <article key={chart.id} style={{ gridColumn: `span ${visibleColumns}`, ...(chart.heightPx ? { minHeight: chart.heightPx } : {}) }} className={'finance-chart-card chart-studio-card chart-studio-card--' + chart.size + (dragId === chart.id ? ' chart-studio-card--dragging' : '')} onDragOver={organizing ? (event) => event.preventDefault() : undefined} onDrop={organizing ? (event) => { event.preventDefault(); if (dragId) move(dragId, index); setDragId(null); } : undefined}>
+        return <article key={chart.id} style={{ gridColumn: `span ${visibleColumns}`, ...(chart.heightPx ? { minHeight: chart.heightPx } : {}) }} className={'finance-chart-card chart-studio-card chart-studio-card--' + chart.size + (dragId === chart.id ? ' chart-studio-card--dragging' : '')} onDragOver={organizing ? (event) => event.preventDefault() : undefined} onDrop={organizing ? (event) => { event.preventDefault(); event.stopPropagation(); if (dragId) move(dragId, index); setDragId(null); } : undefined}>
           <div className="chart-card-heading"><div className="chart-card-title"><h3>{chart.title}</h3><p>{chart.source === 'realized' ? 'Realizado' : 'Previsto'} · {chart.months === 1 ? '1 mês' : chart.months + ' meses'} · por {dimensionLabel[chart.dimension].toLocaleLowerCase('pt-BR')}</p></div><div className="chart-card-actions">
             {organizing ? <><span className="chart-drag-handle" draggable onDragStart={(event) => { setDragId(chart.id); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', chart.id); }} onDragEnd={() => setDragId(null)} title="Arrastar gráfico" aria-label="Arrastar gráfico"><GripVertical size={18} /></span><button type="button" onClick={() => move(chart.id, index - 1)} disabled={index === 0} title="Mover para cima ou esquerda" aria-label={'Mover ' + chart.title + ' para antes'}><ArrowLeft size={17} /><ArrowUp className="chart-move-mobile" size={17} /></button><button type="button" onClick={() => move(chart.id, index + 1)} disabled={index === charts.length - 1} title="Mover para baixo ou direita" aria-label={'Mover ' + chart.title + ' para depois'}><ArrowRight size={17} /><ArrowDown className="chart-move-mobile" size={17} /></button></> : null}
             <button type="button" className="chart-size-toggle" onClick={() => setSizeMenu(sizeMenu === chart.id ? null : chart.id)} aria-label={'Tamanho de ' + chart.title} aria-expanded={sizeMenu === chart.id} title="Alterar tamanho"><Maximize2 size={16} /><span>Tamanho</span></button>
@@ -345,6 +347,7 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
           <button type="button" className="chart-resize-handle" aria-label={'Arraste para redimensionar ' + chart.title} title="Arraste para ajustar largura e altura" onPointerDown={(event) => resizeStart(event, chart)} onPointerMove={resizeMove} onPointerUp={resizeEnd} onPointerCancel={resizeEnd}><Maximize2 size={16} /></button>
         </article>;
       })}
+      {dragId || resizingId ? <div className="chart-guides-hint" role="status">{resizingId ? 'Bolinhas: espaço disponível para ampliar o gráfico' : 'Bolinhas: área livre para reposicionar o gráfico'}</div> : null}
     </div>}
     <div className="chart-studio-footer"><span>As configurações dos gráficos ficam salvas neste navegador, separadas dos lançamentos financeiros.</span>{charts.length > 0 ? <button className="text-button" type="button" onClick={() => { if (window.confirm('Restaurar os três gráficos sugeridos e substituir o layout atual?')) setCharts(defaultCharts()); }}><RotateCcw size={14} />Restaurar padrão</button> : null}</div>
     {editing ? <ChartEditor key={editing.id} initial={editing} state={state} month={month} onSave={save} onCancel={() => setEditing(null)} /> : null}
