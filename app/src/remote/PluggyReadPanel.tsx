@@ -4,7 +4,7 @@ import type { CommandContext, LocalCommand } from '../application';
 import type { LocalFinancialState } from '../domain';
 import { classifyBankImportCandidates, commitBankImportPreview, previewLinkedBankAccount, type BankImportPreflight, type BankImportPreview, type BankLink } from './bank-auto-import';
 
-type BankReader = { readBank(resource:'item'|'accounts'|'transactions',id?:string,after?:string,dateFrom?:string):Promise<unknown> };
+type BankReader = { readBank(resource:'item'|'accounts'|'transactions',id?:string,after?:string,dateFrom?:string,continuation?:string):Promise<unknown> };
 export type CloudBankImport = {
   accounts: LocalFinancialState['accounts'];
   readState: () => Promise<LocalFinancialState>;
@@ -89,7 +89,7 @@ export function PluggyReadPanel({controller,importTarget}:{controller:BankReader
       if(fromDate>importTarget.context.today())throw new Error('A data inicial não pode estar no futuro.');
       const link={itemId:item.id,pluggyAccountId:selected,atlasAccountId:mapping,activatedOn:dayBefore(fromDate)};
       const preview=await previewLinkedBankAccount(link,{
-        readPage:(id,after,from)=>controller.readBank('transactions',id,after,from),
+        readPage:(id,after,from,continuation)=>controller.readBank('transactions',id,after,from,continuation),
         readState:importTarget.readState,execute:importTarget.execute,context:importTarget.context,
         onProgress:(pages,total)=>setProgress('Consultando página '+pages+' · '+total+' movimentações verificadas'),
       });
@@ -106,7 +106,7 @@ export function PluggyReadPanel({controller,importTarget}:{controller:BankReader
       if(!now.accounts.some(a=>a.id===review.link.atlasAccountId))
         throw new Error('A conta de destino foi removida; refaça a conferência.');
       const count=await commitBankImportPreview(review.link,review.preview.candidates,{
-        readPage:(id,after,from)=>controller.readBank('transactions',id,after,from),
+        readPage:(id,after,from,continuation)=>controller.readBank('transactions',id,after,from,continuation),
         readState:importTarget.readState,execute:importTarget.execute,context:importTarget.context,
       });
       setReview(null);setConfirmed(false);
