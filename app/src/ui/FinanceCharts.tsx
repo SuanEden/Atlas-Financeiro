@@ -24,6 +24,9 @@ export interface ChartConfig {
   /** Optional free-size overrides. Older saved chart layouts remain compatible. */
   widthColumns?: number;
   heightPx?: number;
+  /** Positions in the 60-column dotted board; omitted in old saved layouts. */
+  gridX?: number;
+  gridY?: number;
 }
 export interface ChartRow { label: string; income: bigint; expense: bigint }
 
@@ -68,6 +71,8 @@ export function normalizeChartConfig(raw: unknown): ChartConfig | null {
     size: value.size,
     ...(typeof value.widthColumns === 'number' && Number.isInteger(value.widthColumns) && value.widthColumns >= 3 && value.widthColumns <= 12 ? { widthColumns: value.widthColumns } : {}),
     ...(typeof value.heightPx === 'number' && Number.isInteger(value.heightPx) && value.heightPx >= 250 && value.heightPx <= 800 ? { heightPx: value.heightPx } : {}),
+    ...(typeof value.gridX === 'number' && Number.isInteger(value.gridX) && value.gridX >= 0 && value.gridX < 60 ? { gridX: value.gridX } : {}),
+    ...(typeof value.gridY === 'number' && Number.isInteger(value.gridY) && value.gridY >= 0 && value.gridY <= 2000 ? { gridY: value.gridY } : {}),
   };
 }
 
@@ -85,6 +90,37 @@ export function readChartLayout(ownerId: string): ChartConfig[] {
       return true;
     });
   } catch { return defaultCharts(); }
+}
+
+
+// A dotted, collision-aware dashboard. Five neighboring grid units are five dots.
+const BOARD_COLUMNS = 60;
+const BOARD_ROW = 19;
+const columnsFor = (chart: ChartConfig, minCols: number): number =>
+  Math.min(BOARD_COLUMNS, 5 * Math.max(minCols, chart.widthColumns ?? ({compact:4,half:6,wide:12} as const)[chart.size]));
+const rowsFor = (chart: ChartConfig): number => Math.ceil((chart.heightPx ?? 380) / BOARD_ROW);
+type BoardRect = { id:string; x:number; y:number; w:number; h:number };
+const overlaps = (a:BoardRect,b:BoardRect):boolean =>
+  a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+export function findFreeChartPosition(rects:readonly BoardRect[], id:string, desiredX:number, desiredY:number, width:number, height:number):{x:number;y:number}{
+  const maxX=Math.max(0,BOARD_COLUMNS-width);
+  const x=Math.max(0,Math.min(maxX,Math.round(desiredX)));
+  const y=Math.max(0,Math.min(2000,Math.round(desiredY)));
+  const occupied=rects.filter(rect=>rect.id!==id);
+  const free=(nx:number,ny:number)=>!occupied.some(rect=>overlaps({id,x:nx,y:ny,w:width,h:height},rect));
+  if(free(x,y))return {x,y};
+  // Prefer nearby free dots, without ever allowing an overlapping drop.
+  for(let radius=1;radius<=220;radius++){
+    for(let dx=-Math.min(radius,maxX);dx<=Math.min(radius,maxX);dx++){
+      const nx=x+dx;
+      if(nx<0||nx>maxX)continue;
+      const dy=radius-Math.abs(dx);
+      if(dy<0)continue;
+      if(y-dy>=0&&free(nx,y-dy))return {x:nx,y:y-dy};
+      if(y+dy<=2000&&free(nx,y+dy))return {x:nx,y:y+dy};
+    }
+  }
+  throw new Error('Não há espaço livre suficiente no painel.');
 }
 
 export function buildChartRows(state: LocalFinancialState, month: string, config: ChartConfig): ChartRow[] {
