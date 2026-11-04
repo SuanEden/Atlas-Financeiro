@@ -26,7 +26,7 @@ test('painel de gráficos permite criar, configurar, organizar, persistir e excl
   await page.getByRole('button', { name: 'Tamanho de Análise personalizada' }).click();
   const card = page.locator('.chart-studio-card').filter({ has: page.getByRole('heading', { name: 'Análise personalizada' }) });
   await card.getByRole('button', { name: 'Largura Largo' }).click();
-  await expect(card).toHaveCSS('grid-column-start', (page.viewportSize()?.width ?? 1280) <= 760 ? '1' : 'span 12');
+  await expect(card).toHaveCSS('grid-column-start', (page.viewportSize()?.width ?? 1280) <= 780 ? '1' : '1');
   await card.getByRole('button', { name: 'Alto' }).click();
   await expect(card).toHaveCSS('min-height', '540px');
   await card.getByRole('button', { name: 'Fechar opções de tamanho' }).click();
@@ -97,15 +97,56 @@ test('grade pontilhada aparece somente enquanto arrasta ou redimensiona', async 
   await page.mouse.move(bounds!.x + bounds!.width / 2, bounds!.y + bounds!.height / 2);
   await page.mouse.down();
   await expect(grid).toHaveClass(/chart-studio-grid--guides/);
-  await expect(page.getByText('Bolinhas: espaço disponível para ampliar o gráfico')).toBeVisible();
+  await expect(grid).toHaveClass(/chart-studio-grid--free/);
   await page.mouse.up();
   await expect(grid).not.toHaveClass(/chart-studio-grid--guides/);
-  await page.getByRole('button', { name: 'Concluir', exact:true }).click();
-  await page.getByRole('button', { name: 'Organizar', exact:true }).click();
-  const handle = page.locator('.chart-drag-handle').first();
-  await handle.evaluate(element => element.dispatchEvent(new DragEvent('dragstart', { bubbles:true, dataTransfer:new DataTransfer() })));
+  const handle = page.getByRole('button', { name: 'Posicionar Despesas pagas por categoria' });
+  const card = page.locator('.chart-studio-card').filter({ has: page.getByRole('heading', { name: 'Despesas pagas por categoria' }) });
+  const yBefore = await card.evaluate(element=>parseInt(getComputedStyle(element).gridRowStart));
+  const box = await handle.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x+box!.width/2, box!.y+box!.height/2);
+  await page.mouse.down();
+  await page.mouse.move(box!.x+box!.width/2, box!.y+box!.height/2+95, {steps:8});
   await expect(grid).toHaveClass(/chart-studio-grid--guides/);
-  await expect(page.getByText('Bolinhas: área livre para reposicionar o gráfico')).toBeVisible();
-  await handle.dispatchEvent('dragend');
+  await page.mouse.up();
   await expect(grid).not.toHaveClass(/chart-studio-grid--guides/);
+  const yAfter = await card.evaluate(element=>parseInt(getComputedStyle(element).gridRowStart));
+  expect(yAfter).toBeGreaterThan(yBefore);
+  await page.reload();
+  const persisted = page.locator('.chart-studio-card').filter({has:page.getByRole('heading',{name:'Despesas pagas por categoria'})});
+  await expect(persisted).toHaveCSS('grid-row-start',String(yAfter));
+});
+
+
+test('cada gráfico mantém espaços livres de cinco bolinhas após recarregar',async({page})=>{
+  await page.setViewportSize({width:1440,height:1000});
+  await page.goto('/');
+  await page.getByRole('button',{name:'Organizar',exact:true}).click();
+  const first=page.locator('.chart-studio-card').first();
+  const start=await first.evaluate(element=>({
+    x:parseInt(getComputedStyle(element).gridColumnStart),
+    span:parseInt(getComputedStyle(element).gridColumnEnd.replace('span ','')),
+  }));
+  expect(start.span).toBeGreaterThan(0);
+  const handle=page.getByRole('button',{name:'Posicionar Entradas e saídas realizadas'});
+  const box=await handle.boundingBox();
+  expect(box).not.toBeNull();
+  const unit=(await page.locator('.chart-studio-grid').boundingBox())!.width/60;
+  await page.mouse.move(box!.x+box!.width/2,box!.y+box!.height/2);
+  await page.mouse.down();
+  await page.mouse.move(box!.x+box!.width/2+5*unit,box!.y+box!.height/2+600,{steps:12});
+  await page.mouse.up();
+  const positioned=await first.evaluate(element=>({
+    x:parseInt(getComputedStyle(element).gridColumnStart),
+    y:parseInt(getComputedStyle(element).gridRowStart),
+  }));
+  expect(positioned.y).toBeGreaterThan(1);
+  await page.reload();
+  const restored=await page.locator('.chart-studio-card').first().evaluate(element=>({
+    x:parseInt(getComputedStyle(element).gridColumnStart),
+    y:parseInt(getComputedStyle(element).gridRowStart),
+  }));
+  expect(restored).toEqual(positioned);
+  await expect(page.locator('.chart-studio-grid')).toHaveClass(/chart-studio-grid--free/);
 });
