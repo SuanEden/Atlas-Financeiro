@@ -73,7 +73,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .sidebar-footer strong { color: var(--ink); font-size: .75rem; }
 .sidebar-footer small { font-size: .72rem; }
 
-.workspace { position: relative; z-index: 0; isolation: isolate; min-height: 100svh; margin-left: 258px; }
+.workspace { min-height: 100svh; margin-left: 258px; }
 .topbar { display: flex; height: 72px; align-items: center; justify-content: flex-end; gap: 18px; border-bottom: 1px solid var(--line); padding: 0 clamp(24px, 4vw, 56px); }
 .mobile-brand { display: none; }
 .topbar-create { margin-right: auto; }
@@ -281,7 +281,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .dialog-actions { margin-inline: -18px; margin-bottom: -20px; padding: 16px 18px; }
   .segment-control button { padding: 0 6px; font-size: .76rem; }
   .amount-field input { min-height: 72px; }
-  .bottom-nav { position: fixed; inset: auto 0 0; z-index: 1000; isolation: isolate; display: grid; height: calc(72px + env(safe-area-inset-bottom)); grid-template-columns: repeat(5, 1fr); align-items: center; border-top: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(14px); padding: 4px 8px max(4px, env(safe-area-inset-bottom)); }
+  .bottom-nav { position: fixed; inset: auto 0 0; z-index: 30; display: grid; height: calc(72px + env(safe-area-inset-bottom)); grid-template-columns: repeat(5, 1fr); align-items: center; border-top: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(14px); padding: 4px 8px max(4px, env(safe-area-inset-bottom)); }
   .bottom-nav--with-banks { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .bottom-nav > button { display: grid; min-width: 0; min-height: 56px; place-items: center; align-content: center; gap: 3px; border: 0; background: transparent; color: var(--muted); font-size: .64rem; }
   .bottom-nav > button.is-active { color: var(--accent-dark); font-weight: 700; }
@@ -455,6 +455,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .test-environment > .app-shell { min-height:calc(100dvh - 56px); }
 @media (max-width:760px) { .test-environment-banner { align-items:flex-start; flex-direction:column; gap:6px; } }
 
-/* Keep mobile controls above every workspace stacking context. */
-.mobile-nav-portal { position: fixed; inset: 0; z-index: 2147483000; min-height: 0; background: transparent; pointer-events: none; }
-.mobile-nav-portal > .bottom-nav { pointer-events: auto; }
+/* Keep the lateral tooltip inside the mobile viewport, avoiding horizontal overflow. */
+@media (max-width: 760px) {
+  .movement-history-toggle::after { left: auto; right: calc(100% + 7px); max-width: min(195px, 52vw); white-space: normal; }
+  .movement-name-line { width: fit-content; max-width: 100%; }
+}
