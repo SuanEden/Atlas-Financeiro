@@ -120,7 +120,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
         {loading ? <div className="loading-state"><span className="spinner" />Carregando dados locais…</div> : (
           <>
             {page === 'banks' ? <section aria-label="Bancos"><h1>Bancos conectados</h1>{bankPanel ?? <p>Entre com Google para consultar seus bancos.</p>}</section> : null}
-            {page === 'dashboard' ? <Dashboard integration={integration} state={state} today={today} onAddAccount={() => setModal({ type: 'account' })} onAddTransaction={openTransaction} onNavigate={(next)=>setPage(next)} /> : null}
+            {page === 'dashboard' ? <Dashboard integration={integration} state={state} today={today} userId={userId} onAddAccount={() => setModal({ type: 'account' })} onAddTransaction={openTransaction} onNavigate={(next)=>setPage(next)} /> : null}
             {page === 'movements' ? <MovementsView integration={integration} state={state} onAdd={openTransaction} onEdit={(event) => setModal({ type: 'transaction', initial: event })} onReverse={(event) => setModal({ type: 'reverse', event })} /> : null}
             {page === 'accounts' ? <AccountsView state={state} onAdd={() => setModal({ type: 'account' })} onReconcile={(account) => setModal({ type: 'reconcile', account })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
             {page === 'categories' || page === 'backup' ? <div className="mobile-settings-tabs"><button className={page === 'categories' ? 'is-active' : ''} onClick={() => setPage('categories')}>Categorias</button><button className={page === 'backup' ? 'is-active' : ''} onClick={() => setPage('backup')}>Backup</button></div> : null}
