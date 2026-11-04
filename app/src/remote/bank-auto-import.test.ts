@@ -71,16 +71,41 @@ describe('automatic Pluggy bank imports',()=>{
     expect(await syncLinkedBankAccount(link,source)).toBe(0);
     expect(state.events).toHaveLength(2);
   });
+  it('accepts extra Pluggy next-query filters but never forwards them to the gateway',async()=>{
+    const state:LocalFinancialState={
+      accounts:[{id:atlasAccountId,userId,name:'Nubank',kind:'digital',availability:'free'}],
+      events:[],categories:[],settlements:[],postings:[],outbox:[],
+    };
+    const pages:Array<{account:string;after?:string;dateFrom?:string}>=[];
+    const link={itemId,pluggyAccountId:accountId,atlasAccountId,activatedOn:'2026-11-01'};
+    const count=await syncLinkedBankAccount(link,{
+      readPage:async(account,after,dateFrom)=>{
+        pages.push({account,...(after?{after}:{}),...(dateFrom?{dateFrom}:{})});
+        return after
+          ? {results:[row('second','2026-11-03')],next:null}
+          : {results:[row('first','2026-11-02')],next:'?accountId='+accountId+'&dateFrom=2026-11-01T00%3A00%3A00.000Z&pageSize=500&after=c%2B2'};
+      },
+      readState:async()=>state,
+      execute:async(command)=>{
+        state.events.push(...command.aggregate.events||[]);
+        state.settlements.push(...command.aggregate.settlements||[]);
+        state.postings.push(...command.aggregate.postings||[]);
+      },
+      context:{userId,nextId:()=>crypto.randomUUID(),now:()=>new Date().toISOString(),today:()=> '2026-11-04'},
+    });
+    expect(count).toBe(2);
+    expect(pages).toEqual([
+      {account:accountId,dateFrom:'2026-11-01'},
+      {account:accountId,after:'c+2',dateFrom:'2026-11-01'},
+    ]);
+  });
   it('rejects mismatched or repeated cursor parameters before any financial write',async()=>{
     for(const next of [
       '?accountId=other&after=cursor',
       '?accountId='+accountId+'&accountId='+accountId+'&after=cursor',
       '?after=cursor&after=second',
-      '?dateFrom=2026-10-01&after=cursor',
-      '?after=cursor&resource=accounts',
-      '?after=cursor&foo=bar',
       '?accountId='+accountId,
-      '?after=cursor',
+      '?after=cursor', // Repeated by the fixture on the next page; must stop.
     ]){
       let calls=0;
       const source={
@@ -96,7 +121,7 @@ describe('automatic Pluggy bank imports',()=>{
         context:{userId,nextId:()=>crypto.randomUUID(),now:()=>new Date().toISOString(),today:()=> '2026-11-04'},
       };
       await expect(syncLinkedBankAccount({itemId,pluggyAccountId:accountId,atlasAccountId,activatedOn:'2026-11-02'},source))
-        .rejects.toThrow('Paginação bancária inconsistente.');
+        .rejects.toThrow('Paginação bancária inconsistente');
       expect(calls).toBe(0);
     }
   });
