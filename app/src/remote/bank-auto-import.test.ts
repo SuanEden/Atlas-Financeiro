@@ -8,7 +8,7 @@ const atlasAccountId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const accountId='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const itemId='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 const row=(id:string,date:string,status='POSTED')=>({
-  id,accountId,date,description:'PIX',amount:-19.99,currencyCode:'BRL',status,type:'DEBIT',
+  id,accountId,date,description:'PIX',amount:-19.99,currencyCode:'BRL',status,type:'DEBIT' as const,
 });
 describe('automatic Pluggy bank imports',()=>{
   it('retrieves all pages and never posts the same event twice',async()=>{
