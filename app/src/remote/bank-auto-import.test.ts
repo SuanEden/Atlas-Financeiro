@@ -41,6 +41,65 @@ describe('automatic Pluggy bank imports',()=>{
     expect(state.events).toHaveLength(2);
     expect(cursors).toEqual(['start','cursor','start','cursor']);
   });
+  it('follows a Pluggy cursor that omits the accountId and retains deduplication',async()=>{
+    const state:LocalFinancialState={
+      accounts:[{id:atlasAccountId,userId,name:'Nubank',kind:'digital',availability:'free'}],
+      events:[],categories:[],settlements:[],postings:[],outbox:[],
+    };
+    const requests:Array<{accountId:string;after?:string;dateFrom?:string}>=[];
+    const source={
+      readPage:async(id:string,after?:string,dateFrom?:string)=>{
+        requests.push({accountId:id,...(after?{after}:{}),...(dateFrom?{dateFrom}:{})});
+        return after
+          ? {results:[row('second','2026-11-04'),row('first','2026-11-03')],next:null}
+          : {results:[row('first','2026-11-03')],next:'?after=opaque%2Bvalue%3D%3D'};
+      },
+      readState:async()=>state,
+      execute:async(command:import('../application').LocalCommand)=>{
+        state.events.push(...command.aggregate.events||[]);
+        state.settlements.push(...command.aggregate.settlements||[]);
+        state.postings.push(...command.aggregate.postings||[]);
+      },
+      context:{userId,nextId:()=>crypto.randomUUID(),now:()=>new Date().toISOString(),today:()=> '2026-11-04'},
+    };
+    const link={itemId,pluggyAccountId:accountId,atlasAccountId,activatedOn:'2026-11-02'};
+    expect(await syncLinkedBankAccount(link,source)).toBe(2);
+    expect(requests).toEqual([
+      {accountId,dateFrom:'2026-11-02'},
+      {accountId,after:'opaque+value==',dateFrom:'2026-11-02'},
+    ]);
+    expect(await syncLinkedBankAccount(link,source)).toBe(0);
+    expect(state.events).toHaveLength(2);
+  });
+  it('rejects mismatched or repeated cursor parameters before any financial write',async()=>{
+    for(const next of [
+      '?accountId=other&after=cursor',
+      '?accountId='+accountId+'&accountId='+accountId+'&after=cursor',
+      '?after=cursor&after=second',
+      '?dateFrom=2026-10-01&after=cursor',
+      '?after=cursor&resource=accounts',
+      '?after=cursor&foo=bar',
+      '?accountId='+accountId,
+      '?after=cursor',
+    ]){
+      let calls=0;
+      const source={
+        readPage:async(_id:string,after?:string)=>({
+          results:[row('first','2026-11-03')],
+          next:after?next:(next==='?after=cursor'?next:next),
+        }),
+        readState:async():Promise<LocalFinancialState>=>({
+          accounts:[{id:atlasAccountId,userId,name:'Nubank',kind:'digital',availability:'free'}],
+          events:[],categories:[],settlements:[],postings:[],outbox:[],
+        }),
+        execute:async()=>{calls++;},
+        context:{userId,nextId:()=>crypto.randomUUID(),now:()=>new Date().toISOString(),today:()=> '2026-11-04'},
+      };
+      await expect(syncLinkedBankAccount({itemId,pluggyAccountId:accountId,atlasAccountId,activatedOn:'2026-11-02'},source))
+        .rejects.toThrow('Paginação bancária inconsistente.');
+      expect(calls).toBe(0);
+    }
+  });
   it('imports only same-day transactions after the confirmed bank snapshot',async()=>{
     const events: string[]=[];
     const context:CommandContext={
