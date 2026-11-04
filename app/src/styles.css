@@ -773,11 +773,20 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   outline-offset:0;
   background:var(--accent-soft);
 }
+.chart-studio-grid--free.chart-studio-grid--lattice::before,
 .chart-studio-grid--free.chart-studio-grid--guides::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:14px;
+  z-index:0;
+  pointer-events:none;
+  background-image:radial-gradient(circle, var(--accent) 1.6px,transparent 2.4px);
   background-size:calc(100% / 60) 19px;
   background-position:calc(100% / 120) 9.5px;
-  opacity:.52;
+  opacity:.4;
 }
+.chart-studio-grid--free.chart-studio-grid--guides::before { opacity:.72; }
 .chart-studio-grid--free > .chart-studio-card--dragging {
   z-index:5;
   box-shadow:0 10px 28px rgb(0 0 0 / 12%);
