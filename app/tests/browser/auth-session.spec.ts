@@ -146,7 +146,7 @@ test('perda do IndexedDB: arquivo I3 recupera pendência em perfil vazio e sincr
     await expect.poll(async () => (await target.evaluate(async () => {
       const path = '/tests/auth-browser-entry.tsx';
       return (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).inspect();
-    })).pending.length).toBe(0);
+    })).pending?.length ?? -1).toBe(0);
     await expect(synchronize).toHaveCount(0);
     const after=await target.evaluate(async()=>{const path='/tests/auth-browser-entry.tsx';return (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).inspect();});
     expect(after.pending).toEqual([]);expect(after.confirmed!.accounts).toHaveLength(1);
