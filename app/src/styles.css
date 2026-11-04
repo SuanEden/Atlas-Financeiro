@@ -654,3 +654,19 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 @media (prefers-reduced-motion:reduce) {
   .chart-studio-grid--guides .chart-studio-card { transition:none; }
 }
+
+
+/* Toolbar action for the chart editing mode: icon only, accessible label via aria-label. */
+.chart-studio-actions .chart-edit-mode-toggle {
+  flex:0 0 42px;
+  width:42px;
+  min-width:42px;
+  height:42px;
+  padding:0;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+@media (max-width:760px) {
+  .chart-studio-actions .chart-edit-mode-toggle { flex:0 0 42px; }
+}
