@@ -158,6 +158,37 @@ describe('automatic Pluggy bank imports',()=>{
     expect(parseBankContinuation('?accountId='+accountId+'&pageSize=500&after=a',accountId)).toBe('a');
     expect(parseBankContinuation('/v2/transactions?after=a',accountId)).toBe('a');
   });
+  it('counts already imported IDs in the correct and other accounts before import',async()=>{
+    const {classifyBankImportCandidates}=await import('./bank-auto-import');
+    const {bankImportEventId,previewPluggyImport}=await import('../application');
+    const otherAccountId='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+    const candidates=previewPluggyImport(itemId,[
+      row('already-target','2026-11-03'),
+      row('already-other','2026-11-03'),
+      row('new','2026-11-03'),
+    ]);
+    const savedInTarget=await bankImportEventId(userId,candidates[0]!.externalKey);
+    const savedInOther=await bankImportEventId(userId,candidates[1]!.externalKey);
+    const state:LocalFinancialState={
+      accounts:[
+        {id:atlasAccountId,userId,name:'Infinite',kind:'digital',availability:'free'},
+        {id:otherAccountId,userId,name:'Teste celular',kind:'digital',availability:'free'},
+      ],
+      events:[
+        {id:savedInTarget,userId,kind:'expense',source:'import',status:'confirmed',certainty:'confirmed',amountCents:1999n,accountId:atlasAccountId,description:'PIX',competenceDate:'2026-11-03'},
+        {id:savedInOther,userId,kind:'expense',source:'import',status:'confirmed',certainty:'confirmed',amountCents:1999n,accountId:otherAccountId,description:'PIX',competenceDate:'2026-11-03'},
+      ],
+      categories:[],settlements:[],postings:[],outbox:[],
+    };
+    expect(await classifyBankImportCandidates(candidates,state,atlasAccountId,userId)).toEqual({
+      newCount:1,existingInDestination:1,existingInOtherAccount:1,
+      otherAccountNames:['Teste celular'],
+    });
+    expect(await classifyBankImportCandidates(candidates,state,otherAccountId,userId)).toEqual({
+      newCount:1,existingInDestination:1,existingInOtherAccount:1,
+      otherAccountNames:['Infinite'],
+    });
+  });
   it('imports only same-day transactions after the confirmed bank snapshot',async()=>{
     const events: string[]=[];
     const context:CommandContext={
