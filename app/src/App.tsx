@@ -108,12 +108,13 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
       <aside className="sidebar">
         <Brand />
         <nav aria-label="Navegação principal">{[...desktopNavigation, ...(integration || bankPanel !== undefined ? [{page:'banks' as const,label:'Bancos',Icon:Landmark}] : [])].map(({ page: target, label, Icon }) => <button className={page === target ? 'is-active' : ''} key={target} onClick={() => setPage(target)}><Icon size={19} /><span>{label}</span></button>)}</nav>
-        <div className="sidebar-footer"><HardDrive size={17} /><span><strong>{testMode ? 'Modo de teste isolado' : integration ? 'Modo nuvem (com cópia local)' : 'Salvo neste dispositivo'}</strong><small title={integration ? 'As alterações são guardadas localmente antes da confirmação remota. O painel de sincronização informa conexão, falhas e conflitos.' : 'Operações guardadas somente neste navegador; este modo não sincroniza dados financeiros entre dispositivos.'}>{state.outbox.length} pendente{state.outbox.length === 1 ? '' : 's'} · {integration ? 'nuvem habilitada' : 'nuvem desligada'}</small></span></div>
+        {integration && sessionControls ? <div className="sidebar-cloud-controls">{sessionControls}</div>
+          : <div className="sidebar-footer"><HardDrive size={17} /><span><strong>{testMode ? 'Modo de teste isolado' : 'Salvo neste dispositivo'}</strong><small>{state.outbox.length} pendente{state.outbox.length === 1 ? '' : 's'} · nuvem desligada</small></span></div>}
       </aside>
 
       <section className="workspace">
         <header className="topbar"><div className="mobile-brand"><Brand /></div>{page === 'dashboard' ? null : <button className="button button--primary topbar-create" onClick={openTransaction} disabled={state.accounts.length === 0}><Plus size={17} />Novo lançamento</button>}<span className="device-status"><HardDrive size={16} />{testMode ? 'Modo de teste · local' : integration ? 'Modo nuvem · cópia local' : 'Salvo neste dispositivo'}</span><button className="icon-button" type="button" onClick={toggleTheme} aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'} aria-pressed={dark}>{dark ? <Sun size={19} /> : <Moon size={19} />}</button></header>
-        {page === 'banks' ? null : sessionControls}
+        {integration && sessionControls ? <details className="mobile-cloud-controls"><summary>Modo nuvem <span>· {state.outbox.length} pendente{state.outbox.length === 1 ? '' : 's'}</span></summary>{sessionControls}</details> : null}
         {error === undefined ? null : <div className="error-banner" role="alert"><span>{error}</span><button onClick={clearError}>Fechar</button></div>}
         <div className="sr-only" role="status">{notice}</div>
         {loading ? <div className="loading-state"><span className="spinner" />Carregando dados locais…</div> : (
