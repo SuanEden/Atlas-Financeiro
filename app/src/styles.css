@@ -745,3 +745,62 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .bank-import-review, .bank-import-form { padding:12px; }
   .bank-import-review > button { justify-self:stretch; }
 }
+
+
+/* Free chart positioning. A 60-column lattice lets cards sit five (or any
+   number of) dots apart; explicit grid positions also preserve empty gaps. */
+.finance-chart-grid.chart-studio-grid.chart-studio-grid--free {
+  display:grid;
+  grid-template-columns:repeat(60,minmax(0,1fr));
+  grid-auto-rows:19px;
+  align-items:stretch;
+  column-gap:0;
+  row-gap:0;
+  padding:0;
+  min-width:0;
+}
+.chart-studio-grid--free > .chart-studio-card {
+  align-self:stretch;
+  height:100%;
+  min-height:0 !important;
+  margin:0;
+  overflow:hidden;
+}
+.chart-studio-grid--free > .chart-studio-card .chart-visual-frame { min-height:0; }
+.chart-studio-grid--free.chart-studio-grid--guides {
+  padding:0;
+  margin:0;
+  outline-offset:0;
+  background:var(--accent-soft);
+}
+.chart-studio-grid--free.chart-studio-grid--guides::before {
+  background-size:calc(100% / 60) 19px;
+  background-position:calc(100% / 120) 9.5px;
+  opacity:.52;
+}
+.chart-studio-grid--free > .chart-studio-card--dragging {
+  z-index:5;
+  box-shadow:0 10px 28px rgb(0 0 0 / 12%);
+}
+.chart-studio-grid--free .chart-drag-handle {
+  cursor:grab;
+  border:0;
+  background:transparent;
+  padding:0;
+  border-radius:8px;
+}
+.chart-studio-grid--free .chart-drag-handle:active { cursor:grabbing; }
+@media(max-width:780px) {
+  .finance-chart-grid.chart-studio-grid.chart-studio-grid--free {
+    grid-template-columns:1fr;
+    grid-auto-rows:auto;
+    gap:16px;
+    padding:0;
+  }
+  .finance-chart-grid.chart-studio-grid.chart-studio-grid--free > .chart-studio-card {
+    grid-column:1 / -1 !important;
+    grid-row:auto !important;
+    height:auto;
+    min-height:250px !important;
+  }
+}
