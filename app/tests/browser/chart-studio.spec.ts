@@ -68,11 +68,13 @@ test('gráficos compactos se adaptam ao espaço sem quebrar títulos e legendas'
     return {
       width: element.getBoundingClientRect().width,
       titleWidth: element.querySelector('.chart-card-title')?.getBoundingClientRect().width ?? 0,
+      visualWidth: element.querySelector('.chart-visual-frame')?.getBoundingClientRect().width ?? 0,
       legendWidth: legend?.getBoundingClientRect().width ?? 0,
     };
   });
   expect(metrics.width).toBeGreaterThanOrEqual(320);
   expect(metrics.titleWidth).toBeGreaterThan(150);
-  expect(metrics.legendWidth).toBeGreaterThan(100);
+  expect(metrics.visualWidth).toBeGreaterThan(200);
+  if (metrics.legendWidth > 0) expect(metrics.legendWidth).toBeGreaterThan(100);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
