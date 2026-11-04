@@ -33,6 +33,16 @@ async function associate(fixture:Awaited<ReturnType<typeof setup>>) {
 }
 
 describe('controlador local de sessão com SQL e identidades simuladas',()=>{
+  it('encaminha todos os parâmetros bancários, inclusive a continuação, sem descartá-los',async()=>{
+    const f=await setup();
+    const read=vi.fn(async()=>({results:[],next:null}));
+    f.auth.readBank=read;
+    const accountId='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+    const next='?accountId='+accountId+'&dateFrom=2026-10-01&after=c%2B1';
+    await f.controller.readBank('transactions',accountId,'c+1','2026-10-01',next);
+    expect(read).toHaveBeenCalledWith('transactions',accountId,'c+1','2026-10-01',next);
+  });
+
   it('associa explicitamente, preserva origem e continua gravando após expiração/reabertura offline',async()=>{
     const f=await setup();await associate(f);
     expect(f.state.accounts[0]!.userId).toBe(f.sourceOwner);
