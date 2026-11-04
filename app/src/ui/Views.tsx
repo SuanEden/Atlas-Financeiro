@@ -285,14 +285,49 @@ export function BackupView({ state, userId, today, readState, onRecover, busy, i
   }
   return (
     <div className="page-content">
-      <PageHeading title="Backup local" subtitle="Uma cópia independente dos dados deste navegador." />
-      <p role="status">{notice}</p>
+      <PageHeading title="Backup e recuperação" subtitle="Exporte uma cópia dos seus dados ou recupere informações com segurança." />
+      <div className="backup-overview" aria-label="Resumo da cópia">
+        <div><span>Tipo de backup</span><strong>{integration ? 'Sincronização I3' : 'Local I2'}</strong></div>
+        <div><span>Contas</span><strong>{state.accounts.length}</strong></div>
+        <div><span>Lançamentos</span><strong>{state.events.length}</strong></div>
+        <div><span>Operações locais pendentes</span><strong>{state.outbox.length}</strong></div>
+      </div>
+      {notice ? <p role="status" className="backup-notice">{notice}</p> : null}
       {failure === undefined ? null : <p className="form-error" role="alert">{failure}</p>}
-      <section className="backup-panel"><span className="backup-icon"><Download size={24} /></span><div><h2>Exportar arquivo JSON</h2><p>Inclui contas, categorias, lançamentos, histórico, centavos exatos, vínculos bancários locais (sem senhas ou tokens) e {state.outbox.length} {state.outbox.length === 1 ? 'operação pendente' : 'operações pendentes'}.</p><p className="warning-copy">O arquivo contém dados financeiros sem criptografia própria. Guarde-o em local privado.</p><button className="button button--primary" onClick={downloadBackup}><Download size={18} />Baixar backup</button></div></section>
-      {integration?<section className="scope-panel"><RefreshCcw size={21} /><div><h2>Cópia de sincronização I3</h2><p>A exportação inclui base confirmada, pendências, conflitos, recibos, cursor e origem da associação. Não contém sessão. O importador I2 não aceita este formato; a recuperação abaixo aceita esta cópia somente na mesma conta e servidor, em destino vazio ou idêntico.</p></div></section>:<RecoveryPanel onRecover={onRecover} busy={busy} />}
-      {integration && serverId && importJson ? <SyncImportPanel userId={userId} serverId={serverId} onImport={importJson} disabled={busy} /> : null}
-      {integration && serverId ? <SyncRecoveryPanel userId={userId} serverId={serverId} onRecover={onRecover} disabled={busy} /> : null}
-      <section className="scope-panel"><RefreshCcw size={21} /><div><h2>Restauração completa ainda não disponível</h2><p>A recuperação mínima aceita o formato indicado acima em destino vazio ou idêntico. A substituição de bases e as gerações continuam previstas para I4.</p></div></section>
+      <section className="backup-primary" aria-labelledby="backup-export-title">
+        <div className="backup-primary__header">
+          <span className="backup-icon"><Download size={24} /></span>
+          <div>
+            <span className="backup-eyebrow">1 · Guardar uma cópia</span>
+            <h2 id="backup-export-title">Exportar backup</h2>
+            <p>Baixe um JSON com suas contas, lançamentos, histórico e dados necessários para recuperar o formato {integration ? 'I3' : 'I2'}.</p>
+          </div>
+        </div>
+        <div className="backup-primary__footer">
+          <p className="backup-private-note">O JSON contém informações financeiras sem criptografia própria. Guarde-o em local privado.</p>
+          <button className="button button--primary" onClick={downloadBackup}><Download size={18} />Baixar backup</button>
+        </div>
+      </section>
+      <section className="backup-tools" aria-labelledby="backup-tools-title">
+        <div className="backup-section-heading">
+          <span className="backup-eyebrow">2 · Usar uma cópia existente</span>
+          <h2 id="backup-tools-title">Importar ou recuperar</h2>
+          <p>Escolha a operação de acordo com o que deseja fazer. Importar acrescenta operações compatíveis; recuperar exige uma base vazia ou idêntica.</p>
+        </div>
+        {integration ? (
+          <div className="backup-tool-grid">
+            {serverId && importJson ? <div className="backup-tool-card"><div className="backup-tool-card__label">Acrescentar dados</div><SyncImportPanel userId={userId} serverId={serverId} onImport={importJson} disabled={busy} /></div> : null}
+            {serverId ? <div className="backup-tool-card"><div className="backup-tool-card__label">Recuperar em um perfil vazio</div><SyncRecoveryPanel userId={userId} serverId={serverId} onRecover={onRecover} disabled={busy} /></div> : null}
+          </div>
+        ) : <div className="backup-tool-grid"><div className="backup-tool-card"><RecoveryPanel onRecover={onRecover} busy={busy} /></div></div>}
+      </section>
+      <section className="backup-limitations" aria-labelledby="backup-limitations-title">
+        <RefreshCcw size={20} aria-hidden="true" />
+        <div>
+          <h2 id="backup-limitations-title">Restauração completa ainda não disponível</h2>
+          <p>A recuperação aceita cópias compatíveis somente em destino vazio ou idêntico. Substituir bases e gerenciar versões anteriores são recursos previstos para I4. Não apague os dados atuais antes de conferir sua cópia.</p>
+        </div>
+      </section>
     </div>
   );
 }
