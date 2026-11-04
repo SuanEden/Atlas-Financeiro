@@ -54,3 +54,25 @@ test('painel de gráficos permite criar, configurar, organizar, persistir e excl
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(errors).toEqual([]);
 });
+
+
+test('gráficos compactos se adaptam ao espaço sem quebrar títulos e legendas', async ({ page }) => {
+  await page.setViewportSize({ width: 920, height: 900 });
+  await page.goto('/');
+  const card = page.locator('.chart-studio-card').filter({ has: page.getByRole('heading', { name: 'Despesas pagas por categoria' }) });
+  await card.getByRole('button', { name: 'Tamanho de Despesas pagas por categoria' }).click();
+  await card.getByRole('button', { name: 'Largura Compacto' }).click();
+  await expect(card).toBeVisible();
+  const metrics = await card.evaluate((element) => {
+    const legend = element.querySelector('.finance-category-legend');
+    return {
+      width: element.getBoundingClientRect().width,
+      titleWidth: element.querySelector('.chart-card-title')?.getBoundingClientRect().width ?? 0,
+      legendWidth: legend?.getBoundingClientRect().width ?? 0,
+    };
+  });
+  expect(metrics.width).toBeGreaterThanOrEqual(320);
+  expect(metrics.titleWidth).toBeGreaterThan(150);
+  expect(metrics.legendWidth).toBeGreaterThan(100);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
