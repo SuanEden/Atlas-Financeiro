@@ -570,3 +570,27 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .chart-pie-layout .finance-category-legend { width:100%; }
 }
 @media (prefers-reduced-motion:reduce) { .chart-studio-card { transition:none; } }
+
+
+/* Inline chart sizing: visible presets plus free resize handle. */
+.chart-studio-card { position:relative; display:flex; flex-direction:column; }
+.chart-visual-frame { flex:1 1 auto; display:flex; flex-direction:column; justify-content:center; min-height:170px; min-width:0; }
+.chart-visual-frame .finance-chart-svg { width:100%; height:100%; max-height:none; flex:1 1 auto; }
+.chart-visual-frame .chart-pie-layout { flex:1 1 auto; }
+.chart-card-actions button.chart-size-toggle { display:inline-flex; align-items:center; gap:5px; width:auto; min-height:32px; padding:0 8px; font-size:.72rem; font-weight:700; color:var(--accent-dark); }
+.chart-card-actions button.chart-size-toggle:hover { color:var(--accent-dark); }
+.chart-size-panel { display:flex; align-items:center; flex-wrap:wrap; gap:12px 20px; margin:-2px 0 14px; padding:12px; background:var(--subtle); border:1px solid var(--line); border-radius:12px; }
+.chart-size-panel > div { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.chart-size-panel strong { color:var(--muted); font-size:.74rem; }
+.chart-size-options { display:flex; align-items:center; gap:3px; }
+.chart-size-options button { border:1px solid var(--line); color:var(--ink); background:var(--surface); font-size:.72rem; font-weight:700; padding:7px 9px; min-height:34px; border-radius:7px; }
+.chart-size-options button.is-selected { border-color:var(--accent); color:var(--accent-dark); background:var(--accent-soft); }
+.chart-size-close { margin-left:auto; background:none; color:var(--accent-dark); border:0; font-size:.76rem; font-weight:700; }
+.chart-resize-handle { position:absolute; bottom:3px; right:3px; z-index:2; display:grid; place-items:center; width:31px; height:31px; border:0; border-radius:8px; color:var(--muted); background:var(--surface); cursor:nwse-resize; touch-action:none; opacity:.72; }
+.chart-resize-handle:hover, .chart-resize-handle:focus-visible { background:var(--accent-soft); color:var(--accent-dark); opacity:1; }
+.chart-studio-card .chart-data-details { padding-right:30px; }
+@media (max-width:760px) {
+  .finance-chart-grid.chart-studio-grid > .chart-studio-card { grid-column:1 / -1 !important; }
+  .chart-size-panel { align-items:flex-start; }
+  .chart-resize-handle { cursor:ns-resize; }
+}
