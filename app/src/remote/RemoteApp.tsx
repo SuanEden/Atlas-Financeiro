@@ -81,7 +81,18 @@ function RemoteWorkspace({controller}:{controller:RemoteController}) {
     if(!controller.getSnapshot().session.canView||controller.getSnapshot().session.userId!==store.userId)throw new Error('A sessão mudou.');
     return json;
   }
-  const pendingCount = finance.state.outbox.length;
+  // Include association/bootstrap deliveries in the cloud badge and manual sync action.
+  // These are intentionally absent from the financial outbox projection.
+  const [pendingInStore, setPendingInStore] = useState(0);
+  useEffect(() => {
+    let active = true;
+    if (!snapshot.store) { setPendingInStore(0); return; }
+    void snapshot.store.read().then((data) => {
+      if (active) setPendingInStore(data.pending.filter((row) => row.status === 'pending').length);
+    }).catch(() => { /* The financial workspace reports storage errors separately. */ });
+    return () => { active = false; };
+  }, [snapshot.store, snapshot.dataRevision, snapshot.syncing]);
+  const pendingCount = Math.max(finance.state.outbox.length, pendingInStore);
   const cloudStatus = !snapshot.session.onlineVerified ? 'Acesso offline'
     : snapshot.syncing ? 'Sincronizando'
     : !snapshot.session.canTransmit ? 'Envio indisponível'
