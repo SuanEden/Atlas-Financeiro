@@ -78,3 +78,23 @@ test('gráficos compactos se adaptam ao espaço sem quebrar títulos e legendas'
   if (metrics.legendWidth > 0) expect(metrics.legendWidth).toBeGreaterThan(100);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+
+test('grade pontilhada aparece somente enquanto arrasta ou redimensiona', async ({ page }) => {
+  await page.goto('/');
+  const grid = page.locator('.chart-studio-grid');
+  const resize = page.getByRole('button', { name: 'Arraste para redimensionar Entradas e saídas realizadas' });
+  await expect(grid).not.toHaveClass(/chart-studio-grid--guides/);
+  await resize.dispatchEvent('pointerdown', { button: 0, pointerId: 1, clientX: 400, clientY: 450 });
+  await expect(grid).toHaveClass(/chart-studio-grid--guides/);
+  await expect(page.getByText('Bolinhas: espaço disponível para ampliar o gráfico')).toBeVisible();
+  await resize.dispatchEvent('pointerup', { pointerId: 1 });
+  await expect(grid).not.toHaveClass(/chart-studio-grid--guides/);
+  await page.getByRole('button', { name: 'Organizar' }).click();
+  const handle = page.locator('.chart-drag-handle').first();
+  await handle.dispatchEvent('dragstart');
+  await expect(grid).toHaveClass(/chart-studio-grid--guides/);
+  await expect(page.getByText('Bolinhas: área livre para reposicionar o gráfico')).toBeVisible();
+  await handle.dispatchEvent('dragend');
+  await expect(grid).not.toHaveClass(/chart-studio-grid--guides/);
+});
