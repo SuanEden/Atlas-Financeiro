@@ -315,7 +315,7 @@ export function BackupView({ state, userId, today, readState, onRecover, busy, i
         </div>
         <div className="backup-tool-card">
           {testMode ? <p>Este ambiente é isolado da sua conta. Por segurança, importar um backup de outra base não está disponível aqui; crie contas e lançamentos fictícios para testar livremente.</p>
-            : integration && serverId ? <UnifiedSyncBackupPanel userId={userId} serverId={serverId} onRecover={onRecover} onImport={importJson} disabled={busy} />
+            : integration && serverId ? <UnifiedSyncBackupPanel userId={userId} serverId={serverId} onRecover={onRecover} {...(importJson ? { onImport: importJson } : {})} disabled={busy} />
             : <RecoveryPanel onRecover={onRecover} busy={busy} />}
         </div>
       </section>
