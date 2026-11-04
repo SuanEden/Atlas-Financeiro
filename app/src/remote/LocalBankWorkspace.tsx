@@ -223,8 +223,8 @@ export default function LocalBankWorkspace(){
       const date=new Date(manualImportDate+'T12:00:00.000Z');
       if(!/^\d{4}-\d{2}-\d{2}$/.test(manualImportDate)||Number.isNaN(date.getTime())||date.toISOString().slice(0,10)!==manualImportDate||manualImportDate>finance.context.today())throw new Error('Data inicial inválida.');
       date.setUTCDate(date.getUTCDate()-1);
-      const linked=links[selected]!;
-      const count=await syncLinkedBankAccount({...linked,activatedOn:date.toISOString().slice(0,10),activatedAt:undefined},{
+      const {activatedAt: _previousTimestamp, ...linked}=links[selected]!;
+      const count=await syncLinkedBankAccount({...linked,activatedOn:date.toISOString().slice(0,10)},{
         readPage:(accountId,after,dateFrom)=>adapter.auth.readBank!('transactions',accountId,after,dateFrom),
         readState:finance.readState,execute:finance.execute,context:finance.context,
       });
