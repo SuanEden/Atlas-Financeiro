@@ -48,6 +48,8 @@ export default function LocalBankWorkspace(){
   });
   const [mappingTarget,setMappingTarget]=useState<Record<string,string>>({});
   const [importing,setImporting]=useState(false);
+  const [manualImportDate,setManualImportDate]=useState(()=>finance.context.today());
+  const [manualImportConfirmed,setManualImportConfirmed]=useState(false);
   const syncRunning=useRef(false);
   const triggerBankSync=useRef<()=>void>(()=>{});
   async function connectBank(){
@@ -213,9 +215,27 @@ export default function LocalBankWorkspace(){
     }catch(e){setMessage('Saldo em tempo real indisponível: '+(e instanceof Error?e.message:'erro não identificado'));}
     finally{setBusy(false);}
   }
+  async function importSelectedPeriod(){
+    if(!adapter||!selected||!links[selected]||importing||busy||!manualImportConfirmed)return;
+    setImporting(true);
+    setMessage('Conferindo extrato e importando movimentações confirmadas…');
+    try{
+      const date=new Date(manualImportDate+'T12:00:00.000Z');
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(manualImportDate)||Number.isNaN(date.getTime())||date.toISOString().slice(0,10)!==manualImportDate||manualImportDate>finance.context.today())throw new Error('Data inicial inválida.');
+      date.setUTCDate(date.getUTCDate()-1);
+      const linked=links[selected]!;
+      const count=await syncLinkedBankAccount({...linked,activatedOn:date.toISOString().slice(0,10),activatedAt:undefined},{
+        readPage:(accountId,after,dateFrom)=>adapter.auth.readBank!('transactions',accountId,after,dateFrom),
+        readState:finance.readState,execute:finance.execute,context:finance.context,
+      });
+      setMessage(count>0?count+' movimentação(ões) registrada(s) na base local do Atlas. Confira a aba Movimentações.':'Não há movimentações novas e confirmadas no período selecionado. O Atlas não repete IDs bancários já importados.');
+      setManualImportConfirmed(false);
+    }catch(error){setMessage('Importação manual interrompida: '+(error instanceof Error?error.message:'erro desconhecido')+'. Os registros salvos anteriormente foram preservados.');}
+    finally{setImporting(false);}
+  }
   async function movement(accountId:string){
     if(!adapter)return;
-    setBusy(true);setSelected(accountId);setMessage('Consultando movimentações…');
+    setBusy(true);setSelected(accountId);setManualImportConfirmed(false);setMessage('Consultando movimentações…');
     try{
       const response=await adapter.auth.readBank?.('transactions',accountId);
       setTransactions(records<BankTransaction>(response));
@@ -262,7 +282,9 @@ export default function LocalBankWorkspace(){
         <button className="button button--secondary" disabled={busy||importing} onClick={()=>void activateImport(a, BANKS.find(b=>b.name===bankName)?.itemId||'')}>Ativar importação automática</button>
       </div>:null}
     </div>)}</section>:null}
-    {transactions.length>0?<section><h3>Movimentações da conta {selected}</h3><ul>{transactions.slice(0,30).map((tx,i)=><li key={tx.id||i}>{tx.date||'Sem data'} · {tx.description||'Sem descrição'} · {typeof tx.amount==='number'?tx.amount.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'Sem valor'}</li>)}</ul></section>:null}
+    {selected?<section><h3>Movimentações da conta {selected}</h3><p>{transactions.length} movimentação(ões) na primeira página do extrato. Consultar não registra os dados no Atlas.</p><ul>{transactions.slice(0,30).map((tx,i)=><li key={tx.id||i}>{tx.date||'Sem data'} · {tx.description||'Sem descrição'} · {typeof tx.amount==='number'?tx.amount.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'Sem valor'}</li>)}</ul>
+      {links[selected]?<div className="bank-import-confirm"><h4>Importar movimentações para o Atlas</h4><p>Este vínculo já está ativo, mas a importação automática não inclui movimentações anteriores à ativação. Você pode escolher manualmente um período para conferir.</p><label>Importar desde <input type="date" aria-label="Data inicial da importação bancária" value={manualImportDate} max={finance.context.today()} onChange={e=>{setManualImportDate(e.target.value);setManualImportConfirmed(false);}} /></label><p className="warning-copy">Movimentações confirmadas podem alterar seus saldos. IDs bancários repetidos são ignorados, mas lançamentos feitos manualmente não são identificados como duplicados. Não inclua períodos já contemplados pelo saldo inicial sem conciliação.</p><label><input type="checkbox" checked={manualImportConfirmed} onChange={e=>setManualImportConfirmed(e.target.checked)} /> Conferi o período, a conta de destino e possíveis lançamentos manuais.</label><button type="button" className="button button--primary" disabled={importing||busy||!manualImportConfirmed} onClick={()=>void importSelectedPeriod()}>Importar movimentações selecionadas</button></div>:<p>Para registrar movimentações, vincule esta conta a uma conta do Atlas usando “Ativar importação automática” acima.</p>}
+    </section>:null}
   </section>;
   return <FinancialWorkspace finance={finance} bankPanel={panel} sessionControls={<section className="sync-panel" aria-label="Sincronização em nuvem">
     <strong>Dados locais preservados</strong>
