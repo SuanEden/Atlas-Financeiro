@@ -133,3 +133,25 @@ test('cada gráfico mantém espaços livres de cinco bolinhas após recarregar',
   expect(restored).toEqual(positioned);
   await expect(page.locator('.chart-studio-grid')).toHaveClass(/chart-studio-grid--free/);
 });
+
+
+test('permite arrastar pelo título e exibe coordenadas da grade',async({page})=>{
+  await page.setViewportSize({width:1440,height:1000});
+  await page.goto('/');
+  await page.getByRole('button',{name:'Organizar',exact:true}).click();
+  const first=page.locator('.chart-studio-card').first();
+  const heading=first.locator('.chart-card-title');
+  const before=await first.evaluate(element=>parseInt(getComputedStyle(element).gridRowStart));
+  const box=await heading.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x+box!.width/2,box!.y+box!.height/2);
+  await page.mouse.down();
+  await page.mouse.move(box!.x+box!.width/2,box!.y+box!.height/2+650,{steps:15});
+  await expect(page.getByRole('status').filter({hasText:'Posição atual: coluna'})).toBeVisible();
+  await page.mouse.up();
+  const after=await first.evaluate(element=>parseInt(getComputedStyle(element).gridRowStart));
+  expect(after).toBeGreaterThan(before);
+  await page.getByRole('button',{name:'Concluir',exact:true}).click();
+  await page.reload();
+  expect(await page.locator('.chart-studio-card').first().evaluate(element=>parseInt(getComputedStyle(element).gridRowStart))).toBe(after);
+});
