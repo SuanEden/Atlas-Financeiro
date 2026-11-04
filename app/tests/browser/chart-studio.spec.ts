@@ -24,7 +24,7 @@ test('painel de gráficos permite criar, configurar, organizar, persistir e excl
   await page.getByRole('button', { name: 'Tamanho de Análise personalizada' }).click();
   const card = page.locator('.chart-studio-card').filter({ has: page.getByRole('heading', { name: 'Análise personalizada' }) });
   await card.getByRole('button', { name: 'Largura Largo' }).click();
-  await expect(card).toHaveCSS('grid-column-start', 'span 12');
+  await expect(card).toHaveCSS('grid-column-start', (page.viewportSize()?.width ?? 1280) <= 760 ? '1' : 'span 12');
   await card.getByRole('button', { name: 'Alto' }).click();
   await expect(card).toHaveCSS('min-height', '540px');
   await card.getByRole('button', { name: 'Fechar opções de tamanho' }).click();
