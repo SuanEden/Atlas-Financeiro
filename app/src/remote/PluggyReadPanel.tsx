@@ -57,7 +57,7 @@ export function PluggyReadPanel({controller,importTarget}:{controller:BankReader
     if(busy)return;
     setBusy(kind);setError('');setNotice('');
     try{await operation();}
-    catch(reason){setReview(null);setConfirmed(false);setError(reason instanceof Error?reason.message:'Não foi possível concluir a operação. Nenhum novo lançamento foi autorizado.');}
+    catch(reason){if(kind!=='commit')setReview(null);setConfirmed(false);setError(reason instanceof Error?reason.message:'Não foi possível concluir a operação.');}
     finally{setBusy(null);}
   }
   function chooseBank(bank:typeof banks[number]){
@@ -149,6 +149,6 @@ export function PluggyReadPanel({controller,importTarget}:{controller:BankReader
     </div>:null}
     {busy==='bank'||busy==='account'?<p role="status">Consultando banco e movimentações…</p>:null}
     {notice?<p role="status" className="bank-import-success"><CheckCircle2 size={18}/>{notice}</p>:null}
-    {error?<div role="alert" className="bank-import-error"><AlertTriangle size={19} aria-hidden="true"/><div><strong>Não foi possível concluir a consulta</strong><p>{error}</p><p>Nenhuma nova movimentação foi importada nesta tentativa. Confira o período e tente novamente.</p></div></div>:null}
+    {error?<div role="alert" className="bank-import-error"><AlertTriangle size={19} aria-hidden="true"/><div><strong>Não foi possível concluir a operação</strong><p>{error}</p><p>Falhas na consulta não geram lançamentos. Se a gravação começou, os lançamentos já salvos são preservados e não serão duplicados por ID bancário.</p></div></div>:null}
   </section>;
 }
