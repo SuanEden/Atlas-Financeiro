@@ -1,4 +1,4 @@
-import { prepareUniqueBankImportCommand, previewPluggyImport, type PluggyTransaction, type BankImportCandidate, type CommandContext, type LocalCommand } from '../application';
+import { bankImportEventId, prepareUniqueBankImportCommand, previewPluggyImport, type PluggyTransaction, type BankImportCandidate, type CommandContext, type LocalCommand } from '../application';
 import type { LocalFinancialState } from '../domain';
 
 /** One approved bank-account-to-Atlas-account mapping. No financial writes occur without it. */
@@ -123,6 +123,33 @@ export async function previewLinkedBankAccount(link:BankLink,source:ImportSource
     seen.add(cursor);after=cursor;
   }
   throw new Error('Extrato muito extenso (mais de 30 páginas). Escolha um período mais recente; nenhum lançamento foi gravado.');
+}
+/** Preflight categorization reads the actual financial ledger before asking the user to import. */
+export interface BankImportPreflight {
+  newCount:number;
+  existingInDestination:number;
+  existingInOtherAccount:number;
+  otherAccountNames:string[];
+}
+export async function classifyBankImportCandidates(
+  candidates:readonly BankImportCandidate[],state:LocalFinancialState,
+  destinationAccountId:string,ownerId:string,
+):Promise<BankImportPreflight>{
+  const events=new Map(state.events.map(event=>[event.id,event]));
+  const otherAccountIds=new Set<string>();
+  let newCount=0,existingInDestination=0,existingInOtherAccount=0;
+  for(const candidate of candidates){
+    const id=await bankImportEventId(ownerId,candidate.externalKey);
+    const existing=events.get(id);
+    if(!existing){newCount++;continue;}
+    if(existing.accountId===destinationAccountId){existingInDestination++;continue;}
+    existingInOtherAccount++;
+    otherAccountIds.add(existing.accountId);
+  }
+  return {
+    newCount,existingInDestination,existingInOtherAccount,
+    otherAccountNames:[...otherAccountIds].map(id=>state.accounts.find(account=>account.id===id)?.name||'Conta não identificada'),
+  };
 }
 /** Run only after a complete validated preview and explicit user approval. */
 export async function commitBankImportPreview(link:BankLink,candidates:BankImportCandidate[],source:ImportSource):Promise<number>{
