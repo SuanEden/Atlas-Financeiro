@@ -37,7 +37,7 @@ test('painel de gráficos permite criar, configurar, organizar, persistir e excl
   await page.getByRole('button', { name: 'Concluir' }).click();
   await page.reload();
   await expect(page.locator('.chart-studio-card')).toHaveCount(4);
-  await expect(page.locator('.chart-studio-card--compact').getByRole('heading', { name: 'Análise personalizada' })).toBeVisible();
+  await expect(page.locator('.chart-studio-card--wide').getByRole('heading', { name: 'Análise personalizada' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Editar Análise personalizada' }).click();
   await page.getByRole('dialog').getByLabel('Visualização').selectOption('donut');
