@@ -97,11 +97,15 @@ test('receitas, previsões, realização, estorno, exportação e reabertura pre
   await expect(page.getByLabel('Resumo dos saldos')).toContainText('R$ 87,00');
   await expect(page.locator('.flow-band')).toContainText('R$ 0,00');
   await expect(page.locator('.flow-band')).toContainText('R$ 13,00');
+  console.log('[backup-flow] before backup navigation');
   await navigate(page, 'Backup');
+  console.log('[backup-flow] after backup navigation');
   await expect(page.getByText('Restauração completa ainda não disponível', { exact: true })).toBeVisible();
+  console.log('[backup-flow] before first download');
   const downloaded = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Baixar backup' }).click();
   const file = await (await downloaded).path();
+  console.log('[backup-flow] first download received');
   const backup = JSON.parse(readFileSync(file!, 'utf8'));
   expect(backup.manifest).toMatchObject({ accounts: 1, categories: 1, events: 9, settlements: 6, pendingOperations: 10 });
   expect(backup.data.events.filter((event: { description: string }) => event.description === 'Receita sintética')).toHaveLength(1);
@@ -112,6 +116,7 @@ test('receitas, previsões, realização, estorno, exportação e reabertura pre
   await reopened.goto('/');
   await expect(reopened.getByLabel('Resumo dos saldos')).toContainText('R$ 87,00');
   expect(await reopened.evaluate(() => localStorage.getItem('atlas-financeiro:local-owner:v1'))).toBe(savedOwner);
+  console.log('[backup-flow] reopened after download');
   await navigate(reopened, 'Movimentações');
   await expect(reopened.getByText('10 operações locais pendentes', { exact: true })).toBeVisible();
   // Cinco grupos visuais; os nove eventos permanecem íntegros no backup.
