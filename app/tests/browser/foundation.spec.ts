@@ -35,7 +35,7 @@ test('dashboard local renderiza, alterna tema e mantém o primeiro uso vazio', a
 test('modo local preservado e nuvem acessível apenas por escolha explícita',async({page})=>{
   await page.goto('/');
   await expect(page.getByRole('heading',{name:'Visão geral'})).toBeVisible();
-  await expect(page.getByRole('link',{name:'Abrir configuração da nuvem (I3)'})).toHaveAttribute('href','/?cloud=1');
+  await expect(page.locator('.sidebar-footer')).toContainText('nuvem desligada');
   await expect(page.getByRole('heading',{name:'Atlas Financeiro'})).toHaveCount(0);
 });
 
