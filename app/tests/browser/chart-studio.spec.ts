@@ -28,11 +28,11 @@ test('painel de gráficos permite criar, configurar, organizar, persistir e excl
   await card.getByRole('button', { name: 'Largura Largo' }).click();
   await expect(card).toHaveCSS('grid-column-start', (page.viewportSize()?.width ?? 1280) <= 780 ? '1' : '1');
   await card.getByRole('button', { name: 'Alto' }).click();
-  await expect(card).toHaveCSS('min-height', '540px');
+  expect((await card.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(540);
   await card.getByRole('button', { name: 'Fechar opções de tamanho' }).click();
   await page.reload();
   const resized = page.locator('.chart-studio-card').filter({ has: page.getByRole('heading', { name: 'Análise personalizada' }) });
-  await expect(resized).toHaveCSS('min-height', '540px');
+  expect((await resized.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(540);
 
   await page.getByRole('button', { name: 'Organizar', exact:true }).click();
   await page.getByRole('button', { name: 'Mover Análise personalizada para antes' }).click();
