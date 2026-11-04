@@ -20,6 +20,18 @@ test('painel de gráficos permite criar, configurar, organizar, persistir e excl
   await expect(page.locator('.chart-studio-card')).toHaveCount(4);
   await expect(page.locator('.chart-studio-card--compact').getByRole('heading', { name: 'Análise personalizada' })).toBeVisible();
 
+  // The size option must be visible on the card, not hidden in the data editor.
+  await page.getByRole('button', { name: 'Tamanho de Análise personalizada' }).click();
+  const card = page.locator('.chart-studio-card').filter({ has: page.getByRole('heading', { name: 'Análise personalizada' }) });
+  await card.getByRole('button', { name: 'Largura Largo' }).click();
+  await expect(card).toHaveCSS('grid-column-start', 'span 12');
+  await card.getByRole('button', { name: 'Alto' }).click();
+  await expect(card).toHaveCSS('min-height', '540px');
+  await card.getByRole('button', { name: 'Fechar opções de tamanho' }).click();
+  await page.reload();
+  const resized = page.locator('.chart-studio-card').filter({ has: page.getByRole('heading', { name: 'Análise personalizada' }) });
+  await expect(resized).toHaveCSS('min-height', '540px');
+
   await page.getByRole('button', { name: 'Organizar' }).click();
   await page.getByRole('button', { name: 'Mover Análise personalizada para antes' }).click();
   await page.getByRole('button', { name: 'Concluir' }).click();
