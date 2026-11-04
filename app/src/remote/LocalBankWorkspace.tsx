@@ -182,7 +182,7 @@ export default function LocalBankWorkspace(){
       for(const link of Object.values(links)){
         try{
           imported+=await syncLinkedBankAccount(link,{
-            readPage:(accountId,after,dateFrom)=>adapter.auth.readBank!('transactions',accountId,after,dateFrom),
+            readPage:(accountId,after,dateFrom,continuation)=>adapter.auth.readBank!('transactions',accountId,after,dateFrom,continuation),
             readState:finance.readState,execute:finance.execute,context:finance.context,
           });
         }catch(e){firstError=e instanceof Error?e.message:'erro não identificado';break;}
@@ -225,7 +225,7 @@ export default function LocalBankWorkspace(){
       date.setUTCDate(date.getUTCDate()-1);
       const {activatedAt: _previousTimestamp, ...linked}=links[selected]!;
       const count=await syncLinkedBankAccount({...linked,activatedOn:date.toISOString().slice(0,10)},{
-        readPage:(accountId,after,dateFrom)=>adapter.auth.readBank!('transactions',accountId,after,dateFrom),
+        readPage:(accountId,after,dateFrom,continuation)=>adapter.auth.readBank!('transactions',accountId,after,dateFrom,continuation),
         readState:finance.readState,execute:finance.execute,context:finance.context,
       });
       setMessage(count>0?count+' movimentação(ões) registrada(s) na base local do Atlas. Confira a aba Movimentações.':'Não há movimentações novas e confirmadas no período selecionado. O Atlas não repete IDs bancários já importados.');
