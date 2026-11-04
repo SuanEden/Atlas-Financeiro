@@ -12,7 +12,7 @@ test('painel de gráficos permite criar, configurar, organizar, persistir e excl
   await expect(editor).toBeVisible();
   await editor.getByLabel('Título do gráfico').fill('Análise personalizada');
   await editor.getByLabel('Visualização').selectOption('line');
-  await editor.getByLabel('Valores').selectOption('expense');
+  await editor.locator('.chart-field select').nth(2).selectOption('expense');
   await editor.getByLabel('Agrupar por').selectOption('account');
   await editor.getByLabel('Período').selectOption('3');
   await editor.getByLabel('Tamanho').selectOption('compact');
@@ -41,7 +41,7 @@ test('painel de gráficos permite criar, configurar, organizar, persistir e excl
 
   await page.getByRole('button', { name: 'Editar Análise personalizada' }).click();
   await page.getByRole('dialog').getByLabel('Visualização').selectOption('donut');
-  await expect(page.getByRole('dialog').getByLabel('Valores')).toHaveValue('expense');
+  await expect(page.getByRole('dialog').locator('.chart-field select').nth(2)).toHaveValue('expense');
   await page.getByRole('dialog').getByRole('button', { name: 'Salvar gráfico' }).click();
   await page.reload();
   await expect(page.locator('.chart-studio-card')).toHaveCount(4);
