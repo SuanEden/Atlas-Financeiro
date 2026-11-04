@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
 import type { LocalFinancialState } from '../domain';
 import { syntheticDataset } from '../persistence/synthetic-fixture.test-helper';
-import { FinanceCharts, buildChartRows, defaultCharts, normalizeChartConfig } from './FinanceCharts';
+import { FinanceCharts, buildChartRows, defaultCharts, findFreeChartPosition, normalizeChartConfig } from './FinanceCharts';
 
 const owner = 'a0000000-0000-4000-8000-000000000001';
 function state(): LocalFinancialState {
@@ -11,6 +11,21 @@ function state(): LocalFinancialState {
 }
 
 describe('gráficos do dashboard financeiro', () => {
+
+  it('encaixa gráficos em pontos livres, mantendo cinco bolinhas de distância se houver espaço',()=>{
+    const occupied=[{id:'a',x:0,y:0,w:25,h:18}];
+    expect(findFreeChartPosition(occupied,'b',30,0,25,18)).toEqual({x:30,y:0});
+    const snapped=findFreeChartPosition(occupied,'b',10,5,25,18);
+    expect(snapped.x>=25||snapped.y>=18||snapped.y+18<=0).toBe(true);
+    expect(findFreeChartPosition(occupied,'a',5,5,25,18)).toEqual({x:5,y:5});
+  });
+  it('preserva coordenadas livres sem perder compatibilidade com gráficos antigos',()=>{
+    const chart=defaultCharts()[0]!;
+    expect(normalizeChartConfig({...chart,gridX:5,gridY:35})).toMatchObject({gridX:5,gridY:35});
+    expect(normalizeChartConfig({...chart,gridX:-5,gridY:5})).not.toHaveProperty('gridX');
+    expect(normalizeChartConfig(chart)).not.toHaveProperty('gridY');
+  });
+
   it('não converte transferência em receita ou despesa realizada', () => {
     const html = renderToStaticMarkup(createElement(FinanceCharts, {state: state(), month: '2026-10'}));
     expect(html).toContain('Entradas e saídas realizadas');
