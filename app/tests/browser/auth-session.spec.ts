@@ -36,6 +36,8 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   await expect(page.locator('.sidebar-cloud-controls')).toContainText('Modo nuvem');
   await expect(page.locator('.sidebar-cloud-controls')).toContainText('Cópia local ativa');
   await expect(page.locator('.device-status')).toContainText('Modo nuvem');
+  await expandCloudControls(page);
+  await expect(page.getByRole('button',{name:'Sincronizar agora'})).toHaveCount(0);
   // Hold the transport offline: a financial write must stay pending while
   // authentication remains valid and the foreground timer is enabled.
   await page.evaluate(()=>localStorage.setItem('synthetic-transport-offline','yes'));
@@ -87,6 +89,7 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   await expandCloudControls(page);
   await page.getByRole('button',{name:'Sincronizar agora'}).click();
   await expect(page.getByRole('region',{name:'Sincronização',exact:true})).toContainText('Alterações confirmadas');
+  await expect(page.getByRole('button',{name:'Sincronizar agora'})).toHaveCount(0);
   const confirmed=await page.evaluate(async()=>{const path='/tests/auth-browser-entry.tsx';return (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).inspect();});
   expect(confirmed.pending).toEqual([]);expect(confirmed.meta?.cursor).toBe('2');
   expect(confirmed.confirmed?.accounts).toEqual(backup.projection.accounts);
