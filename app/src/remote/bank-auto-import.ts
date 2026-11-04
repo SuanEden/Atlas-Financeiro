@@ -81,13 +81,16 @@ export async function syncLinkedBankAccount(link:BankLink,source:ImportSource):P
     // Pluggy's cursor is opaque; its next query may omit filters already
     // supplied in the original request. Our gateway restores accountId/dateFrom.
     const accountIds=next.getAll('accountId');
-    const fromDates=next.getAll('dateFrom');
-    if([...next.keys()].some(key=>!['after','accountId','dateFrom'].includes(key))||
-       next.getAll('after').length!==1||
-       accountIds.length>1||(accountIds.length===1&&accountIds[0]!==link.pluggyAccountId)||
-       fromDates.length>1||(fromDates.length===1&&fromDates[0]!==link.activatedOn)||
-       !cursor||cursor.length>2048||/[\x00-\x1f]/.test(cursor)||seen.has(cursor))
-      throw new Error('Paginação bancária inconsistente.');
+    // The Pluggy next query can include additional filters. They are NOT
+    // forwarded: the authenticated gateway reapplies the approved account and
+    // original dateFrom and accepts only this opaque after value.
+    if(next.getAll('after').length!==1||!cursor||cursor.length>2048||
+       /[\x00-\x1f]/.test(cursor))
+      throw new Error('Paginação bancária inconsistente (cursor ausente ou inválido).');
+    if(accountIds.length>1||accountIds.some(id=>id!==link.pluggyAccountId))
+      throw new Error('Paginação bancária inconsistente (conta divergente).');
+    if(seen.has(cursor))
+      throw new Error('Paginação bancária inconsistente (cursor repetido).');
     seen.add(cursor);after=cursor;
   }
   if(!complete)throw new Error('Extrato excede limite de consulta segura; nenhuma importação realizada.');
