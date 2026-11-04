@@ -1,5 +1,4 @@
-import { SyncRecoveryPanel } from './SyncRecoveryPanel';
-import { SyncImportPanel } from './SyncImportPanel';
+import { UnifiedSyncBackupPanel } from './UnifiedSyncBackupPanel';
 import { FinanceCharts } from './FinanceCharts';
 import {
   ArrowDownLeft,
@@ -261,7 +260,7 @@ export function CategoriesView({ state, onAdd }: { state: LocalFinancialState; o
   );
 }
 
-export function BackupView({ state, userId, today, readState, onRecover, busy, integration=false, exportJson, importJson, serverId }: { state: LocalFinancialState; userId: string; today: string; readState: () => Promise<LocalFinancialState>; onRecover: (json: string) => Promise<void>; busy: boolean; integration?:boolean; exportJson?:()=>Promise<string>; importJson?:(json:string)=>Promise<number>; serverId?:string }) {
+export function BackupView({ state, userId, today, readState, onRecover, busy, integration=false, testMode=false, exportJson, importJson, serverId }: { state: LocalFinancialState; userId: string; today: string; readState: () => Promise<LocalFinancialState>; onRecover: (json: string) => Promise<void>; busy: boolean; integration?:boolean; testMode?:boolean; exportJson?:()=>Promise<string>; importJson?:(json:string)=>Promise<number>; serverId?:string }) {
   const [notice, setNotice] = useState('');
   const [failure, setFailure] = useState<string>();
   async function downloadBackup() {
@@ -285,9 +284,9 @@ export function BackupView({ state, userId, today, readState, onRecover, busy, i
   }
   return (
     <div className="page-content">
-      <PageHeading title="Backup e recuperação" subtitle="Exporte uma cópia dos seus dados ou recupere informações com segurança." />
+      <PageHeading title="Backup e dados" subtitle="Exporte uma cópia dos seus dados ou recupere informações com segurança." />
       <div className="backup-overview" aria-label="Resumo da cópia">
-        <div><span>Tipo de backup</span><strong>{integration ? 'Sincronização I3' : 'Local I2'}</strong></div>
+        <div><span>Armazenamento</span><strong>{testMode ? 'Teste isolado' : integration ? 'Nuvem e dispositivo' : 'Neste dispositivo'}</strong></div>
         <div><span>Contas</span><strong>{state.accounts.length}</strong></div>
         <div><span>Lançamentos</span><strong>{state.events.length}</strong></div>
         <div><span>Operações locais pendentes</span><strong>{state.outbox.length}</strong></div>
@@ -300,7 +299,7 @@ export function BackupView({ state, userId, today, readState, onRecover, busy, i
           <div>
             <span className="backup-eyebrow">1 · Guardar uma cópia</span>
             <h2 id="backup-export-title">Exportar backup</h2>
-            <p>Baixe um JSON com suas contas, lançamentos, histórico e dados necessários para recuperar o formato {integration ? 'I3' : 'I2'}.</p>
+            <p>Baixe um JSON com suas contas, lançamentos, histórico e dados necessários para recuperar seus dados.</p>
           </div>
         </div>
         <div className="backup-primary__footer">
@@ -310,16 +309,26 @@ export function BackupView({ state, userId, today, readState, onRecover, busy, i
       </section>
       <section className="backup-tools" aria-labelledby="backup-tools-title">
         <div className="backup-section-heading">
-          <span className="backup-eyebrow">2 · Usar uma cópia existente</span>
-          <h2 id="backup-tools-title">Importar ou recuperar</h2>
-          <p>Escolha a operação de acordo com o que deseja fazer. Importar acrescenta operações compatíveis; recuperar exige uma base vazia ou idêntica.</p>
+          <span className="backup-eyebrow">2 · Usar um arquivo existente</span>
+          <h2 id="backup-tools-title">Importar backup</h2>
+          <p>Selecione o JSON. O Atlas identifica o formato e informa a opção segura antes de aplicar qualquer alteração.</p>
         </div>
-        {integration ? (
-          <div className="backup-tool-grid">
-            {serverId && importJson ? <div className="backup-tool-card"><div className="backup-tool-card__label">Acrescentar dados</div><SyncImportPanel userId={userId} serverId={serverId} onImport={importJson} disabled={busy} /></div> : null}
-            {serverId ? <div className="backup-tool-card"><div className="backup-tool-card__label">Recuperar em um perfil vazio</div><SyncRecoveryPanel userId={userId} serverId={serverId} onRecover={onRecover} disabled={busy} /></div> : null}
-          </div>
-        ) : <div className="backup-tool-grid"><div className="backup-tool-card"><RecoveryPanel onRecover={onRecover} busy={busy} /></div></div>}
+        <div className="backup-tool-card">
+          {testMode ? <p>Este ambiente é isolado da sua conta. Por segurança, importar um backup de outra base não está disponível aqui; crie contas e lançamentos fictícios para testar livremente.</p>
+            : integration && serverId ? <UnifiedSyncBackupPanel userId={userId} serverId={serverId} onRecover={onRecover} onImport={importJson} disabled={busy} />
+            : <RecoveryPanel onRecover={onRecover} busy={busy} />}
+        </div>
+      </section>
+      <section className="backup-tools" aria-labelledby="backup-test-title">
+        <div className="backup-section-heading">
+          <span className="backup-eyebrow">3 · Experimentar sem risco de sincronização</span>
+          <h2 id="backup-test-title">Modo de teste</h2>
+          <p>Utiliza uma base local independente. Tudo o que você cadastrar nela permanece separado do Atlas real.</p>
+        </div>
+        <div className="backup-test-action">
+          <span>{testMode ? 'Você está no ambiente de teste.' : 'Seus dados reais não serão alterados.'}</span>
+          <a className="button button--secondary" href={testMode ? '/?cloud=1' : '/?test=1'}>{testMode ? 'Voltar ao Atlas real' : 'Abrir modo de teste'}</a>
+        </div>
       </section>
       <section className="backup-limitations" aria-labelledby="backup-limitations-title">
         <RefreshCcw size={20} aria-hidden="true" />
