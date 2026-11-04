@@ -94,7 +94,7 @@ function RemoteWorkspace({controller}:{controller:RemoteController}) {
     <p className="cloud-control-description" role="status">{snapshot.notice || snapshot.session.message}</p>
     <p className="cloud-control-pending">{pendingCount} {pendingCount === 1 ? 'operação pendente' : 'operações pendentes'}</p>
     <div className="cloud-control-actions">
-      <button className="button button--secondary" disabled={!snapshot.session.canTransmit || snapshot.syncing} onClick={() => void controller.sync()}>{snapshot.syncing ? 'Conferindo envio…' : 'Sincronizar agora'}</button>
+      {pendingCount > 0 ? <button className="button button--secondary" disabled={!snapshot.session.canTransmit || snapshot.syncing} onClick={() => void controller.sync()}>{snapshot.syncing ? 'Conferindo envio…' : 'Sincronizar agora'}</button> : null}
       {!snapshot.session.onlineVerified ? <button className="text-button" onClick={() => void controller.login()}>Entrar novamente</button> : null}
       <button className="text-button" onClick={() => void controller.logout()}>Sair e bloquear</button>
     </div>
