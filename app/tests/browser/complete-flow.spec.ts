@@ -85,12 +85,12 @@ test('receitas, previsões, realização, estorno, exportação e reabertura pre
   // Correções e estornos ficam recolhidos no lançamento principal, não como linhas avulsas.
   const reversedExpense = page.locator('.history-row').filter({ has: page.locator('.movement-main strong').getByText('Despesa sintética', { exact: true }) });
   await expect(reversedExpense).toHaveCount(1);
-  await reversedExpense.locator('.movement-history summary').click();
+  await reversedExpense.getByRole('button', { name: /Histórico de alterações de/ }).click();
   await expect(reversedExpense.locator('.movement-history li').filter({ hasText: 'Estorno: Despesa sintética' })).toBeVisible();
   const cancelledIncome = page.locator('.history-row').filter({ has: page.locator('.movement-main strong').getByText('Cancelamento: Receita prevista sintética', { exact: true }) });
   await expect(cancelledIncome).toHaveCount(1);
   await expect(cancelledIncome).toContainText('Estornado ou cancelado');
-  await cancelledIncome.locator('.movement-history summary').click();
+  await cancelledIncome.getByRole('button', { name: /Histórico de alterações de/ }).click();
   await expect(cancelledIncome.locator('.movement-history li').filter({ hasText: 'Receita prevista sintética' })).toBeVisible();
   await page.screenshot({ path: join(tmpdir(), `atlas-i2-history-${info.project.name}.png`), fullPage: true });
   await navigate(page, 'Início');
