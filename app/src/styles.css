@@ -157,7 +157,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .movement-history-toggle { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; }
 .movement-history-toggle:hover, .movement-history-toggle[aria-expanded="true"] { background: var(--accent-soft); color: var(--accent); }
 .movement-history-toggle:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.movement-history-toggle::after { content: attr(data-tooltip); position: absolute; z-index: 20; left: 50%; bottom: calc(100% + 7px); transform: translateX(-50%); width: max-content; max-width: min(260px, 80vw); padding: 6px 9px; border-radius: 6px; color: #fff; background: #24352d; box-shadow: 0 4px 12px rgba(0,0,0,.18); font-size: .75rem; line-height: 1.3; font-weight: 500; opacity: 0; visibility: hidden; pointer-events: none; }
+.movement-history-toggle::after { content: attr(data-tooltip); position: absolute; z-index: 20; left: calc(100% + 9px); top: 50%; transform: translateY(-50%); width: max-content; max-width: min(260px, 80vw); padding: 6px 9px; border-radius: 6px; color: #fff; background: #24352d; box-shadow: 0 4px 12px rgba(0,0,0,.18); font-size: .75rem; line-height: 1.3; font-weight: 500; opacity: 0; visibility: hidden; pointer-events: none; }
 .movement-history-toggle:hover::after, .movement-history-toggle:focus-visible::after { opacity: 1; visibility: visible; }
 .movement-history { grid-column: 1 / -1; padding: 0 0 12px 0; min-width: 0; }
 .movement-history[hidden] { display: none; }
