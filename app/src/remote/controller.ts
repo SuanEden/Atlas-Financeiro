@@ -123,7 +123,19 @@ export class RemoteController {
       const epoch=this.policy.snapshot.epoch;const store=this.#store!;
       this.publish({syncing:true,notice:''});
       try {
-        const result=await this.#engine.run();
+        // Each engine round deliberately transmits at most 50 operations.
+        // After a bulk bank import, make bounded progress in this same foreground
+        // action instead of reporting the remaining batch as an unexplained error.
+        // Only repeat when a confirmed reduction in pending work is observed.
+        let result:SyncResult='retry_later';
+        for(let round=0;round<4;round++){
+          const before=(await store.read()).pending.filter(row=>row.status==='pending').length;
+          result=await this.#engine.run();
+          if(this.policy.snapshot.epoch!==epoch||store!==this.#store)return 'login_required';
+          if(result!=='retry_later')break;
+          const remaining=(await store.read()).pending.filter(row=>row.status==='pending').length;
+          if(before===0||remaining===0||remaining>=before)break;
+        }
         if(this.policy.snapshot.epoch!==epoch||store!==this.#store)return 'login_required';
         const state=await store.read();
         if(state.meta.binding==='verifying_source') {
