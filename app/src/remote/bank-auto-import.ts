@@ -11,7 +11,7 @@ export interface BankLink {
   activatedAt?:string;
 }
 export interface ImportSource {
-  readPage:(accountId:string,after?:string,dateFrom?:string)=>Promise<unknown>;
+  readPage:(accountId:string,after?:string,dateFrom?:string,continuation?:string)=>Promise<unknown>;
   readState:()=>Promise<LocalFinancialState>;
   execute:(command:LocalCommand)=>Promise<void>;
   context:CommandContext;
@@ -99,11 +99,12 @@ export async function previewLinkedBankAccount(link:BankLink,source:ImportSource
   const effectiveLink=withRecoveredOpeningBaseline(link,await source.readState());
   const collected:PluggyTransaction[]=[];
   let after:string|undefined;
+  let continuation:string|undefined;
   const seen=new Set<string>();
   let received=0;
   for(let i=0;i<30;i++){
     let payload:unknown;
-    try{payload=await source.readPage(link.pluggyAccountId,after,link.activatedOn);}
+    try{payload=await source.readPage(link.pluggyAccountId,after,link.activatedOn,continuation);}
     catch(error){throw new Error('Falha na consulta da página '+(i+1)+': '+(error instanceof Error?error.message:'serviço indisponível'));}
     if(!payload||typeof payload!=='object')throw new Error('A página '+(i+1)+' retornou uma resposta inválida.');
     const page=payload as {results?:unknown;next?:unknown};
@@ -120,7 +121,11 @@ export async function previewLinkedBankAccount(link:BankLink,source:ImportSource
       return {candidates,pages:i+1,received,eligible:collected.length,pendingOrIgnored:received-collected.length};
     }
     if(seen.has(cursor))throw new Error('O banco repetiu o cursor na página '+(i+1)+'. Nenhum lançamento foi gravado.');
-    seen.add(cursor);after=cursor;
+    seen.add(cursor);
+    after=cursor;
+    // Preserve Pluggy's complete opaque next query. The server validates
+    // its account and forwards it unchanged to avoid cursor/filter mismatch.
+    continuation=typeof page.next==='string'&&page.next.startsWith('?')?page.next:undefined;
   }
   throw new Error('Extrato muito extenso (mais de 30 páginas). Escolha um período mais recente; nenhum lançamento foi gravado.');
 }
