@@ -152,9 +152,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .history-actions { display: flex; align-items: center; gap: 8px; }
 .history-actions > span { color: var(--muted); font-size: .72rem; }
 
+.movement-amount-group { display: inline-flex; align-items: center; justify-self: end; gap: 7px; min-width: 0; }
+.movement-history-toggle { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; }
+.movement-history-toggle:hover, .movement-history-toggle[aria-expanded="true"] { background: var(--accent-soft); color: var(--accent); }
+.movement-history-toggle:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .movement-history { grid-column: 1 / -1; padding: 0 0 12px 0; min-width: 0; }
-.movement-history summary { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; color: var(--muted); font-size: .84rem; font-weight: 600; }
-.movement-history summary:hover { color: var(--text); }
+.movement-history[hidden] { display: none; }
 .movement-history ol { margin: 10px 0 0 0; padding: 10px 14px 10px 32px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .movement-history li { padding: 5px 0; font-size: .8rem; color: var(--muted); display: list-item; }
 .movement-history li span { display: block; overflow-wrap: anywhere; }
@@ -288,7 +291,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 @media (max-width: 420px) {
   .money-summary strong { font-size: 1.42rem; }
   .movement-row { grid-template-columns: auto minmax(0, 1fr); }
-  .movement-amount { grid-column: 2; justify-self: start; }
+  .movement-amount-group { grid-column: 2; justify-self: start; }
   .status-text { grid-column: 2; }
   .backup-panel, .scope-panel { flex-direction: column; }
 }
