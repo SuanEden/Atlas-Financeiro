@@ -62,7 +62,11 @@ test('conta, categoria, despesa, correção e backup sobrevivem à recarga', asy
   await expect(correctedPurchase.locator('.movement-amount')).toContainText('R$ 20,00');
   await expect(correctedPurchase.getByText('Estorno: Compra de teste')).toBeHidden();
   const historyButton = correctedPurchase.getByRole('button', { name: /Histórico de alterações de/ });
-  await expect(historyButton).toHaveAttribute('title', 'Histórico de alterações (2)');
+  await expect(historyButton).toHaveAttribute('data-tooltip', 'Histórico de alterações (2)');
+  await expect(correctedPurchase.locator('.movement-name-line').getByRole('button', { name: /Histórico de alterações/ })).toHaveCount(1);
+  await expect(correctedPurchase.locator('.movement-amount').getByRole('button')).toHaveCount(0);
+  await historyButton.hover();
+  await expect(historyButton).toHaveCSS('visibility', 'visible');
   await expect(historyButton).toHaveAttribute('aria-expanded', 'false');
   await historyButton.click();
   await expect(historyButton).toHaveAttribute('aria-expanded', 'true');
