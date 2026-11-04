@@ -12,7 +12,6 @@ import {
   WalletCards,
 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import {
   createAccountCommand,
   createCategoryCommand,
@@ -130,16 +129,14 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
         )}
       </section>
 
-      {createPortal(<div className="app-shell mobile-nav-portal" data-theme={dark ? 'dark' : 'light'}>
-        <nav className={'bottom-nav'+(integration || bankPanel !== undefined ? ' bottom-nav--with-banks' : '')} aria-label="Navegação móvel">
-          <MobileNavButton active={page === 'dashboard'} label="Início" Icon={Home} onClick={() => setPage('dashboard')} />
-          <MobileNavButton active={page === 'movements'} label="Movimentos" Icon={ListRestart} onClick={() => setPage('movements')} />
-          <button className="bottom-add" onClick={openTransaction} disabled={state.accounts.length === 0} aria-label="Novo lançamento"><Plus size={28} /></button>
-          <MobileNavButton active={page === 'accounts'} label="Contas" Icon={WalletCards} onClick={() => setPage('accounts')} />
-          {(integration || bankPanel !== undefined) ? <MobileNavButton active={page === 'banks'} label="Bancos" Icon={Landmark} onClick={() => setPage('banks')} /> : null}
-          <MobileNavButton active={page === 'categories' || page === 'backup'} label="Ajustes" Icon={Settings} onClick={() => setPage('categories')} />
-        </nav>
-      </div>, document.body)}
+      <nav className={'bottom-nav'+(integration || bankPanel !== undefined ? ' bottom-nav--with-banks' : '')} aria-label="Navegação móvel">
+        <MobileNavButton active={page === 'dashboard'} label="Início" Icon={Home} onClick={() => setPage('dashboard')} />
+        <MobileNavButton active={page === 'movements'} label="Movimentos" Icon={ListRestart} onClick={() => setPage('movements')} />
+        <button className="bottom-add" onClick={openTransaction} disabled={state.accounts.length === 0} aria-label="Novo lançamento"><Plus size={28} /></button>
+        <MobileNavButton active={page === 'accounts'} label="Contas" Icon={WalletCards} onClick={() => setPage('accounts')} />
+        {(integration || bankPanel !== undefined) ? <MobileNavButton active={page === 'banks'} label="Bancos" Icon={Landmark} onClick={() => setPage('banks')} /> : null}
+        <MobileNavButton active={page === 'categories' || page === 'backup'} label="Ajustes" Icon={Settings} onClick={() => setPage('categories')} />
+      </nav>
 
       {modal?.type === 'account' ? <DialogFrame title="Nova conta" onClose={() => setModal(undefined)}><AccountForm today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveAccount} /></DialogFrame> : null}
       {modal?.type === 'reconcile' ? <DialogFrame title="Conciliar saldo inicial" onClose={() => setModal(undefined)}><AccountReconciliationForm account={modal.account} today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveReconciliation} /></DialogFrame> : null}
