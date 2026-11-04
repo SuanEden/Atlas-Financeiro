@@ -181,25 +181,58 @@ export function MovementsView({ state, onAdd, onEdit, onReverse, integration=fal
         {selectedMonth !== 'all' ? <button className="text-button" onClick={() => setSelectedMonth('all')}>Todos os meses</button> : null}
       </div>
       {groups.length === 0 ? <EmptyPanel icon={<ArrowLeftRight />} title="Ainda não há movimentações" description="Crie uma conta e registre sua primeira receita, despesa ou transferência." action="Novo lançamento" onAction={onAdd} disabled={state.accounts.length === 0} /> : filteredGroups.length === 0 ? <CompactEmpty text="Nenhuma movimentação corresponde aos filtros selecionados." /> : (
-        <div className="history-list">{filteredGroups.map(({ current: event, history, cancelled }) => {
-          const editable = !cancelled && activeIds.has(event.id) && event.status !== 'cancelled' && event.kind !== 'adjustment' && event.reversesEventId === undefined;
-          return <article className={`history-row${cancelled ? ' history-row--superseded' : ''}`} key={event.id}>
-            <MovementRow event={event} state={state} detailed />
-            <div className="history-actions">
-              {editable ? <><button className="text-button" onClick={() => onEdit(event)}>Editar</button><button className="text-button text-button--danger" onClick={() => onReverse(event)}>Estornar</button></> : <span>{cancelled ? 'Estornado ou cancelado · histórico preservado' : 'Lançamento preservado'}</span>}
-            </div>
-            {history.length > 0 ? <details className="movement-history">
-              <summary><History size={16} aria-hidden="true" /> Histórico de alterações ({history.length})</summary>
-              <ol>{history.map(previous => <li key={previous.id}>
-                <span><strong>{previous.reversesEventId !== undefined ? 'Estorno técnico' : previous.status === 'cancelled' ? 'Cancelamento' : 'Versão anterior'}</strong> · {previous.description}</span>
-                <span>{eventAmountSign(previous)}{formatBRL(previous.amountCents)} · {formatFinancialDate(previous.competenceDate)}</span>
-              </li>)}</ol>
-            </details> : null}
-          </article>;
-        })}</div>
+        <div className="history-list">{filteredGroups.map(({ current: event, history, cancelled }) => (
+          <MovementHistoryArticle
+            key={event.id}
+            event={event}
+            history={history}
+            cancelled={cancelled}
+            editable={!cancelled && activeIds.has(event.id) && event.status !== 'cancelled' && event.kind !== 'adjustment' && event.reversesEventId === undefined}
+            state={state}
+            onEdit={onEdit}
+            onReverse={onReverse}
+          />
+        ))}</div>
       )}
     </div>
   );
+}
+
+function MovementHistoryArticle({
+  event, history, cancelled, editable, state, onEdit, onReverse,
+}: {
+  event: FinancialEvent;
+  history: FinancialEvent[];
+  cancelled: boolean;
+  editable: boolean;
+  state: LocalFinancialState;
+  onEdit: (event: FinancialEvent) => void;
+  onReverse: (event: FinancialEvent) => void;
+}) {
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const historyId = `movement-history-${event.id}`;
+  return <article className={`history-row${cancelled ? ' history-row--superseded' : ''}`}>
+    <MovementRow event={event} state={state} detailed historyControl={history.length > 0 ? (
+      <button
+        type="button"
+        className="movement-history-toggle"
+        title={`Histórico de alterações (${history.length})`}
+        aria-label={`Histórico de alterações de ${event.description} (${history.length})`}
+        aria-expanded={historyOpen}
+        aria-controls={historyId}
+        onClick={() => setHistoryOpen(open => !open)}
+      ><History size={17} aria-hidden="true" /></button>
+    ) : undefined} />
+    <div className="history-actions">
+      {editable ? <><button className="text-button" onClick={() => onEdit(event)}>Editar</button><button className="text-button text-button--danger" onClick={() => onReverse(event)}>Estornar</button></> : <span>{cancelled ? 'Estornado ou cancelado · histórico preservado' : 'Lançamento preservado'}</span>}
+    </div>
+    {history.length > 0 ? <div id={historyId} className="movement-history" hidden={!historyOpen}>
+      <ol>{history.map(previous => <li key={previous.id}>
+        <span><strong>{previous.reversesEventId !== undefined ? 'Estorno técnico' : previous.status === 'cancelled' ? 'Cancelamento' : 'Versão anterior'}</strong> · {previous.description}</span>
+        <span>{eventAmountSign(previous)}{formatBRL(previous.amountCents)} · {formatFinancialDate(previous.competenceDate)}</span>
+      </li>)}</ol>
+    </div> : null}
+  </article>;
 }
 
 export function AccountsView({ state, onAdd, onReconcile, onTransfer }: { state: LocalFinancialState; onAdd: () => void; onReconcile: (account: LocalFinancialState['accounts'][number]) => void; onTransfer: () => void }) {
@@ -280,11 +313,11 @@ function CompactEmpty({ text }: { text: string }) {
   return <div className="compact-empty">{text}</div>;
 }
 
-function MovementRow({ event, state, detailed = false }: { event: FinancialEvent; state: LocalFinancialState; detailed?: boolean }) {
+function MovementRow({ event, state, detailed = false, historyControl }: { event: FinancialEvent; state: LocalFinancialState; detailed?: boolean; historyControl?: React.ReactNode }) {
   const account = state.accounts.find((item) => item.id === event.accountId);
   const category = state.categories.find((item) => item.id === event.categoryId);
   const Icon = event.kind === 'income' ? ArrowDownLeft : event.kind === 'expense' ? ArrowUpRight : ArrowLeftRight;
-  return <div className="movement-row"><span className={`movement-icon movement-icon--${event.kind}`}><Icon size={18} /></span><span className="movement-main"><strong>{event.description}</strong><small>{eventLabel(event)} · {account?.name ?? 'Conta'}{category === undefined ? '' : ` · ${category.name}`}{detailed ? ` · ${formatFinancialDate(event.competenceDate)}${event.dueDate === undefined || event.certainty !== 'confirmed' ? '' : ` · Vence ${formatFinancialDate(event.dueDate)}`}` : ''}</small></span><span className={`movement-amount movement-amount--${event.kind}`}>{eventAmountSign(event)}{formatBRL(event.amountCents)}</span><span className={`status-text status-text--${event.status}`}>{eventStatusLabel(event, state.categories.find((category) => category.id === event.categoryId))}</span></div>;
+  return <div className="movement-row"><span className={`movement-icon movement-icon--${event.kind}`}><Icon size={18} /></span><span className="movement-main"><strong>{event.description}</strong><small>{eventLabel(event)} · {account?.name ?? 'Conta'}{category === undefined ? '' : ` · ${category.name}`}{detailed ? ` · ${formatFinancialDate(event.competenceDate)}${event.dueDate === undefined || event.certainty !== 'confirmed' ? '' : ` · Vence ${formatFinancialDate(event.dueDate)}`}` : ''}</small></span><span className="movement-amount-group"><span className={`movement-amount movement-amount--${event.kind}`}>{eventAmountSign(event)}{formatBRL(event.amountCents)}</span>{historyControl}</span><span className={`status-text status-text--${event.status}`}>{eventStatusLabel(event, state.categories.find((category) => category.id === event.categoryId))}</span></div>;
 }
 
 function accountBalanceLabel(state: LocalFinancialState, accountId: string): string {
