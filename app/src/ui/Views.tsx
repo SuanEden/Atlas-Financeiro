@@ -31,6 +31,7 @@ import { groupMovementHistory, activeEventIds, accountKindLabels, availabilityLa
 type Page = 'dashboard' | 'movements' | 'accounts' | 'categories' | 'backup';
 
 interface DashboardProps {
+  userId: string;
   integration?:boolean;
   state: LocalFinancialState;
   today: string;
@@ -39,7 +40,7 @@ interface DashboardProps {
   onNavigate: (page: Page) => void;
 }
 
-export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavigate, integration=false }: DashboardProps) {
+export function Dashboard({ state, today, userId, onAddAccount, onAddTransaction, onNavigate, integration=false }: DashboardProps) {
   const [selectedMonth, setSelectedMonth] = useState(today.slice(0, 7));
   const period = financialMonthPeriod(`${selectedMonth}-01`);
   const cash = calculateCashTotals(state, period);
@@ -107,7 +108,7 @@ export function Dashboard({ state, today, onAddAccount, onAddTransaction, onNavi
         <p className="form-note">Somente liquidações efetivas entram nestes três indicadores. Previsões, obrigações e regras recorrentes ficam separados abaixo.</p>
       </section>
 
-      <FinanceCharts state={state} month={selectedMonth} />
+      <FinanceCharts key={userId} ownerId={userId} state={state} month={selectedMonth} />
 
       <section className="flow-section" aria-labelledby="forecast-title">
         <div className="section-heading"><div><p className="section-kicker">Próximos 6 meses</p><h2 id="forecast-title">Previsões e compromissos</h2></div></div>
