@@ -77,11 +77,15 @@ test('conta, categoria, despesa, correção e backup sobrevivem à recarga', asy
   await expect(page.getByText('R$ 30,00').first()).toBeVisible();
   await page.screenshot({ path: join(tmpdir(), `atlas-i2-dashboard-${testInfo.project.name}.png`), fullPage: true });
 
+  console.log('[backup-local] before backup navigation');
   await navigate(page, testInfo, 'Backup');
+  console.log('[backup-local] after backup navigation');
   await page.screenshot({ path: join(tmpdir(), `atlas-i2-backup-${testInfo.project.name}.png`), fullPage: false });
+  console.log('[backup-local] before download');
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Baixar backup' }).click();
   const download = await downloadPromise;
+  console.log('[backup-local] after download');
   expect(download.suggestedFilename()).toMatch(/^atlas-financeiro-backup-\d{4}-\d{2}-\d{2}\.json$/);
   expect(errors).toEqual([]);
 });
