@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { activeEventIds, groupMovementHistory } from '../../src/ui/financial-view';
-import type { FinancialEvent } from '../../src/domain';
+import { activeEventIds, groupMovementHistory } from '../src/ui/financial-view';
+import type { FinancialEvent } from '../src/domain';
 
 const owner='11111111-1111-4111-8111-111111111111';
 const account='22222222-2222-4222-8222-222222222222';
@@ -23,7 +23,7 @@ describe('agrupamento visual de movimentações',()=>{
     expect(bolo?.history.map(row=>row.id).sort()).toEqual(['1','2']);
     expect(bolo?.cancelled).toBe(false);
     expect(before).toHaveLength(4); // No financial history is deleted.
-    expect(activeEventIds({events:before} as import('../../src/domain').FinancialDataset)).toEqual(new Set(['3','4']));
+    expect(activeEventIds({events:before} as import('../src/domain').FinancialDataset)).toEqual(new Set(['3','4']));
   });
   it('apresenta estorno final como lançamento cancelado, sem criar reembolso independente',()=>{
     const original=event('10','expense',3000n);
