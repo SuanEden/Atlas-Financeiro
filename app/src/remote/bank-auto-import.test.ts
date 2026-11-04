@@ -121,9 +121,42 @@ describe('automatic Pluggy bank imports',()=>{
         context:{userId,nextId:()=>crypto.randomUUID(),now:()=>new Date().toISOString(),today:()=> '2026-11-04'},
       };
       await expect(syncLinkedBankAccount({itemId,pluggyAccountId:accountId,atlasAccountId,activatedOn:'2026-11-02'},source))
-        .rejects.toThrow('Paginação bancária inconsistente');
+        .rejects.toThrow();
       expect(calls).toBe(0);
     }
+  });
+
+  it('previews every page without writing, then commits idempotently',async()=>{
+    const {previewLinkedBankAccount,commitBankImportPreview}=await import('./bank-auto-import');
+    const state:LocalFinancialState={accounts:[{id:atlasAccountId,userId,name:'Nubank',kind:'digital',availability:'free'}],
+      events:[],categories:[],settlements:[],postings:[],outbox:[]};
+    const source={
+      readPage:async(_account:string,after?:string)=>after
+        ? {results:[row('b','2026-11-03')],next:null}
+        : {results:[row('a','2026-11-03'),row('pending','2026-11-03','PENDING')],next:'https://api.pluggy.ai/v2/transactions?accountId='+accountId+'&after=c%2B1'},
+      readState:async()=>state,
+      execute:async(command:import('../application').LocalCommand)=>{
+        state.events.push(...command.aggregate.events||[]);
+        state.settlements.push(...command.aggregate.settlements||[]);
+        state.postings.push(...command.aggregate.postings||[]);
+      },
+      context:{userId,nextId:()=>crypto.randomUUID(),now:()=>new Date().toISOString(),today:()=> '2026-11-04'},
+    };
+    const link={itemId,pluggyAccountId:accountId,atlasAccountId,activatedOn:'2026-11-02'};
+    const preview=await previewLinkedBankAccount(link,source);
+    expect(preview.pages).toBe(2);
+    expect(preview.received).toBe(3);
+    expect(preview.candidates).toHaveLength(2);
+    expect(state.events).toHaveLength(0);
+    expect(await commitBankImportPreview(link,preview.candidates,source)).toBe(2);
+    expect(await commitBankImportPreview(link,preview.candidates,source)).toBe(0);
+    expect(state.events).toHaveLength(2);
+  });
+  it('rejects forged absolute continuation and never writes',async()=>{
+    const {parseBankContinuation}=await import('./bank-auto-import');
+    expect(()=>parseBankContinuation('https://example.org/v2/transactions?after=a',accountId)).toThrow();
+    expect(parseBankContinuation('?accountId='+accountId+'&pageSize=500&after=a',accountId)).toBe('a');
+    expect(parseBankContinuation('/v2/transactions?after=a',accountId)).toBe('a');
   });
   it('imports only same-day transactions after the confirmed bank snapshot',async()=>{
     const events: string[]=[];
@@ -215,7 +248,7 @@ describe('automatic Pluggy bank imports',()=>{
       readState:async()=>({accounts:[],events:[],categories:[],settlements:[],postings:[],outbox:[]}),
       execute:async()=>{committed++;},
       context:{userId,nextId:()=>atlasAccountId,now:()=>new Date().toISOString(),today:()=> '2026-11-03'},
-    })).rejects.toThrow('Cursor bancário inválido');
+    })).rejects.toThrow('Endereço de paginação não pertence à API autorizada.');
     expect(committed).toBe(0);
   });
 });
