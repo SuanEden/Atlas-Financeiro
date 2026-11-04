@@ -377,7 +377,7 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
     setCharts(current=>{
       const chart=current.find(c=>c.id===id);
       if(!chart)return current;
-      const resized={...chart,widthColumns,heightPx};
+      const resized={...chart,widthColumns,heightPx,size:widthColumns===4?'compact' as const:widthColumns===6?'half' as const:widthColumns===12?'wide' as const:chart.size};
       if(!freeBoard||chart.gridX===undefined||chart.gridY===undefined)return current.map(c=>c.id===id?resized:c);
       const spot=findFreeChartPosition(rectangles(current),id,chart.gridX,chart.gridY,columnsFor(resized,minimumColumns),rowsFor(resized));
       return current.map(c=>c.id===id?{...resized,gridX:spot.x,gridY:spot.y}:c);
