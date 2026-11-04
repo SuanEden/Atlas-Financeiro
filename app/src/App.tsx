@@ -48,7 +48,7 @@ export function App({bankPanel}:{bankPanel?:ReactNode}={}) {
   return <FinancialWorkspace finance={useLocalFinance()} bankPanel={bankPanel} />;
 }
 
-export function FinancialWorkspace({finance,sessionControls,integration=false,exportJson,importJson,serverId,bankPanel}:{finance:ReturnType<typeof useLocalFinance>;sessionControls?:ReactNode;integration?:boolean;exportJson?:()=>Promise<string>;importJson?:(json:string)=>Promise<number>;serverId?:string;bankPanel?:ReactNode}) {
+export function FinancialWorkspace({finance,sessionControls,integration=false,exportJson,importJson,serverId,bankPanel,testMode=false}:{finance:ReturnType<typeof useLocalFinance>;sessionControls?:ReactNode;integration?:boolean;exportJson?:()=>Promise<string>;importJson?:(json:string)=>Promise<number>;serverId?:string;bankPanel?:ReactNode;testMode?:boolean}) {
   const { state, loading, busy, error, clearError, execute, recover, readState, context, userId } = finance;
   const [page, setPage] = useState<Page | 'banks'>('dashboard');
   const [modal, setModal] = useState<Modal>();
@@ -108,11 +108,11 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
       <aside className="sidebar">
         <Brand />
         <nav aria-label="Navegação principal">{[...desktopNavigation, ...(integration || bankPanel !== undefined ? [{page:'banks' as const,label:'Bancos',Icon:Landmark}] : [])].map(({ page: target, label, Icon }) => <button className={page === target ? 'is-active' : ''} key={target} onClick={() => setPage(target)}><Icon size={19} /><span>{label}</span></button>)}</nav>
-        <div className="sidebar-footer"><HardDrive size={17} /><span><strong>{integration ? 'Modo nuvem (com cópia local)' : 'Salvo neste dispositivo'}</strong><small title={integration ? 'As alterações são guardadas localmente antes da confirmação remota. O painel de sincronização informa conexão, falhas e conflitos.' : 'Operações guardadas somente neste navegador; este modo não sincroniza dados financeiros entre dispositivos.'}>{state.outbox.length} pendente{state.outbox.length === 1 ? '' : 's'} · {integration ? 'nuvem habilitada' : 'nuvem desligada'}</small></span></div>
+        <div className="sidebar-footer"><HardDrive size={17} /><span><strong>{testMode ? 'Modo de teste isolado' : integration ? 'Modo nuvem (com cópia local)' : 'Salvo neste dispositivo'}</strong><small title={integration ? 'As alterações são guardadas localmente antes da confirmação remota. O painel de sincronização informa conexão, falhas e conflitos.' : 'Operações guardadas somente neste navegador; este modo não sincroniza dados financeiros entre dispositivos.'}>{state.outbox.length} pendente{state.outbox.length === 1 ? '' : 's'} · {integration ? 'nuvem habilitada' : 'nuvem desligada'}</small></span></div>
       </aside>
 
       <section className="workspace">
-        <header className="topbar"><div className="mobile-brand"><Brand /></div>{page === 'dashboard' ? null : <button className="button button--primary topbar-create" onClick={openTransaction} disabled={state.accounts.length === 0}><Plus size={17} />Novo lançamento</button>}<span className="device-status"><HardDrive size={16} />{integration ? 'Modo nuvem · cópia local' : 'Salvo neste dispositivo'}</span><button className="icon-button" type="button" onClick={toggleTheme} aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'} aria-pressed={dark}>{dark ? <Sun size={19} /> : <Moon size={19} />}</button></header>
+        <header className="topbar"><div className="mobile-brand"><Brand /></div>{page === 'dashboard' ? null : <button className="button button--primary topbar-create" onClick={openTransaction} disabled={state.accounts.length === 0}><Plus size={17} />Novo lançamento</button>}<span className="device-status"><HardDrive size={16} />{testMode ? 'Modo de teste · local' : integration ? 'Modo nuvem · cópia local' : 'Salvo neste dispositivo'}</span><button className="icon-button" type="button" onClick={toggleTheme} aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'} aria-pressed={dark}>{dark ? <Sun size={19} /> : <Moon size={19} />}</button></header>
         {page === 'banks' ? null : sessionControls}
         {error === undefined ? null : <div className="error-banner" role="alert"><span>{error}</span><button onClick={clearError}>Fechar</button></div>}
         <div className="sr-only" role="status">{notice}</div>
@@ -124,7 +124,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
             {page === 'accounts' ? <AccountsView state={state} onAdd={() => setModal({ type: 'account' })} onReconcile={(account) => setModal({ type: 'reconcile', account })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
             {page === 'categories' || page === 'backup' ? <div className="mobile-settings-tabs"><button className={page === 'categories' ? 'is-active' : ''} onClick={() => setPage('categories')}>Categorias</button><button className={page === 'backup' ? 'is-active' : ''} onClick={() => setPage('backup')}>Backup</button></div> : null}
             {page === 'categories' ? <CategoriesView state={state} onAdd={() => setModal({ type: 'category' })} /> : null}
-            {page === 'backup' ? <BackupView integration={integration} {...(serverId?{serverId}:{})} {...(exportJson?{exportJson}:{})} {...(importJson?{importJson}:{})} onRecover={recover} busy={busy} readState={readState} state={state} userId={userId} today={today} /> : null}
+            {page === 'backup' ? <BackupView testMode={testMode} integration={integration} {...(serverId?{serverId}:{})} {...(exportJson?{exportJson}:{})} {...(importJson?{importJson}:{})} onRecover={recover} busy={busy} readState={readState} state={state} userId={userId} today={today} /> : null}
           </>
         )}
       </section>
