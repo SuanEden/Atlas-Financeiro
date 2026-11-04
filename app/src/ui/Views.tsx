@@ -216,7 +216,7 @@ function MovementHistoryArticle({
       <button
         type="button"
         className="movement-history-toggle"
-        title={`Histórico de alterações (${history.length})`}
+        data-tooltip={`Histórico de alterações (${history.length})`}
         aria-label={`Histórico de alterações de ${event.description} (${history.length})`}
         aria-expanded={historyOpen}
         aria-controls={historyId}
@@ -317,7 +317,7 @@ function MovementRow({ event, state, detailed = false, historyControl }: { event
   const account = state.accounts.find((item) => item.id === event.accountId);
   const category = state.categories.find((item) => item.id === event.categoryId);
   const Icon = event.kind === 'income' ? ArrowDownLeft : event.kind === 'expense' ? ArrowUpRight : ArrowLeftRight;
-  return <div className="movement-row"><span className={`movement-icon movement-icon--${event.kind}`}><Icon size={18} /></span><span className="movement-main"><strong>{event.description}</strong><small>{eventLabel(event)} · {account?.name ?? 'Conta'}{category === undefined ? '' : ` · ${category.name}`}{detailed ? ` · ${formatFinancialDate(event.competenceDate)}${event.dueDate === undefined || event.certainty !== 'confirmed' ? '' : ` · Vence ${formatFinancialDate(event.dueDate)}`}` : ''}</small></span><span className="movement-amount-group"><span className={`movement-amount movement-amount--${event.kind}`}>{eventAmountSign(event)}{formatBRL(event.amountCents)}</span>{historyControl}</span><span className={`status-text status-text--${event.status}`}>{eventStatusLabel(event, state.categories.find((category) => category.id === event.categoryId))}</span></div>;
+  return <div className="movement-row"><span className={`movement-icon movement-icon--${event.kind}`}><Icon size={18} /></span><span className="movement-main"><span className="movement-name-line"><strong>{event.description}</strong>{historyControl}</span><small>{eventLabel(event)} · {account?.name ?? 'Conta'}{category === undefined ? '' : ` · ${category.name}`}{detailed ? ` · ${formatFinancialDate(event.competenceDate)}${event.dueDate === undefined || event.certainty !== 'confirmed' ? '' : ` · Vence ${formatFinancialDate(event.dueDate)}`}` : ''}</small></span><span className={`movement-amount movement-amount--${event.kind}`}>{eventAmountSign(event)}{formatBRL(event.amountCents)}</span><span className={`status-text status-text--${event.status}`}>{eventStatusLabel(event, state.categories.find((category) => category.id === event.categoryId))}</span></div>;
 }
 
 function accountBalanceLabel(state: LocalFinancialState, accountId: string): string {
