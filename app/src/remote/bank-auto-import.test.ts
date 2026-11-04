@@ -46,10 +46,10 @@ describe('automatic Pluggy bank imports',()=>{
       accounts:[{id:atlasAccountId,userId,name:'Nubank',kind:'digital',availability:'free'}],
       events:[],categories:[],settlements:[],postings:[],outbox:[],
     };
-    const requests:Array<{accountId:string;after?:string;dateFrom?:string}>=[];
+    const requests:Array<{accountId:string;after?:string;dateFrom?:string;continuation?:string}>=[];
     const source={
-      readPage:async(id:string,after?:string,dateFrom?:string)=>{
-        requests.push({accountId:id,...(after?{after}:{}),...(dateFrom?{dateFrom}:{})});
+      readPage:async(id:string,after?:string,dateFrom?:string,continuation?:string)=>{
+        requests.push({accountId:id,...(after?{after}:{}),...(dateFrom?{dateFrom}:{}),...(continuation?{continuation}:{})});
         return after
           ? {results:[row('second','2026-11-04'),row('first','2026-11-03')],next:null}
           : {results:[row('first','2026-11-03')],next:'?after=opaque%2Bvalue%3D%3D'};
@@ -66,7 +66,7 @@ describe('automatic Pluggy bank imports',()=>{
     expect(await syncLinkedBankAccount(link,source)).toBe(2);
     expect(requests).toEqual([
       {accountId,dateFrom:'2026-11-02'},
-      {accountId,after:'opaque+value==',dateFrom:'2026-11-02'},
+      {accountId,after:'opaque+value==',dateFrom:'2026-11-02',continuation:'?after=opaque%2Bvalue%3D%3D'},
     ]);
     expect(await syncLinkedBankAccount(link,source)).toBe(0);
     expect(state.events).toHaveLength(2);
