@@ -57,7 +57,13 @@ test('conta, categoria, despesa, correção e backup sobrevivem à recarga', asy
   await page.getByRole('button', { name: 'Editar' }).click();
   await page.getByLabel('Valor em reais').fill('20,00');
   await page.getByRole('button', { name: 'Salvar correção' }).click();
-  await expect(page.getByText('Estorno: Compra de teste')).toBeVisible();
+  const correctedPurchase = page.locator('.history-row').filter({ has: page.locator('.movement-main strong').getByText('Compra de teste', { exact: true }) });
+  await expect(correctedPurchase).toHaveCount(1);
+  await expect(correctedPurchase.locator('.movement-amount')).toContainText('R$ 20,00');
+  await expect(correctedPurchase.getByText('Estorno: Compra de teste')).toBeHidden();
+  await correctedPurchase.locator('.movement-history summary').click();
+  await expect(correctedPurchase.getByText('Estorno: Compra de teste')).toBeVisible();
+  await expect(correctedPurchase.locator('.movement-history li')).toHaveCount(2);
 
   await navigate(page, testInfo, 'Início');
   await expect(page.getByText('R$ 30,00').first()).toBeVisible();
