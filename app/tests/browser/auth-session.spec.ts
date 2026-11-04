@@ -45,7 +45,7 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   await expect(page.getByRole('heading',{name:'Nova conta'})).toHaveCount(0);
   await page.evaluate(async()=>{const path='/tests/auth-browser-entry.tsx';await (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).expireAndDisconnect();});
   await expandCloudControls(page);
-  await expect(page.getByText('Acesso offline',{exact:true})).toBeVisible();
+  await expect(page.getByRole('region',{name:'Sincronização'}).getByText('Acesso offline',{exact:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'Sincronizar agora'})).toBeDisabled();
   await page.reload();await expect(page.getByRole('heading',{name:'Visão geral'})).toBeVisible();
   await expect(page.getByText('Conta sintética de sessão',{exact:true})).toBeVisible();
