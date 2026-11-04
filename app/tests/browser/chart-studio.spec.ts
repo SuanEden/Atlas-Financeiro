@@ -21,7 +21,7 @@ test('painel de gráficos permite criar, configurar, organizar, persistir e excl
   await expect(page.locator('.chart-studio-card--compact').getByRole('heading', { name: 'Análise personalizada' })).toBeVisible();
 
   await expect(page.getByRole('button', { name: 'Tamanho de Análise personalizada' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Editar gráficos', exact:true }).click();
+  await page.getByRole('button', { name: 'Organizar', exact:true }).click();
   // Chart actions only appear in the dedicated edit mode.
   await page.getByRole('button', { name: 'Tamanho de Análise personalizada' }).click();
   const card = page.locator('.chart-studio-card').filter({ has: page.getByRole('heading', { name: 'Análise personalizada' }) });
@@ -34,15 +34,14 @@ test('painel de gráficos permite criar, configurar, organizar, persistir e excl
   const resized = page.locator('.chart-studio-card').filter({ has: page.getByRole('heading', { name: 'Análise personalizada' }) });
   await expect(resized).toHaveCSS('min-height', '540px');
 
-  await page.getByRole('button', { name: 'Concluir edição dos gráficos' }).click();
-  await page.getByRole('button', { name: 'Organizar' }).click();
+  await page.getByRole('button', { name: 'Organizar', exact:true }).click();
   await page.getByRole('button', { name: 'Mover Análise personalizada para antes' }).click();
   await page.getByRole('button', { name: 'Concluir' }).click();
   await page.reload();
   await expect(page.locator('.chart-studio-card')).toHaveCount(4);
   await expect(page.locator('.chart-studio-card--wide').getByRole('heading', { name: 'Análise personalizada' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Editar gráficos', exact:true }).click();
+  await page.getByRole('button', { name: 'Organizar', exact:true }).click();
   await page.getByRole('button', { name: 'Editar Análise personalizada' }).click();
   await page.getByRole('dialog').getByLabel('Visualização').selectOption('donut');
   await expect(page.getByRole('dialog').locator('.chart-field select').nth(2)).toHaveValue('expense');
@@ -51,7 +50,7 @@ test('painel de gráficos permite criar, configurar, organizar, persistir e excl
   await expect(page.locator('.chart-studio-card')).toHaveCount(4);
 
   page.once('dialog', (dialog) => dialog.accept());
-  await page.getByRole('button', { name: 'Editar gráficos', exact:true }).click();
+  await page.getByRole('button', { name: 'Organizar', exact:true }).click();
   await page.getByRole('button', { name: 'Excluir Análise personalizada' }).click();
   await expect(page.locator('.chart-studio-card')).toHaveCount(3);
   await page.reload();
@@ -65,7 +64,7 @@ test('gráficos compactos se adaptam ao espaço sem quebrar títulos e legendas'
   await page.setViewportSize({ width: 920, height: 900 });
   await page.goto('/');
   const card = page.locator('.chart-studio-card').filter({ has: page.getByRole('heading', { name: 'Despesas pagas por categoria' }) });
-  await page.getByRole('button', { name: 'Editar gráficos', exact:true }).click();
+  await page.getByRole('button', { name: 'Organizar', exact:true }).click();
   await card.getByRole('button', { name: 'Tamanho de Despesas pagas por categoria' }).click();
   await card.getByRole('button', { name: 'Largura Compacto' }).click();
   await expect(card).toBeVisible();
@@ -90,7 +89,7 @@ test('grade pontilhada aparece somente enquanto arrasta ou redimensiona', async 
   await page.goto('/');
   const grid = page.locator('.chart-studio-grid');
   await expect(page.getByRole('button', { name: 'Arraste para redimensionar Entradas e saídas realizadas' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Editar gráficos', exact:true }).click();
+  await page.getByRole('button', { name: 'Organizar', exact:true }).click();
   const resize = page.getByRole('button', { name: 'Arraste para redimensionar Entradas e saídas realizadas' });
   await expect(grid).not.toHaveClass(/chart-studio-grid--guides/);
   const bounds = await resize.boundingBox();
@@ -101,7 +100,8 @@ test('grade pontilhada aparece somente enquanto arrasta ou redimensiona', async 
   await expect(page.getByText('Bolinhas: espaço disponível para ampliar o gráfico')).toBeVisible();
   await page.mouse.up();
   await expect(grid).not.toHaveClass(/chart-studio-grid--guides/);
-  await page.getByRole('button', { name: 'Organizar' }).click();
+  await page.getByRole('button', { name: 'Concluir', exact:true }).click();
+  await page.getByRole('button', { name: 'Organizar', exact:true }).click();
   const handle = page.locator('.chart-drag-handle').first();
   await handle.evaluate(element => element.dispatchEvent(new DragEvent('dragstart', { bubbles:true, dataTransfer:new DataTransfer() })));
   await expect(grid).toHaveClass(/chart-studio-grid--guides/);
