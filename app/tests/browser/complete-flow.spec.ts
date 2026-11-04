@@ -82,8 +82,15 @@ test('receitas, previsões, realização, estorno, exportação e reabertura pre
     await page.getByRole('button', { name: 'Estornar lançamento', exact: true }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
   }
-  await expect(page.getByText('Estorno: Despesa sintética', { exact: true })).toBeVisible();
-  await expect(page.getByText('Cancelamento: Receita prevista sintética', { exact: true })).toBeVisible();
+  // Correções e estornos ficam recolhidos no lançamento principal, não como linhas avulsas.
+  const reversedExpense = page.locator('.history-row').filter({ has: page.locator('.movement-main strong').getByText('Despesa sintética', { exact: true }) });
+  await expect(reversedExpense).toHaveCount(1);
+  await reversedExpense.locator('.movement-history summary').click();
+  await expect(reversedExpense.getByText('Estorno: Despesa sintética', { exact: true })).toBeVisible();
+  const cancelledIncome = page.locator('.history-row').filter({ has: page.locator('.movement-main strong').getByText('Receita prevista sintética', { exact: true }) });
+  await expect(cancelledIncome).toHaveCount(1);
+  await cancelledIncome.locator('.movement-history summary').click();
+  await expect(cancelledIncome.getByText('Cancelamento: Receita prevista sintética', { exact: true })).toBeVisible();
   await page.screenshot({ path: join(tmpdir(), `atlas-i2-history-${info.project.name}.png`), fullPage: true });
   await navigate(page, 'Início');
   await expect(page.getByLabel('Resumo dos saldos')).toContainText('R$ 87,00');
@@ -106,7 +113,9 @@ test('receitas, previsões, realização, estorno, exportação e reabertura pre
   expect(await reopened.evaluate(() => localStorage.getItem('atlas-financeiro:local-owner:v1'))).toBe(savedOwner);
   await navigate(reopened, 'Movimentações');
   await expect(reopened.getByText('10 operações locais pendentes', { exact: true })).toBeVisible();
-  await expect(reopened.locator('.history-row')).toHaveCount(9);
+  // Cinco grupos visuais; os nove eventos permanecem íntegros no backup.
+  await expect(reopened.locator('.history-row')).toHaveCount(5);
+  await expect(reopened.locator('.movement-history')).toHaveCount(4);
   const otherTab = await context.newPage();
   await otherTab.goto('/');
   await navigate(otherTab, 'Contas');
