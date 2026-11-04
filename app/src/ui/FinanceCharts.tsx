@@ -294,7 +294,7 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
   const [gridWidth, setGridWidth] = useState(0);
   const [sizeMenu, setSizeMenu] = useState<string | null>(null);
   const resizeRef = useRef<{ id: string; startX: number; startY: number; columns: number; height: number; columnWidth: number; desktop: boolean } | null>(null);
-  const moveRef = useRef<{ id:string; startX:number; startY:number; x:number; y:number } | null>(null);
+  const moveRef = useRef<{ id:string; startX:number; startY:number; x:number; y:number; targetX:number; targetY:number } | null>(null);
   const [dragPreview,setDragPreview] = useState<{id:string;x:number;y:number}|null>(null);
   const [desktop,setDesktop] = useState(()=>typeof window!=='undefined'&&window.innerWidth>780);
   // A narrow dashboard must not put editable controls and legends into 200px cards.
@@ -343,7 +343,7 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
   };
   const moveStart=(event:ReactPointerEvent<HTMLButtonElement>,chart:ChartConfig)=>{
     if(!organizing||!freeBoard||event.button!==0)return;
-    moveRef.current={id:chart.id,startX:event.clientX,startY:event.clientY,x:chart.gridX??0,y:chart.gridY??0};
+    moveRef.current={id:chart.id,startX:event.clientX,startY:event.clientY,x:chart.gridX??0,y:chart.gridY??0,targetX:chart.gridX??0,targetY:chart.gridY??0};
     setDragId(chart.id);setDragPreview({id:chart.id,x:chart.gridX??0,y:chart.gridY??0});
     event.currentTarget.setPointerCapture(event.pointerId);
     event.preventDefault();
@@ -356,12 +356,13 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
     const desiredX=origin.x+Math.round((event.clientX-origin.startX)/(gridWidth/BOARD_COLUMNS));
     const desiredY=origin.y+Math.round((event.clientY-origin.startY)/BOARD_ROW);
     const spot=findFreeChartPosition(rectangles(charts),origin.id,desiredX,desiredY,columnsFor(chart,minimumColumns),rowsFor(chart));
+    moveRef.current={...origin,targetX:spot.x,targetY:spot.y};
     setDragPreview({id:origin.id,...spot});
   };
   const moveEnd=()=>{
-    const preview=dragPreview,origin=moveRef.current;
-    if(origin&&preview&&origin.id===preview.id)
-      setCharts(current=>current.map(chart=>chart.id===origin.id?{...chart,gridX:preview.x,gridY:preview.y}:chart));
+    const origin=moveRef.current;
+    if(origin)
+      setCharts(current=>current.map(chart=>chart.id===origin.id?{...chart,gridX:origin.targetX,gridY:origin.targetY}:chart));
     moveRef.current=null;setDragPreview(null);setDragId(null);
   };
   const shiftChart=(id:string,dx:number,dy:number)=>{
