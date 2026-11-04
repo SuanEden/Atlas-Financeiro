@@ -445,3 +445,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .backup-tool-grid { grid-template-columns: 1fr; }
   .backup-primary { padding: 18px; }
 }
+
+.backup-test-action { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; border:1px solid var(--line); border-radius:12px; padding:18px; background:var(--surface); max-width:960px; }
+.backup-test-action span { color:var(--muted); font-size:.86rem; }
+.backup-test-action .button { text-decoration:none; }
+.backup-tool-card > .backup-unified-import { max-width:620px; }
+.test-environment-banner { position:relative; z-index:3; display:flex; justify-content:center; align-items:center; gap:16px; flex-wrap:wrap; padding:10px 16px; background:#fdf3cf; color:#503f1b; font-size:.82rem; border-bottom:1px solid #d8b766; }
+.test-environment-banner a { color:#503f1b; font-weight:700; }
+.test-environment > .app-shell { min-height:calc(100dvh - 56px); }
+@media (max-width:760px) { .test-environment-banner { align-items:flex-start; flex-direction:column; gap:6px; } }
