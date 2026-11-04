@@ -86,12 +86,12 @@ test('receitas, previsões, realização, estorno, exportação e reabertura pre
   const reversedExpense = page.locator('.history-row').filter({ has: page.locator('.movement-main strong').getByText('Despesa sintética', { exact: true }) });
   await expect(reversedExpense).toHaveCount(1);
   await reversedExpense.locator('.movement-history summary').click();
-  await expect(reversedExpense.getByText('Estorno: Despesa sintética', { exact: true })).toBeVisible();
+  await expect(reversedExpense.locator('.movement-history li').filter({ hasText: 'Estorno: Despesa sintética' })).toBeVisible();
   const cancelledIncome = page.locator('.history-row').filter({ has: page.locator('.movement-main strong').getByText('Cancelamento: Receita prevista sintética', { exact: true }) });
   await expect(cancelledIncome).toHaveCount(1);
   await expect(cancelledIncome).toContainText('Estornado ou cancelado');
   await cancelledIncome.locator('.movement-history summary').click();
-  await expect(cancelledIncome.getByText('Receita prevista sintética', { exact: true })).toBeVisible();
+  await expect(cancelledIncome.locator('.movement-history li').filter({ hasText: 'Receita prevista sintética' })).toBeVisible();
   await page.screenshot({ path: join(tmpdir(), `atlas-i2-history-${info.project.name}.png`), fullPage: true });
   await navigate(page, 'Início');
   await expect(page.getByLabel('Resumo dos saldos')).toContainText('R$ 87,00');
