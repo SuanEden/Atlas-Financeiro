@@ -84,7 +84,7 @@ describe('automatic Pluggy bank imports',()=>{
     ]){
       let calls=0;
       const source={
-        readPage:async(_id:string,after?:string)=>({
+        readPage:async(_id:string,_after?:string)=>({
           results:[row('first','2026-11-03')],
           next,
         }),
