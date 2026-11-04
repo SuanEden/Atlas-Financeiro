@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { AlertTriangle, ArrowRight, CheckCircle2, Landmark, LoaderCircle, RefreshCw } from 'lucide-react';
 import type { CommandContext, LocalCommand } from '../application';
 import type { LocalFinancialState } from '../domain';
-import { commitBankImportPreview, previewLinkedBankAccount, type BankImportPreview, type BankLink } from './bank-auto-import';
+import { classifyBankImportCandidates, commitBankImportPreview, previewLinkedBankAccount, type BankImportPreflight, type BankImportPreview, type BankLink } from './bank-auto-import';
 
 type BankReader = { readBank(resource:'item'|'accounts'|'transactions',id?:string,after?:string,dateFrom?:string):Promise<unknown> };
 export type CloudBankImport = {
@@ -35,7 +35,7 @@ function thirtyDaysAgo(today:string):string{
   return date.toISOString().slice(0,10);
 }
 const money=(amount:number)=>amount.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-type Review={preview:BankImportPreview;link:BankLink;accountName:string;period:string};
+type Review={preview:BankImportPreview;preflight:BankImportPreflight;link:BankLink;accountName:string;period:string};
 export function PluggyReadPanel({controller,importTarget}:{controller:BankReader;importTarget?:CloudBankImport}){
   const [item,setItem]=useState<{id:string;name:string;status:string}|null>(null);
   const [accounts,setAccounts]=useState<BankRow[]>([]);
@@ -93,7 +93,9 @@ export function PluggyReadPanel({controller,importTarget}:{controller:BankReader
         readState:importTarget.readState,execute:importTarget.execute,context:importTarget.context,
         onProgress:(pages,total)=>setProgress('Consultando página '+pages+' · '+total+' movimentações verificadas'),
       });
-      setReview({link,preview,accountName:importTarget.accounts.find(account=>account.id===mapping)!.name,period:fromDate});
+      const current=await importTarget.readState();
+      const preflight=await classifyBankImportCandidates(preview.candidates,current,mapping,importTarget.context.userId);
+      setReview({link,preview,preflight,accountName:importTarget.accounts.find(account=>account.id===mapping)!.name,period:fromDate});
       setProgress('');
     });
   }
@@ -110,7 +112,7 @@ export function PluggyReadPanel({controller,importTarget}:{controller:BankReader
       setReview(null);setConfirmed(false);
       setNotice(count
         ? count+' movimentação(ões) salva(s) na base local do Atlas. Confira a aba Movimentações e o status da nuvem.'
-        : 'Nenhuma nova movimentação foi gravada: os identificadores já estavam importados ou não havia operações elegíveis.');
+        : 'Nenhuma nova movimentação foi gravada. Todas as transações elegíveis já constam na base ou o registro não pôde ser realizado. Confira o histórico da conta.' );
     });
   }
   const selectedBankAccount=accounts.find(a=>a.id===selected);
@@ -139,10 +141,13 @@ export function PluggyReadPanel({controller,importTarget}:{controller:BankReader
         {busy==='review'?<p role="status"><LoaderCircle size={16} className="bank-import-loading"/> {progress||'Consultando extrato completo…'}</p>:null}
         {review?<div className="bank-import-review" role="region" aria-label="Conferência da importação">
           <h3><CheckCircle2 size={19} aria-hidden="true"/> Extrato conferido</h3>
-          <div className="bank-import-summary"><div><strong>{review.preview.pages}</strong><span>Páginas verificadas</span></div><div><strong>{review.preview.received}</strong><span>Movimentações consultadas</span></div><div><strong>{review.preview.candidates.length}</strong><span>Elegíveis no período</span></div></div>
+          <div className="bank-import-summary"><div><strong>{review.preview.pages}</strong><span>Páginas verificadas</span></div><div><strong>{review.preview.received}</strong><span>Movimentações consultadas</span></div><div><strong>{review.preflight.newCount}</strong><span>Novas para importar</span></div></div>
           <p>Destino: <strong>{review.accountName}</strong> · Desde: <strong>{review.period}</strong>. Isso ainda não registrou movimentações.</p>
+          <p className="bank-import-preflight">Das {review.preview.candidates.length} movimentações elegíveis: <strong>{review.preflight.newCount} novas</strong>, {review.preflight.existingInDestination} já importadas nesta conta e {review.preflight.existingInOtherAccount} já importadas em outra conta.</p>
+          {review.preflight.existingInOtherAccount>0?<p role="alert" className="bank-import-caution"><AlertTriangle size={17} aria-hidden="true"/> Algumas movimentações já estão vinculadas a {review.preflight.otherAccountNames.join(', ')}. O Atlas não as duplicará nesta conta. Confira em Movimentações antes de qualquer ajuste.</p>:null}
+          {review.preflight.newCount===0?<p role="status"><CheckCircle2 size={17} aria-hidden="true"/> Não há lançamentos novos neste extrato. Você pode conferir os registros já importados em Movimentações, na conta de destino e no período selecionado.</p>:null}
           <label className="bank-import-consent"><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/> Conferi a conta, a data e o saldo inicial. Autorizo gravar essas movimentações na minha base.</label>
-          <button type="button" className="button button--primary" disabled={!confirmed||!importTarget.canWrite||!!busy||review.preview.candidates.length===0} onClick={()=>void commit()}>{busy==='commit'?'Gravando…':'Importar '+review.preview.candidates.length+' movimentação(ões) para o Atlas'}</button>
+          <button type="button" className="button button--primary" disabled={!confirmed||!importTarget.canWrite||!!busy||review.preflight.newCount===0} onClick={()=>void commit()}>{busy==='commit'?'Gravando…':'Importar '+review.preflight.newCount+' nova(s) movimentação(ões)'}</button>
           {!importTarget.canWrite?<p role="alert">A nuvem não autorizou novas gravações nesta sessão; confira o acesso.</p>:null}
         </div>:null}
       </div>:<p>Este ambiente permite apenas consulta. A importação exige uma base financeira associada.</p>}
