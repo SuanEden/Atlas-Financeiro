@@ -253,8 +253,22 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
   const [organizing, setOrganizing] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [storageError, setStorageError] = useState(false);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [gridWidth, setGridWidth] = useState(0);
   const [sizeMenu, setSizeMenu] = useState<string | null>(null);
   const resizeRef = useRef<{ id: string; startX: number; startY: number; columns: number; height: number; columnWidth: number; desktop: boolean } | null>(null);
+  // A narrow dashboard must not put editable controls and legends into 200px cards.
+  // Width overrides remain stored unchanged; the visible width is clamped to fit.
+  const minimumColumns = gridWidth > 0 ? Math.min(12, Math.max(3, Math.ceil(12 * (330 + 16) / (gridWidth + 16)))) : 6;
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const update = () => setGridWidth(grid.getBoundingClientRect().width);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(grid);
+    return () => observer.disconnect();
+  }, [charts.length === 0]);
   useEffect(() => {
     try { localStorage.setItem(storageKey, JSON.stringify({ version: 1, charts })); setStorageError(false); }
     catch { setStorageError(true); }
@@ -277,7 +291,7 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
     const columnWidth = (grid.clientWidth + gap) / 12;
     resizeRef.current = {
       id: chart.id, startX: event.clientX, startY: event.clientY,
-      columns: chart.widthColumns ?? ({ compact: 4, half: 6, wide: 12 } as const)[chart.size],
+      columns: Math.max(minimumColumns, chart.widthColumns ?? ({ compact: 4, half: 6, wide: 12 } as const)[chart.size]),
       height: chart.heightPx ?? Math.max(250, Math.round(card.getBoundingClientRect().height)),
       columnWidth, desktop,
     };
@@ -287,7 +301,7 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
   const resizeMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
     const origin = resizeRef.current;
     if (!origin) return;
-    const widthColumns = origin.desktop ? Math.max(3, Math.min(12, Math.round(origin.columns + (event.clientX - origin.startX) / origin.columnWidth))) : origin.columns;
+    const widthColumns = origin.desktop ? Math.max(minimumColumns, Math.min(12, Math.round(origin.columns + (event.clientX - origin.startX) / origin.columnWidth))) : origin.columns;
     const heightPx = Math.max(250, Math.min(800, Math.round((origin.height + event.clientY - origin.startY) / 20) * 20));
     resizeChart(origin.id, widthColumns, heightPx);
   };
@@ -308,10 +322,12 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
     </div>
     {organizing ? <p className="chart-organize-help" role="status">Arraste pela alça para mudar a ordem, ajuste a largura e a altura pelo canto inferior direito ou use o botão Tamanho de cada gráfico.</p> : null}
     {storageError ? <p className="chart-storage-warning" role="alert">Não foi possível salvar o layout neste navegador. Verifique o armazenamento disponível.</p> : null}
-    {charts.length === 0 ? <div className="chart-empty-board"><BarChart3 size={34} /><h3>Seu painel está pronto para começar</h3><p>Crie seu primeiro gráfico para visualizar os dados que importam.</p><button className="button button--primary" onClick={create}><Plus size={17} />Criar gráfico</button><button className="text-button" onClick={() => setCharts(defaultCharts())}>Restaurar gráficos sugeridos</button></div> : <div className="finance-chart-grid chart-studio-grid">
+    {charts.length === 0 ? <div className="chart-empty-board"><BarChart3 size={34} /><h3>Seu painel está pronto para começar</h3><p>Crie seu primeiro gráfico para visualizar os dados que importam.</p><button className="button button--primary" onClick={create}><Plus size={17} />Criar gráfico</button><button className="text-button" onClick={() => setCharts(defaultCharts())}>Restaurar gráficos sugeridos</button></div> : <div ref={gridRef} className="finance-chart-grid chart-studio-grid">
       {charts.map((chart, index) => {
         const rows = buildChartRows(state, month, chart);
-        return <article key={chart.id} style={{ ...(chart.widthColumns ? { gridColumn: `span ${chart.widthColumns}` } : {}), ...(chart.heightPx ? { minHeight: chart.heightPx } : {}) }} className={'finance-chart-card chart-studio-card chart-studio-card--' + chart.size + (dragId === chart.id ? ' chart-studio-card--dragging' : '')} onDragOver={organizing ? (event) => event.preventDefault() : undefined} onDrop={organizing ? (event) => { event.preventDefault(); if (dragId) move(dragId, index); setDragId(null); } : undefined}>
+        const requestedColumns = chart.widthColumns ?? ({compact:4,half:6,wide:12} as const)[chart.size];
+        const visibleColumns = Math.max(minimumColumns, requestedColumns);
+        return <article key={chart.id} style={{ gridColumn: `span ${visibleColumns}`, ...(chart.heightPx ? { minHeight: chart.heightPx } : {}) }} className={'finance-chart-card chart-studio-card chart-studio-card--' + chart.size + (dragId === chart.id ? ' chart-studio-card--dragging' : '')} onDragOver={organizing ? (event) => event.preventDefault() : undefined} onDrop={organizing ? (event) => { event.preventDefault(); if (dragId) move(dragId, index); setDragId(null); } : undefined}>
           <div className="chart-card-heading"><div className="chart-card-title"><h3>{chart.title}</h3><p>{chart.source === 'realized' ? 'Realizado' : 'Previsto'} · {chart.months === 1 ? '1 mês' : chart.months + ' meses'} · por {dimensionLabel[chart.dimension].toLocaleLowerCase('pt-BR')}</p></div><div className="chart-card-actions">
             {organizing ? <><span className="chart-drag-handle" draggable onDragStart={(event) => { setDragId(chart.id); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', chart.id); }} onDragEnd={() => setDragId(null)} title="Arrastar gráfico" aria-label="Arrastar gráfico"><GripVertical size={18} /></span><button type="button" onClick={() => move(chart.id, index - 1)} disabled={index === 0} title="Mover para cima ou esquerda" aria-label={'Mover ' + chart.title + ' para antes'}><ArrowLeft size={17} /><ArrowUp className="chart-move-mobile" size={17} /></button><button type="button" onClick={() => move(chart.id, index + 1)} disabled={index === charts.length - 1} title="Mover para baixo ou direita" aria-label={'Mover ' + chart.title + ' para depois'}><ArrowRight size={17} /><ArrowDown className="chart-move-mobile" size={17} /></button></> : null}
             <button type="button" className="chart-size-toggle" onClick={() => setSizeMenu(sizeMenu === chart.id ? null : chart.id)} aria-label={'Tamanho de ' + chart.title} aria-expanded={sizeMenu === chart.id} title="Alterar tamanho"><Maximize2 size={16} /><span>Tamanho</span></button>
@@ -321,6 +337,7 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
           {sizeMenu === chart.id ? <div className="chart-size-panel" aria-label={'Ajustar tamanho de ' + chart.title}>
             <div><strong>Largura</strong><div className="chart-size-options">{([['compact', 'P'], ['half', 'M'], ['wide', 'G']] as const).map(([size, label]) => <button key={size} type="button" className={(chart.widthColumns ?? ({compact:4,half:6,wide:12} as const)[chart.size]) === ({compact:4,half:6,wide:12} as const)[size] ? 'is-selected' : ''} onClick={() => setCharts((current) => current.map((item) => item.id === chart.id ? { ...item, size, widthColumns: ({compact:4,half:6,wide:12} as const)[size] } : item))} aria-label={'Largura ' + sizeLabel[size]}>{label}</button>)}</div></div>
             <div><strong>Altura</strong><div className="chart-size-options">{([['Baixo', 280], ['Médio', 380], ['Alto', 540]] as const).map(([label, height]) => <button key={height} type="button" className={chart.heightPx === height ? 'is-selected' : ''} onClick={() => setCharts((current) => current.map((item) => item.id === chart.id ? { ...item, heightPx: height } : item))}>{label}</button>)}</div></div>
+            {requestedColumns < minimumColumns ? <span className="chart-size-limit">A largura mínima é ajustada automaticamente para não cortar o gráfico.</span> : null}
             <button type="button" className="chart-size-close" onClick={() => setSizeMenu(null)} aria-label="Fechar opções de tamanho">Concluir</button>
           </div> : null}
           <div className="chart-visual-frame"><ChartVisual rows={rows} config={chart} /></div>
