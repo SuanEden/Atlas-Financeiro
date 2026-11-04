@@ -594,3 +594,32 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .chart-size-panel { align-items:flex-start; }
   .chart-resize-handle { cursor:ns-resize; }
 }
+
+
+/* Card-aware chart sizing: avoid narrow columns, split titles and vertical legends. */
+.chart-studio-grid { min-width:0; }
+.chart-studio-grid > .chart-studio-card { container-type:inline-size; min-width:0; overflow:hidden; }
+.chart-studio-card .chart-card-heading { min-width:0; }
+.chart-studio-card .chart-card-title { flex:1 1 auto; min-width:0; }
+.chart-studio-card .chart-card-title h3 { overflow-wrap:break-word; word-break:normal; hyphens:none; }
+.chart-studio-card .chart-card-title p { overflow-wrap:normal; word-break:normal; }
+.chart-studio-card .chart-card-actions { flex:0 0 auto; }
+.chart-studio-card .chart-pie-layout .finance-category-legend { min-width:0; max-width:100%; }
+.chart-studio-card .finance-category-legend > div { min-width:0; grid-template-columns:11px minmax(0,1fr) max-content; }
+.chart-studio-card .finance-category-legend span { overflow-wrap:break-word; word-break:normal; }
+.chart-studio-card .finance-category-legend strong { white-space:nowrap; text-align:right; }
+.chart-studio-card .chart-pie-layout .finance-donut { width:min(210px,100%); max-width:100%; }
+.chart-studio-card .chart-size-limit { display:block; width:100%; color:var(--muted); font-size:.75rem; line-height:1.5; }
+@container (max-width: 490px) {
+  .chart-studio-card .chart-card-heading { flex-direction:column; align-items:stretch; gap:9px; }
+  .chart-studio-card .chart-card-actions { justify-content:flex-end; flex-wrap:wrap; }
+  .chart-studio-card .chart-pie-layout { flex-direction:column; flex-wrap:nowrap; gap:18px; }
+  .chart-studio-card .chart-pie-layout .finance-category-legend { flex-basis:auto; width:100%; }
+  .chart-studio-card .chart-visual-frame { min-height:0; }
+  .chart-studio-card .chart-size-panel { padding:10px; gap:10px; }
+  .chart-studio-card .chart-size-panel > div { width:100%; justify-content:space-between; }
+}
+@media (max-width:760px) {
+  .chart-studio-card .chart-card-actions button.chart-size-toggle { margin-right:auto; }
+  .chart-studio-card .chart-pie-layout .finance-donut { width:min(210px,70vw); }
+}
