@@ -460,3 +460,30 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .movement-history-toggle::after { left: auto; right: calc(100% + 7px); max-width: min(195px, 52vw); white-space: normal; }
   .movement-name-line { width: fit-content; max-width: 100%; }
 }
+
+/* Single cloud status panel: desktop sidebar and compact mobile disclosure. */
+.sidebar-cloud-controls { margin-top: auto; padding: 18px 4px 0; border-top: 1px solid var(--line); }
+.cloud-control-card { min-width: 0; border-radius: 12px; background: var(--subtle); border: 1px solid var(--line); padding: 13px; color: var(--ink); }
+.cloud-control-heading { display: flex; gap: 10px; align-items: center; }
+.cloud-control-mark { flex: 0 0 auto; display: grid; place-items: center; width: 33px; height: 33px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-dark); font-size: 20px; }
+.cloud-control-heading h2 { margin: 0; font-size: .84rem; letter-spacing: -.015em; }
+.cloud-control-heading p { margin: 3px 0 0; color: var(--muted); font-size: .69rem; }
+.cloud-control-state { display: flex; gap: 7px; align-items: center; margin-top: 15px; font-size: .83rem; }
+.cloud-control-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--positive); flex: 0 0 auto; }
+.cloud-control-state[data-status="pending"] .cloud-control-dot { background: #d29b36; }
+.cloud-control-state[data-status="offline"] .cloud-control-dot { background: var(--muted); }
+.cloud-control-description { margin: 5px 0 0; color: var(--muted); font-size: .72rem; line-height: 1.45; overflow-wrap: anywhere; }
+.cloud-control-pending { margin: 8px 0 0; font-size: .72rem; color: var(--muted); }
+.cloud-control-actions { display: grid; grid-template-columns: 1fr; gap: 6px; padding-top: 12px; margin-top: 12px; border-top: 1px solid var(--line); }
+.cloud-control-actions .button { width: 100%; min-height: 36px; padding: 6px 8px; font-size: .75rem; }
+.cloud-control-actions .text-button { width: 100%; text-align: center; min-height: 30px; font-size: .73rem; padding: 5px 4px; }
+.cloud-control-card .sync-conflicts { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+.cloud-control-card .sync-conflicts h2 { margin: 0; font-size: .8rem; }
+.cloud-control-card .sync-conflicts p, .cloud-control-card .sync-conflicts details { font-size: .72rem; overflow-wrap: anywhere; }
+.mobile-cloud-controls { display: none; }
+@media (max-width:760px) {
+  .mobile-cloud-controls { display: block; margin: 12px 18px 0; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+  .mobile-cloud-controls > summary { cursor: pointer; padding: 12px 14px; font-size: .83rem; font-weight: 700; color: var(--ink); }
+  .mobile-cloud-controls > summary span { color: var(--muted); font-size: .72rem; font-weight: 400; }
+  .mobile-cloud-controls > .cloud-control-card { margin: 0 8px 8px; background: var(--subtle); }
+}
