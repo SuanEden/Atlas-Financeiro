@@ -10,10 +10,11 @@ const EMPTY_STATE: LocalFinancialState = {
 };
 
 type Runtime = ReturnType<typeof createRuntime>;
-let runtime: Runtime | undefined;
+const runtimes: Partial<Record<'normal' | 'test', Runtime>> = {};
+export const TEST_OWNER_KEY = 'atlas-financeiro:test-owner:v1';
 
-function createRuntime() {
-  const userId = getOrCreateLocalOwnerId();
+function createRuntime(mode: 'normal' | 'test') {
+  const userId = mode === 'test' ? getOrCreateTestOwner() : getOrCreateLocalOwnerId();
   return {
     userId,
     store: createLocalFinancialStore(userId),
@@ -21,13 +22,20 @@ function createRuntime() {
   };
 }
 
-function getRuntime(): Runtime {
-  runtime ??= createRuntime();
-  return runtime;
+function getOrCreateTestOwner(): string {
+  const existing = localStorage.getItem(TEST_OWNER_KEY);
+  if (existing && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(existing)) return existing;
+  const owner = crypto.randomUUID();
+  localStorage.setItem(TEST_OWNER_KEY, owner);
+  return owner;
 }
 
-export function useLocalFinance() {
-  const [local] = useState(getRuntime);
+function getRuntime(mode: 'normal' | 'test'): Runtime {
+  return runtimes[mode] ??= createRuntime(mode);
+}
+
+export function useLocalFinance(mode: 'normal' | 'test' = 'normal') {
+  const [local] = useState(() => getRuntime(mode));
   const [state, setState] = useState<LocalFinancialState>(EMPTY_STATE);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -55,7 +63,7 @@ export function useLocalFinance() {
     setError(undefined);
     try {
       await withLocalWriteLock(async () => {
-        if (localStorage.getItem(LOCAL_OWNER_KEY) !== local.userId) throw new Error('A base ativa mudou em outra aba. Recarregue antes de salvar.');
+        if (localStorage.getItem(mode === 'test' ? TEST_OWNER_KEY : LOCAL_OWNER_KEY) !== local.userId) throw new Error('A base ativa mudou em outra aba. Recarregue antes de salvar.');
         await local.store.commitOperation(command.aggregate, command.operation);
       });
       await refresh();
@@ -67,9 +75,10 @@ export function useLocalFinance() {
       executing.current = false;
       setBusy(false);
     }
-  }, [local, refresh]);
+  }, [local, refresh, mode]);
 
   const recover = async (json: string) => {
+    if (mode === 'test') throw new Error('Para preservar o isolamento, o ambiente de teste não permite recuperar cópias de outra base. Crie lançamentos de teste diretamente neste ambiente.');
     if (executing.current) throw new Error('Aguarde a operação em andamento.');
     executing.current = true;
     setBusy(true);
