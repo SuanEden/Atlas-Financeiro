@@ -1,93 +1,295 @@
-import { calculateCashTotals, calculateFinancialForecast, formatBRL, type LocalFinancialState } from '../domain';
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BarChart3, GripVertical, Pencil, Plus, RotateCcw, Trash2, X } from 'lucide-react';
+import { calculateFinancialForecast, formatBRL, type LocalFinancialState } from '../domain';
+import { DialogFrame } from './Forms';
 
-function monthAt(month: string, offset: number): string {
-  const year = Number(month.slice(0, 4));
-  const monthNumber = Number(month.slice(5, 7));
-  const date = new Date(Date.UTC(year, monthNumber - 1 + offset, 1));
+export type ChartType = 'bar' | 'line' | 'area' | 'donut' | 'pie';
+export type ChartSource = 'realized' | 'forecast';
+export type ChartMeasure = 'income' | 'expense' | 'both' | 'net';
+export type ChartDimension = 'month' | 'category' | 'account';
+export type ChartSize = 'compact' | 'half' | 'wide';
+export type ChartMonths = 1 | 3 | 6 | 12;
+
+export interface ChartConfig {
+  id: string;
+  title: string;
+  type: ChartType;
+  source: ChartSource;
+  measure: ChartMeasure;
+  dimension: ChartDimension;
+  months: ChartMonths;
+  accountId: string;
+  categoryId: string;
+  size: ChartSize;
+}
+export interface ChartRow { label: string; income: bigint; expense: bigint }
+
+const types: ChartType[] = ['bar', 'line', 'area', 'donut', 'pie'];
+const sources: ChartSource[] = ['realized', 'forecast'];
+const measures: ChartMeasure[] = ['income', 'expense', 'both', 'net'];
+const dimensions: ChartDimension[] = ['month', 'category', 'account'];
+const sizes: ChartSize[] = ['compact', 'half', 'wide'];
+const periods: ChartMonths[] = [1, 3, 6, 12];
+const palette = ['#16876b', '#477ed0', '#f1a64f', '#9d78cf', '#e27d79', '#36a9a2', '#91a84e', '#d17eab', '#728da0'];
+const money = (value: bigint): number => Number(value) / 100;
+const monthAt = (month: string, offset: number): string => {
+  const date = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1 + offset, 1));
   return date.toISOString().slice(0, 7);
-}
-const money = (value: bigint) => Number(value) / 100;
-const labels = (month: string) => new Intl.DateTimeFormat('pt-BR', {month: 'short', timeZone: 'UTC'}).format(new Date(month + '-01T12:00:00Z')).replace('.', '');
+};
+const monthLabel = (month: string): string => new Intl.DateTimeFormat('pt-BR', { month: 'short', year: '2-digit', timeZone: 'UTC' }).format(new Date(month + '-01T12:00:00Z')).replace('.', '');
+const isOneOf = <T extends string | number>(value: unknown, options: readonly T[]): value is T => options.includes(value as T);
 
-export function FinanceCharts({ state, month }: { state: LocalFinancialState; month: string }) {
-  const historical = Array.from({length: 6}, (_, index) => {
-    const m = monthAt(month, index - 5);
-    const end = new Date(Date.UTC(Number(m.slice(0,4)),Number(m.slice(5,7)),0)).getUTCDate();
-    const totals = calculateCashTotals(state, {start: m + '-01', end: m + '-' + String(end).padStart(2,'0')});
-    return {month: m, income: totals.incomeCents, expense: totals.expenseCents};
-  });
-  const forecast = calculateFinancialForecast(state, month, 6);
-  const future = Array.from({length: 6}, (_, index) => {
-    const m = monthAt(month, index);
-    const items = forecast.items.filter((item) => item.month === m && item.amountBasis === 'cash');
-    return {
-      month: m,
-      income: items.filter((item) => item.kind === 'income').reduce((sum, item) => sum + item.amountCents, 0n),
-      expense: items.filter((item) => item.kind === 'expense').reduce((sum, item) => sum + item.amountCents, 0n),
-    };
-  });
+export const defaultCharts = (): ChartConfig[] => [
+  { id: 'default-realized', title: 'Entradas e saídas realizadas', type: 'bar', source: 'realized', measure: 'both', dimension: 'month', months: 6, accountId: '', categoryId: '', size: 'half' },
+  { id: 'default-forecast', title: 'Compromissos e receitas previstos', type: 'area', source: 'forecast', measure: 'both', dimension: 'month', months: 6, accountId: '', categoryId: '', size: 'half' },
+  { id: 'default-categories', title: 'Despesas pagas por categoria', type: 'donut', source: 'realized', measure: 'expense', dimension: 'category', months: 1, accountId: '', categoryId: '', size: 'wide' },
+];
+
+export function normalizeChartConfig(raw: unknown): ChartConfig | null {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const value = raw as Record<string, unknown>;
+  if (typeof value.id !== 'string' || value.id.length < 1 || value.id.length > 100) return null;
+  if (!isOneOf(value.type, types) || !isOneOf(value.source, sources) || !isOneOf(value.measure, measures)
+    || !isOneOf(value.dimension, dimensions) || !isOneOf(value.months, periods) || !isOneOf(value.size, sizes)) return null;
+  const isCircular = value.type === 'donut' || value.type === 'pie';
+  return {
+    id: value.id,
+    title: typeof value.title === 'string' && value.title.trim() ? value.title.trim().slice(0, 80) : 'Gráfico sem título',
+    type: value.type,
+    source: value.source,
+    measure: isCircular && (value.measure === 'both' || value.measure === 'net') ? 'expense' : value.measure,
+    dimension: value.dimension,
+    months: value.months,
+    accountId: typeof value.accountId === 'string' ? value.accountId.slice(0, 100) : '',
+    categoryId: typeof value.categoryId === 'string' ? value.categoryId.slice(0, 100) : '',
+    size: value.size,
+  };
+}
+
+export function readChartLayout(ownerId: string): ChartConfig[] {
+  if (typeof localStorage === 'undefined') return defaultCharts();
+  try {
+    const saved = localStorage.getItem('atlas-financeiro:charts:v1:' + ownerId);
+    if (!saved) return defaultCharts();
+    const data: unknown = JSON.parse(saved);
+    if (!data || typeof data !== 'object' || (data as {version?: unknown}).version !== 1 || !Array.isArray((data as {charts?: unknown}).charts)) return defaultCharts();
+    const unique = new Set<string>();
+    return (data as {charts: unknown[]}).charts.slice(0, 20).map(normalizeChartConfig).filter((chart): chart is ChartConfig => {
+      if (!chart || unique.has(chart.id)) return false;
+      unique.add(chart.id);
+      return true;
+    });
+  } catch { return defaultCharts(); }
+}
+
+export function buildChartRows(state: LocalFinancialState, month: string, config: ChartConfig): ChartRow[] {
+  const start = config.source === 'realized' ? monthAt(month, 1 - config.months) : month;
+  const end = config.source === 'realized' ? month : monthAt(month, config.months - 1);
   const eventById = new Map(state.events.map((event) => [event.id, event]));
-  const categoryById = new Map(state.categories.map((category) => [category.id, category.name]));
-  const categories = new Map<string, bigint>();
-  for (const payment of state.settlements) {
-    if (payment.settlementDate.slice(0, 7) !== month) continue;
-    const event = eventById.get(payment.eventId);
-    if (event?.kind !== 'expense') continue;
-    const key = event.categoryId === undefined ? 'Sem categoria' : categoryById.get(event.categoryId) ?? 'Sem categoria';
-    const sign = event.reversesEventId === undefined ? 1n : -1n;
-    categories.set(key, (categories.get(key) ?? 0n) + payment.amountCents * sign);
+  const accountNames = new Map(state.accounts.map((account) => [account.id, account.name]));
+  const categoryNames = new Map(state.categories.map((category) => [category.id, category.name]));
+  const totals = new Map<string, ChartRow>();
+  if (config.dimension === 'month') {
+    for (let index = 0; index < config.months; index += 1) {
+      const key = monthAt(start, index);
+      totals.set(key, { label: monthLabel(key), income: 0n, expense: 0n });
+    }
   }
-  const categoryItems = [...categories].filter(([,value]) => value > 0n).sort((a,b) => Number(b[1]-a[1])).slice(0, 8);
-  return <section className="finance-charts" aria-label="Gráficos financeiros">
-    <div className="section-heading"><div><p className="section-kicker">Análise visual</p><h2>Gráficos financeiros</h2></div></div>
-    <div className="finance-chart-grid">
-      <ComparisonChart title="Entradas e saídas realizadas" subtitle="Últimos seis meses · somente pagamentos e recebimentos efetivos" rows={historical} />
-      <ComparisonChart title="Compromissos e receitas previstos" subtitle="Próximos seis meses · não representam pagamentos realizados" rows={future} />
-      <CategoryChart categories={categoryItems} />
-    </div>
-    <p className="form-note">Transferências, ajustes de saldo e salários brutos desconhecidos não aumentam artificialmente as entradas ou despesas. A projeção não inclui remuneração líquida ainda não informada.</p>
-  </section>;
-}
-
-function ComparisonChart({title, subtitle, rows}: {title:string;subtitle:string;rows:{month:string;income:bigint;expense:bigint}[]}) {
-  const largest = Math.max(1, ...rows.flatMap((row) => [money(row.income), money(row.expense)]));
-  const anyData = rows.some((row) => row.income !== 0n || row.expense !== 0n);
-  return <article className="finance-chart-card">
-    <h3>{title}</h3><p>{subtitle}</p>
-    {!anyData ? <div className="finance-chart-empty">Ainda não há valores para este gráfico.</div> : <svg viewBox="0 0 520 260" role="img" aria-label={title} className="finance-chart-svg">
-      {[0,1,2,3,4].map((step) => <line key={step} x1="50" x2="500" y1={20+step*46} y2={20+step*46} stroke="currentColor" opacity=".12" />)}
-      {rows.map((row, index) => {
-        const x=61+index*73;
-        const ih=184*money(row.income)/largest;
-        const eh=184*money(row.expense)/largest;
-        return <g key={row.month}>
-          <rect x={x} y={204-ih} width="25" height={ih} rx="4" fill="var(--positive)" ><title>{labels(row.month)}: entradas {formatBRL(row.income)}</title></rect>
-          <rect x={x+28} y={204-eh} width="25" height={eh} rx="4" fill="var(--negative)"><title>{labels(row.month)}: saídas {formatBRL(row.expense)}</title></rect>
-          <text x={x+26} y="227" textAnchor="middle" fontSize="14" fill="currentColor">{labels(row.month)}</text>
-        </g>;
-      })}
-    </svg>}
-    <div className="finance-chart-legend"><span><i className="finance-dot finance-dot--income" />Entradas</span><span><i className="finance-dot finance-dot--expense" />Saídas</span></div>
-    <div className="finance-chart-details">{rows.map((row) => <div key={row.month}><strong>{row.month}</strong><span>{formatBRL(row.income)}</span><span>{formatBRL(row.expense)}</span></div>)}</div>
-  </article>;
-}
-
-function CategoryChart({categories}: {categories:[string,bigint][]}) {
-  const total = categories.reduce((sum,[,amount])=>sum+amount,0n);
-  const colors = ['#27846b','#3a79c4','#cb8a37','#9369b0','#d16c61','#4aaba4','#6c8d36','#aa7291'];
-  let offset = 0;
-  const portions = categories.map(([name,amount], index) => {
-    const portion = total === 0n ? 0 : Number(amount)*100/Number(total);
-    const from = offset;
-    offset += portion;
-    return {name,amount, color:colors[index], from, portion};
+  const accumulate = (eventId: string, dateMonth: string, kind: 'income' | 'expense', amount: bigint) => {
+    if (dateMonth < start || dateMonth > end) return;
+    const event = eventById.get(eventId);
+    if (!event || (config.accountId && event.accountId !== config.accountId) || (config.categoryId && event.categoryId !== config.categoryId)) return;
+    const key = config.dimension === 'month' ? dateMonth
+      : config.dimension === 'category' ? (categoryNames.get(event.categoryId ?? '') ?? 'Sem categoria')
+      : (accountNames.get(event.accountId) ?? 'Conta removida');
+    const row = totals.get(key) ?? { label: key, income: 0n, expense: 0n };
+    if (kind === 'income') row.income += amount;
+    else row.expense += amount;
+    totals.set(key, row);
+  };
+  if (config.source === 'realized') {
+    // Exactly the same cash basis as calculateCashTotals: effective settlements, not planned events.
+    for (const settlement of state.settlements) {
+      const event = eventById.get(settlement.eventId);
+      if (event?.kind !== 'income' && event?.kind !== 'expense') continue;
+      accumulate(event.id, settlement.settlementDate.slice(0, 7), event.kind,
+        settlement.amountCents * (event.reversesEventId === undefined ? 1n : -1n));
+    }
+  } else {
+    // Forecast items explicitly exclude gross-only reference amounts and already realized cash.
+    const forecast = calculateFinancialForecast(state, month, config.months);
+    for (const item of forecast.items) {
+      if (item.amountBasis !== 'cash') continue;
+      accumulate(item.eventId, item.month, item.kind, item.amountCents);
+    }
+  }
+  const rows = [...totals.values()];
+  if (config.dimension === 'month') return rows;
+  const selected = (row: ChartRow): bigint => config.measure === 'income' ? row.income
+    : config.measure === 'expense' ? row.expense
+    : config.measure === 'net' ? row.income - row.expense : row.income + row.expense;
+  const abs = (value: bigint): bigint => value < 0n ? -value : value;
+  rows.sort((a, b) => {
+    const av = abs(selected(a)), bv = abs(selected(b));
+    return av === bv ? a.label.localeCompare(b.label, 'pt-BR') : av > bv ? -1 : 1;
   });
-  const gradient = portions.map((part)=>`${part.color} ${part.from}% ${part.from+part.portion}%`).join(', ');
-  return <article className="finance-chart-card">
-    <h3>Despesas pagas por categoria</h3><p>Distribuição do mês selecionado · somente valores liquidados</p>
-    {total === 0n ? <div className="finance-chart-empty">Nenhuma despesa paga neste período.</div> : <>
-      <div className="finance-donut" role="img" aria-label={`Distribuição de despesas pagas: ${portions.map((part)=>part.name+' '+formatBRL(part.amount)).join(', ')}`} style={{background:`conic-gradient(${gradient})`}}><div><small>Total pago</small><strong>{formatBRL(total)}</strong></div></div>
-      <div className="finance-category-legend">{portions.map((part)=> <div key={part.name}><i style={{background:part.color}}/><span>{part.name}</span><strong>{formatBRL(part.amount)}</strong></div>)}</div>
-    </>}
-  </article>;
+  const nonzero = rows.filter((row) => row.income !== 0n || row.expense !== 0n);
+  if (nonzero.length <= 9) return nonzero;
+  const rest = nonzero.slice(8).reduce((sum, row) => ({ label: 'Outros', income: sum.income + row.income, expense: sum.expense + row.expense }), { label: 'Outros', income: 0n, expense: 0n });
+  return [...nonzero.slice(0, 8), rest];
+}
+
+const measureLabel: Record<ChartMeasure, string> = { income: 'Entradas', expense: 'Saídas', both: 'Entradas e saídas', net: 'Resultado líquido' };
+const dimensionLabel: Record<ChartDimension, string> = { month: 'Mês', category: 'Categoria', account: 'Conta' };
+const typeLabel: Record<ChartType, string> = { bar: 'Barras', line: 'Linhas', area: 'Área', donut: 'Rosca', pie: 'Pizza' };
+const sizeLabel: Record<ChartSize, string> = { compact: 'Compacto', half: 'Médio', wide: 'Largo' };
+
+function ChartVisual({ rows, config }: { rows: ChartRow[]; config: ChartConfig }) {
+  const circular = config.type === 'donut' || config.type === 'pie';
+  const series = config.measure === 'both'
+    ? [{ key: 'income' as const, name: 'Entradas', color: 'var(--positive)' }, { key: 'expense' as const, name: 'Saídas', color: 'var(--negative)' }]
+    : [{ key: config.measure, name: measureLabel[config.measure], color: config.measure === 'income' ? 'var(--positive)' : config.measure === 'expense' ? 'var(--negative)' : '#5487cc' }];
+  const getValue = (row: ChartRow, key: 'income' | 'expense' | 'net') => key === 'net' ? row.income - row.expense : row[key];
+  const data = rows.map((row) => ({ ...row, net: row.income - row.expense }));
+  const anyData = data.some((row) => series.some((s) => getValue(row, s.key) !== 0n));
+  if (!anyData) return <div className="finance-chart-empty">Ainda não há valores para este gráfico.</div>;
+  if (circular) {
+    const positive = data.map((row) => ({ label: row.label, value: getValue(row, config.measure === 'income' ? 'income' : 'expense') })).filter((row) => row.value > 0n);
+    const total = positive.reduce((sum, row) => sum + row.value, 0n);
+    if (total <= 0n) return <div className="finance-chart-empty">Nenhum valor positivo disponível para a distribuição.</div>;
+    let offset = 0;
+    const parts = positive.map((row, index) => {
+      const portion = Number(row.value * 10000n / total) / 100;
+      const from = offset;
+      offset += portion;
+      return { ...row, color: palette[index % palette.length]!, from, to: offset };
+    });
+    const gradient = 'conic-gradient(' + parts.map((part) => part.color + ' ' + part.from + '% ' + part.to + '%').join(', ') + ')';
+    return <div className="chart-pie-layout">
+      <div className={'finance-donut' + (config.type === 'pie' ? ' chart-pie-solid' : '')} style={{ background: gradient }} role="img" aria-label={parts.map((part) => part.label + ': ' + formatBRL(part.value)).join('; ')}>
+        {config.type === 'donut' ? <div><small>Total</small><strong>{formatBRL(total)}</strong></div> : null}
+      </div>
+      <div className="finance-category-legend">{parts.map((part) => <div key={part.label}><i style={{ background: part.color }} /><span>{part.label}</span><strong>{formatBRL(part.value)}</strong></div>)}</div>
+    </div>;
+  }
+  const values = data.flatMap((row) => series.map((s) => money(getValue(row, s.key))));
+  const max = Math.max(1, ...values, 0);
+  const min = Math.min(0, ...values);
+  const upper = max === min ? max + 1 : max * 1.12;
+  const lower = min < 0 ? min * 1.12 : 0;
+  const y = (value: number) => 210 - (value - lower) / (upper - lower) * 178;
+  const zero = y(0);
+  const step = 444 / Math.max(data.length, 1);
+  const x = (index: number) => 54 + step * (index + 0.5);
+  const path = (key: 'income' | 'expense' | 'net') => data.map((row, index) => (index === 0 ? 'M ' : ' L ') + x(index).toFixed(2) + ' ' + y(money(getValue(row, key))).toFixed(2)).join('');
+  return <>
+    <svg viewBox="0 0 530 258" role="img" aria-label={config.title} className="finance-chart-svg" preserveAspectRatio="xMidYMid meet">
+      {[0, 1, 2, 3, 4].map((tick) => {
+        const value = lower + (upper - lower) * (4 - tick) / 4;
+        return <g key={tick}><line x1="52" x2="508" y1={y(value)} y2={y(value)} stroke="currentColor" opacity=".12" /><text x="45" y={y(value) + 4} fontSize="10" textAnchor="end" fill="currentColor" opacity=".75">{new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 }).format(value)}</text></g>;
+      })}
+      {min < 0 ? <line x1="52" x2="508" y1={zero} y2={zero} stroke="currentColor" opacity=".45" strokeDasharray="4 3" /> : null}
+      {series.map((s, seriesIndex) => config.type === 'bar' ? <g key={s.key}>{data.map((row, index) => {
+        const value = money(getValue(row, s.key));
+        const width = Math.min(34, step / (series.length + 0.6));
+        const barX = x(index) - (series.length * width) / 2 + seriesIndex * width;
+        return <rect key={index} x={barX} y={Math.min(y(value), zero)} width={Math.max(2, width - 3)} height={Math.max(0.5, Math.abs(y(value) - zero))} rx="3" fill={s.color}><title>{row.label}: {formatBRL(getValue(row, s.key))}</title></rect>;
+      })}</g> : <g key={s.key}>
+        {config.type === 'area' ? <path d={path(s.key) + ' L ' + x(data.length - 1) + ' ' + zero + ' L ' + x(0) + ' ' + zero + ' Z'} fill={s.color} opacity=".14" /> : null}
+        <path d={path(s.key)} fill="none" stroke={s.color} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+        {data.map((row, index) => <circle key={index} cx={x(index)} cy={y(money(getValue(row, s.key)))} r="4" fill={s.color} stroke="var(--surface)" strokeWidth="1.5"><title>{row.label}: {formatBRL(getValue(row, s.key))}</title></circle>)}
+      </g>)}
+      {data.map((row, index) => <text key={index} x={x(index)} y="240" fontSize={data.length > 8 ? '9' : '12'} textAnchor="middle" fill="currentColor">{row.label.length > (data.length > 8 ? 6 : 11) ? row.label.slice(0, data.length > 8 ? 5 : 10) + '…' : row.label}</text>)}
+    </svg>
+    <div className="finance-chart-legend">{series.map((s) => <span key={s.key}><i className="finance-dot" style={{ background: s.color }} />{s.name}</span>)}</div>
+  </>;
+}
+
+function ChartDetails({ rows, config }: { rows: ChartRow[]; config: ChartConfig }) {
+  return <details className="chart-data-details"><summary>Ver valores detalhados</summary>
+    <div className="chart-data-scroll"><table><thead><tr><th scope="col">{dimensionLabel[config.dimension]}</th>{config.measure === 'both' ? <><th scope="col">Entradas</th><th scope="col">Saídas</th></> : <th scope="col">{measureLabel[config.measure]}</th>}</tr></thead>
+      <tbody>{rows.map((row) => <tr key={row.label}><th scope="row">{row.label}</th>{config.measure === 'both' ? <><td>{formatBRL(row.income)}</td><td>{formatBRL(row.expense)}</td></> : <td>{formatBRL(config.measure === 'net' ? row.income - row.expense : row[config.measure])}</td>}</tr>)}</tbody>
+    </table></div>
+  </details>;
+}
+
+function ChartEditor({ initial, state, month, onSave, onCancel }: { initial: ChartConfig; state: LocalFinancialState; month: string; onSave: (chart: ChartConfig) => void; onCancel: () => void }) {
+  const [draft, setDraft] = useState(initial);
+  const preview = useMemo(() => buildChartRows(state, month, draft), [state, month, draft]);
+  const set = <K extends keyof ChartConfig>(key: K, value: ChartConfig[K]) => setDraft((previous) => ({ ...previous, [key]: value }));
+  const circular = draft.type === 'donut' || draft.type === 'pie';
+  return <DialogFrame title={initial.title ? 'Editar gráfico' : 'Novo gráfico'} onClose={onCancel} wide>
+    <form className="chart-editor" onSubmit={(event) => { event.preventDefault(); onSave({ ...draft, title: draft.title.trim() || 'Meu gráfico' }); }}>
+      <div className="chart-editor-fields">
+        <label className="chart-field chart-field--full">Título do gráfico<input maxLength={80} value={draft.title} onChange={(event) => set('title', event.target.value)} placeholder="Ex.: Minhas despesas" /></label>
+        <label className="chart-field">Visualização<select value={draft.type} onChange={(event) => {
+          const type = event.target.value as ChartType;
+          setDraft((previous) => ({ ...previous, type, measure: (type === 'pie' || type === 'donut') && (previous.measure === 'both' || previous.measure === 'net') ? 'expense' : previous.measure }));
+        }}>{types.map((type) => <option key={type} value={type}>{typeLabel[type]}</option>)}</select></label>
+        <label className="chart-field">Origem dos dados<select value={draft.source} onChange={(event) => set('source', event.target.value as ChartSource)}><option value="realized">Realizado · valores pagos/recebidos</option><option value="forecast">Previsto · compromissos futuros</option></select></label>
+        <label className="chart-field">Valores<select value={draft.measure} onChange={(event) => set('measure', event.target.value as ChartMeasure)}>{measures.filter((measure) => !circular || (measure !== 'both' && measure !== 'net')).map((measure) => <option key={measure} value={measure}>{measureLabel[measure]}</option>)}</select></label>
+        <label className="chart-field">Agrupar por<select value={draft.dimension} onChange={(event) => set('dimension', event.target.value as ChartDimension)}>{dimensions.map((dimension) => <option key={dimension} value={dimension}>{dimensionLabel[dimension]}</option>)}</select></label>
+        <label className="chart-field">Período<select value={draft.months} onChange={(event) => set('months', Number(event.target.value) as ChartMonths)}>{periods.map((period) => <option key={period} value={period}>{period === 1 ? '1 mês' : period + ' meses'}</option>)}</select></label>
+        <label className="chart-field">Tamanho<select value={draft.size} onChange={(event) => set('size', event.target.value as ChartSize)}>{sizes.map((size) => <option key={size} value={size}>{sizeLabel[size]}</option>)}</select></label>
+        <label className="chart-field">Filtrar por conta<select value={draft.accountId} onChange={(event) => set('accountId', event.target.value)}><option value="">Todas as contas</option>{state.accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label>
+        <label className="chart-field">Filtrar por categoria<select value={draft.categoryId} onChange={(event) => set('categoryId', event.target.value)}><option value="">Todas as categorias</option>{state.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+      </div>
+      <p className="chart-editor-hint">{draft.source === 'realized' ? 'Somente liquidações efetivas; transferências e ajustes não entram nas receitas ou despesas.' : 'Previsões não são dinheiro realizado. Valores brutos sem líquido informado ficam de fora.'} {circular ? 'Pizza e rosca exibem apenas valores positivos.' : ''}</p>
+      <div className="chart-editor-preview"><strong>Prévia</strong><ChartVisual rows={preview} config={draft} /></div>
+      <div className="chart-editor-actions"><button type="button" className="button button--secondary" onClick={onCancel}>Cancelar</button><button type="submit" className="button button--primary">Salvar gráfico</button></div>
+    </form>
+  </DialogFrame>;
+}
+
+export function FinanceCharts({ state, month, ownerId = 'local' }: { state: LocalFinancialState; month: string; ownerId?: string }) {
+  const storageKey = 'atlas-financeiro:charts:v1:' + ownerId;
+  const [charts, setCharts] = useState<ChartConfig[]>(() => readChartLayout(ownerId));
+  const [editing, setEditing] = useState<ChartConfig | null>(null);
+  const [organizing, setOrganizing] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [storageError, setStorageError] = useState(false);
+  useEffect(() => {
+    try { localStorage.setItem(storageKey, JSON.stringify({ version: 1, charts })); setStorageError(false); }
+    catch { setStorageError(true); }
+  }, [storageKey, charts]);
+  const move = (id: string, to: number) => setCharts((current) => {
+    const from = current.findIndex((chart) => chart.id === id);
+    if (from < 0 || to < 0 || to >= current.length || from === to) return current;
+    const next = [...current];
+    next.splice(to, 0, next.splice(from, 1)[0]!);
+    return next;
+  });
+  const save = (chart: ChartConfig) => {
+    setCharts((current) => current.some((item) => item.id === chart.id)
+      ? current.map((item) => item.id === chart.id ? chart : item) : [...current, chart]);
+    setEditing(null);
+  };
+  const create = () => {
+    if (charts.length >= 20) return;
+    setEditing({ id: crypto.randomUUID(), title: '', type: 'bar', source: 'realized', measure: 'both', dimension: 'month', months: 6, accountId: '', categoryId: '', size: 'half' });
+  };
+  return <section className="finance-charts" aria-label="Gráficos financeiros">
+    <div className="chart-studio-heading">
+      <div><p className="section-kicker">Análise visual · seu painel</p><h2>Gráficos financeiros</h2><p>Escolha os dados, personalize os gráficos e organize o espaço do seu jeito.</p></div>
+      <div className="chart-studio-actions"><button type="button" className={'button button--secondary' + (organizing ? ' chart-organize-active' : '')} onClick={() => setOrganizing(!organizing)} aria-pressed={organizing}><GripVertical size={17} />{organizing ? 'Concluir' : 'Organizar'}</button><button type="button" className="button button--primary" onClick={create} disabled={charts.length >= 20}><Plus size={17} />Novo gráfico</button></div>
+    </div>
+    {organizing ? <p className="chart-organize-help" role="status">Arraste os gráficos para mudar a ordem ou use as setas. O tamanho pode ser alterado na edição.</p> : null}
+    {storageError ? <p className="chart-storage-warning" role="alert">Não foi possível salvar o layout neste navegador. Verifique o armazenamento disponível.</p> : null}
+    {charts.length === 0 ? <div className="chart-empty-board"><BarChart3 size={34} /><h3>Seu painel está pronto para começar</h3><p>Crie seu primeiro gráfico para visualizar os dados que importam.</p><button className="button button--primary" onClick={create}><Plus size={17} />Criar gráfico</button><button className="text-button" onClick={() => setCharts(defaultCharts())}>Restaurar gráficos sugeridos</button></div> : <div className="finance-chart-grid chart-studio-grid">
+      {charts.map((chart, index) => {
+        const rows = buildChartRows(state, month, chart);
+        return <article key={chart.id} className={'finance-chart-card chart-studio-card chart-studio-card--' + chart.size + (dragId === chart.id ? ' chart-studio-card--dragging' : '')} onDragOver={organizing ? (event) => event.preventDefault() : undefined} onDrop={organizing ? (event) => { event.preventDefault(); if (dragId) move(dragId, index); setDragId(null); } : undefined}>
+          <div className="chart-card-heading"><div className="chart-card-title"><h3>{chart.title}</h3><p>{chart.source === 'realized' ? 'Realizado' : 'Previsto'} · {chart.months === 1 ? '1 mês' : chart.months + ' meses'} · por {dimensionLabel[chart.dimension].toLocaleLowerCase('pt-BR')}</p></div><div className="chart-card-actions">
+            {organizing ? <><span className="chart-drag-handle" draggable onDragStart={(event) => { setDragId(chart.id); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', chart.id); }} onDragEnd={() => setDragId(null)} title="Arrastar gráfico" aria-label="Arrastar gráfico"><GripVertical size={18} /></span><button type="button" onClick={() => move(chart.id, index - 1)} disabled={index === 0} title="Mover para cima ou esquerda" aria-label={'Mover ' + chart.title + ' para antes'}><ArrowLeft size={17} /><ArrowUp className="chart-move-mobile" size={17} /></button><button type="button" onClick={() => move(chart.id, index + 1)} disabled={index === charts.length - 1} title="Mover para baixo ou direita" aria-label={'Mover ' + chart.title + ' para depois'}><ArrowRight size={17} /><ArrowDown className="chart-move-mobile" size={17} /></button></> : null}
+            <button type="button" onClick={() => setEditing(chart)} aria-label={'Editar ' + chart.title} title="Editar gráfico"><Pencil size={17} /></button>
+            <button type="button" onClick={() => { if (window.confirm('Excluir o gráfico "' + chart.title + '"? Os lançamentos financeiros não serão afetados.')) setCharts((current) => current.filter((item) => item.id !== chart.id)); }} aria-label={'Excluir ' + chart.title} title="Excluir gráfico"><Trash2 size={17} /></button>
+          </div></div>
+          <ChartVisual rows={rows} config={chart} />
+          <ChartDetails rows={rows} config={chart} />
+        </article>;
+      })}
+    </div>}
+    <div className="chart-studio-footer"><span>As configurações dos gráficos ficam salvas neste navegador, separadas dos lançamentos financeiros.</span>{charts.length > 0 ? <button className="text-button" type="button" onClick={() => { if (window.confirm('Restaurar os três gráficos sugeridos e substituir o layout atual?')) setCharts(defaultCharts()); }}><RotateCcw size={14} />Restaurar padrão</button> : null}</div>
+    {editing ? <ChartEditor key={editing.id} initial={editing} state={state} month={month} onSave={save} onCancel={() => setEditing(null)} /> : null}
+  </section>;
 }
