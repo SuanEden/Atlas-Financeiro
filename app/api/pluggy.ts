@@ -75,6 +75,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     const itemId = original.searchParams.get('itemId');
     const accountId = original.searchParams.get('accountId');
     const after = original.searchParams.get('after');
+    const next = original.searchParams.get('next');
     const dateFrom = original.searchParams.get('dateFrom');
     const uuid = (v: string | null) => Boolean(v && /^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i.test(v));
     if (req.method === 'POST') {
@@ -104,7 +105,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       });
     }
 
-    if(resource==='session' && !itemId && !accountId && !after && !dateFrom) {
+    if(resource==='session' && !itemId && !accountId && !after && !dateFrom && !next) {
       return reply(res,200,{authorized:true});
     }
     if((resource==='item'||resource==='accounts') && (!itemId||!bankItems.has(itemId))) {
@@ -122,8 +123,24 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     } else if (resource === 'balance' && uuid(accountId) && !itemId && !after) {
       endpoint = new URL('https://api.pluggy.ai/accounts/' + accountId + '/balance');
     } else if (resource === 'transactions' && uuid(accountId) && !itemId) {
-      endpoint = new URL('https://api.pluggy.ai/v2/transactions');
-      endpoint.searchParams.set('accountId', accountId!);
+      if(next){
+        // A cursor query is only valid for this authorized account. Keeping the
+        // entire query preserves Pluggy's filter/cursor relationship exactly.
+        if(after||next.length>8192||!next.startsWith('?')||/[\x00-\x1f]/.test(next))
+          return reply(res,400,{error:'Continuação de extrato inválida.'});
+        const params=new URLSearchParams(next.slice(1));
+        const ids=params.getAll('accountId');
+        const cursors=params.getAll('after');
+        if(ids.length!==1||ids[0]!==accountId||cursors.length!==1||!cursors[0]||cursors[0].length>2048||
+           [...params.keys()].some(k=>!['accountId','after','dateFrom','dateTo','pageSize','createdAtFrom'].includes(k)))
+          return reply(res,400,{error:'Continuação bancária rejeitada.'});
+        const from=params.get('dateFrom');
+        if(from&&dateFrom&&from.slice(0,10)<dateFrom)
+          return reply(res,400,{error:'O período de continuação diverge do período autorizado.'});
+        endpoint=new URL('https://api.pluggy.ai/v2/transactions'+next);
+      } else {
+        endpoint = new URL('https://api.pluggy.ai/v2/transactions');
+        endpoint.searchParams.set('accountId', accountId!);
       if(dateFrom){
         const parsed=new Date(dateFrom+'T00:00:00.000Z');
         if(!/^\d{4}-\d{2}-\d{2}$/.test(dateFrom)||Number.isNaN(parsed.getTime())||parsed.toISOString().slice(0,10)!==dateFrom)return reply(res,400,{error:'Data inicial inválida.'});
@@ -132,6 +149,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       if (after) {
         if (after.length > 2048 || /[\x00-\x1f]/.test(after)) return reply(res, 400, { error: 'Cursor inválido.' });
         endpoint.searchParams.set('after', after);
+      }
       }
     } else return reply(res, 400, { error: 'Parâmetros inválidos.' });
     const r = await fetch(endpoint, { headers: { 'X-API-KEY': await key() }, signal: AbortSignal.timeout(15000) });
