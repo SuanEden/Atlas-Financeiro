@@ -799,6 +799,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   border-radius:8px;
 }
 .chart-studio-grid--free .chart-drag-handle:active { cursor:grabbing; }
+.chart-studio-grid--free .chart-card-heading--movable { cursor:grab; touch-action:none; user-select:none; }
+.chart-studio-grid--free .chart-card-heading--movable:active { cursor:grabbing; }
+.chart-studio-grid--free .chart-card-heading--movable button { cursor:pointer; touch-action:auto; }
+.chart-studio-grid--free .chart-card-heading--movable .chart-drag-handle { cursor:grab; touch-action:none; }
 @media(max-width:780px) {
   .finance-chart-grid.chart-studio-grid.chart-studio-grid--free {
     grid-template-columns:1fr;
