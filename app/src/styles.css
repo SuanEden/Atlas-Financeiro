@@ -680,3 +680,68 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .bank-import-confirm select, .bank-import-confirm input[type="date"] { max-width:100%; width:min(100%,420px); padding:10px 12px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--ink); }
 .bank-import-confirm .warning-copy { margin:0; color:var(--muted); font-size:.8rem; line-height:1.55; }
 .bank-import-confirm .button { justify-self:start; }
+
+
+/* Banking workflow: consult → choose → review complete statement → confirm. */
+.bank-import-workspace { display:grid; gap:18px; min-width:0; }
+.bank-import-workspace h3 { margin:0; font-size:1rem; }
+.bank-import-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; }
+.bank-import-heading h2 { margin:4px 0 8px; font-size:1.4rem; }
+.bank-import-heading p:last-child { font-size:.85rem; color:var(--muted); margin:0; line-height:1.6; }
+.bank-import-heading > svg { color:var(--accent-dark); flex-shrink:0; }
+.bank-import-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; font-size:.71rem; font-weight:700; }
+.bank-import-steps > span { border-radius:9px; background:var(--subtle); color:var(--muted); padding:10px 8px; text-align:center; }
+.bank-import-steps > .is-done { background:var(--accent-soft); color:var(--accent-dark); }
+.bank-import-banks { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:12px; }
+.bank-import-bank, .bank-import-account { display:flex; align-items:center; gap:12px; min-width:0; border:1px solid var(--line); border-radius:13px; background:var(--surface); padding:12px 14px; color:var(--ink); text-align:left; cursor:pointer; }
+.bank-import-bank.is-selected, .bank-import-account.is-selected { border-color:var(--accent); background:var(--accent-soft); }
+.bank-import-bank > span:nth-child(2), .bank-import-account > span:first-child { display:grid; gap:4px; flex:1; min-width:0; }
+.bank-import-bank small, .bank-import-account small { color:var(--muted); font-size:.72rem; }
+.bank-import-bank > svg, .bank-import-account > svg { margin-left:auto; flex:none; }
+.bank-import-bank-mark { display:grid; place-items:center; width:45px; height:45px; border-radius:12px; background:var(--accent-soft); color:var(--accent-dark); font-size:1.24rem; font-weight:800; }
+.bank-import-bank:first-child .bank-import-bank-mark { background:#820ad1; color:white; }
+.bank-import-section { display:grid; gap:14px; min-width:0; padding-top:16px; border-top:1px solid var(--line); }
+.bank-import-account-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:10px; }
+.bank-import-section-heading { display:flex; align-items:center; gap:14px; justify-content:space-between; flex-wrap:wrap; }
+.bank-import-section-heading > span { font-size:.72rem; font-weight:700; color:var(--muted); }
+.bank-import-section > p { margin:0; font-size:.82rem; line-height:1.6; color:var(--muted); }
+.bank-import-preview-table { max-width:100%; overflow-x:auto; border:1px solid var(--line); border-radius:11px; }
+.bank-import-preview-table table { width:100%; border-collapse:collapse; font-size:.78rem; }
+.bank-import-preview-table th, .bank-import-preview-table td { padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; }
+.bank-import-preview-table th { color:var(--muted); background:var(--subtle); font-size:.72rem; }
+.bank-import-preview-table td:first-child, .bank-import-preview-table td:last-child { white-space:nowrap; }
+.bank-import-preview-table td:last-child { text-align:right; font-variant-numeric:tabular-nums; font-weight:650; }
+.bank-import-negative { color:var(--danger); }
+.bank-import-form { display:grid; gap:15px; margin-top:8px; border:1px solid var(--line); background:var(--surface); border-radius:14px; padding:18px; }
+.bank-import-form > p { margin:0; font-size:.83rem; line-height:1.55; }
+.bank-import-form-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.bank-import-form-fields label { display:grid; gap:7px; font-weight:650; font-size:.83rem; min-width:0; }
+.bank-import-form-fields select, .bank-import-form-fields input { width:100%; min-width:0; min-height:42px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--ink); padding:9px 10px; }
+.bank-import-caution { display:flex; gap:10px; align-items:flex-start; background:var(--subtle); padding:12px; border-radius:10px; color:var(--muted); }
+.bank-import-caution > svg { color:var(--warning); flex:none; }
+.bank-import-form > .button { justify-self:start; }
+.bank-import-review { display:grid; gap:14px; margin-top:4px; padding:16px; border:1px solid var(--accent); background:var(--accent-soft); border-radius:12px; }
+.bank-import-review h3 { display:flex; gap:9px; align-items:center; }
+.bank-import-review h3 svg { color:var(--accent-dark); }
+.bank-import-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+.bank-import-summary > div { display:grid; gap:3px; padding:12px; border:1px solid var(--line); background:var(--surface); border-radius:10px; }
+.bank-import-summary strong { font-size:1.35rem; font-variant-numeric:tabular-nums; }
+.bank-import-summary span { color:var(--muted); font-size:.71rem; }
+.bank-import-review > p { margin:0; font-size:.82rem; line-height:1.55; }
+.bank-import-consent { display:flex; align-items:flex-start; gap:9px; font-size:.83rem; line-height:1.5; }
+.bank-import-consent input { flex:none; margin-top:3px; }
+.bank-import-review > button { justify-self:start; }
+.bank-import-error, .bank-import-success { display:flex; gap:10px; align-items:flex-start; padding:14px; border:1px solid var(--line); border-radius:11px; font-size:.84rem; line-height:1.6; }
+.bank-import-error { border-color:var(--danger); }
+.bank-import-error > svg { flex:none; color:var(--danger); }
+.bank-import-error p { margin:4px 0 0; }
+.bank-import-success > svg { flex:none; color:var(--accent-dark); }
+.bank-import-loading { display:inline; vertical-align:middle; }
+@media(max-width:680px) {
+  .bank-import-steps { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .bank-import-form-fields { grid-template-columns:1fr; }
+  .bank-import-summary { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .bank-import-summary strong { font-size:1.05rem; }
+  .bank-import-review, .bank-import-form { padding:12px; }
+  .bank-import-review > button { justify-self:stretch; }
+}
