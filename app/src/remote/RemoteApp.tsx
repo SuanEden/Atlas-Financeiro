@@ -81,13 +81,26 @@ function RemoteWorkspace({controller}:{controller:RemoteController}) {
     if(!controller.getSnapshot().session.canView||controller.getSnapshot().session.userId!==store.userId)throw new Error('A sessão mudou.');
     return json;
   }
-  return <FinancialWorkspace finance={finance} integration serverId={controller.serverId} exportJson={exportJson} importJson={json=>controller.importBackupOperations(json)} bankPanel={<PluggyReadPanel controller={controller}/>} sessionControls={<><section className="sync-panel" aria-label="Sincronização">
-    <div><strong>{snapshot.session.onlineVerified?'Acesso verificado':'Acesso offline'}</strong><p role="status">{snapshot.notice||snapshot.session.message}</p></div>
-    <div className="sync-actions"><button className="button button--secondary" disabled={!snapshot.session.canTransmit||snapshot.syncing} onClick={()=>void controller.sync()}>{snapshot.syncing?'Conferindo envio…':'Sincronizar agora'}</button>
-      {!snapshot.session.onlineVerified?<button className="text-button" onClick={()=>void controller.login()}>Entrar novamente</button>:null}
-      <button className="text-button" onClick={()=>void controller.logout()}>Sair e bloquear</button></div>
+  const pendingCount = finance.state.outbox.length;
+  const cloudStatus = !snapshot.session.onlineVerified ? 'Acesso offline'
+    : snapshot.syncing ? 'Sincronizando'
+    : !snapshot.session.canTransmit ? 'Envio indisponível'
+    : pendingCount > 0 ? 'Alterações pendentes' : 'Sincronizado';
+  const cloudTone = !snapshot.session.onlineVerified || !snapshot.session.canTransmit ? 'offline'
+    : snapshot.syncing || pendingCount > 0 ? 'pending' : 'synced';
+  const cloudControls = <section className="cloud-control-card" aria-label="Sincronização">
+    <div className="cloud-control-heading"><span className="cloud-control-mark" aria-hidden="true">☁</span><div><h2>Modo nuvem</h2><p>Cópia local ativa</p></div></div>
+    <div className="cloud-control-state" data-status={cloudTone}><span className="cloud-control-dot" aria-hidden="true" /><strong>{cloudStatus}</strong></div>
+    <p className="cloud-control-description" role="status">{snapshot.notice || snapshot.session.message}</p>
+    <p className="cloud-control-pending">{pendingCount} {pendingCount === 1 ? 'operação pendente' : 'operações pendentes'}</p>
+    <div className="cloud-control-actions">
+      <button className="button button--secondary" disabled={!snapshot.session.canTransmit || snapshot.syncing} onClick={() => void controller.sync()}>{snapshot.syncing ? 'Conferindo envio…' : 'Sincronizar agora'}</button>
+      {!snapshot.session.onlineVerified ? <button className="text-button" onClick={() => void controller.login()}>Entrar novamente</button> : null}
+      <button className="text-button" onClick={() => void controller.logout()}>Sair e bloquear</button>
+    </div>
     <Conflicts controller={controller} />
-  </section></>} />;
+  </section>;
+  return <FinancialWorkspace finance={finance} integration serverId={controller.serverId} exportJson={exportJson} importJson={json=>controller.importBackupOperations(json)} bankPanel={<PluggyReadPanel controller={controller}/>} sessionControls={cloudControls} />;
 }
 
 function Conflicts({controller}:{controller:RemoteController}) {
