@@ -27,7 +27,7 @@ function AccessGate({controller}:{controller:RemoteController}) {
   const [confirmed,setConfirmed]=useState(false);
   const [busy,setBusy]=useState(false);
   const [failure,setFailure]=useState('');
-  const [dark]=useState(()=>localStorage.getItem('atlas-financeiro:theme:v1')==='dark');
+  const [dark]=useState(()=>localStorage.getItem('atlas-financeiro:theme:v2')!=='light');
   const canAssociate=snapshot.session.onlineVerified&&snapshot.session.canTransmit;
   async function run(action:()=>Promise<unknown>) {
     setBusy(true);setFailure('');
