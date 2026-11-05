@@ -55,6 +55,34 @@ describe('gráficos do dashboard financeiro', () => {
     expect(normalizeChartConfig({...chart,categoryIds:[categoryOne,categoryOne,9,null,'']})?.categoryIds).toEqual([categoryOne]);
   });
 
+  it('filtra diversas contas com categorias, sem misturar valores', () => {
+    const data = state();
+    const accountOne = data.accounts[0]!.id;
+    const accountTwo = data.accounts[1]!.id;
+    const accountThree = '00000000-0000-4000-8000-000000000012';
+    const categoryOne = data.categories[0]!.id;
+    const categoryTwo = '00000000-0000-4000-8000-000000000021';
+    data.accounts.push({id:accountThree,userId:owner,name:'Terceira conta',kind:'cash',availability:'free'});
+    data.categories.push({id:categoryTwo,userId:owner,name:'Outra categoria',kind:'both'});
+    for(const [index,[accountId,categoryId]] of [[accountOne,categoryOne],[accountTwo,categoryOne],[accountThree,categoryTwo],[accountThree,categoryOne]].entries()){
+      const eventId = 'account-filter-event-'+index;
+      data.events.push({id:eventId,userId:owner,kind:'expense',source:'manual',status:'confirmed',certainty:'confirmed',amountCents:1000n,
+        accountId,categoryId,description:'Teste filtro',competenceDate:'2026-10-25'});
+      data.settlements.push({id:'account-filter-settlement-'+index,userId:owner,eventId,amountCents:1000n,
+        settlementDate:'2026-10-25',paymentDate:'2026-10-25'});
+    }
+    const config={...defaultCharts()[0]!,months:1 as const,measure:'expense' as const,accountIds:[accountOne,accountThree],categoryIds:[categoryOne]};
+    expect(buildChartRows(data,'2026-10',config)[0]?.expense).toBe(2000n);
+    const restored=normalizeChartConfig(JSON.parse(JSON.stringify(config)))!;
+    expect(restored.accountIds).toEqual([accountOne,accountThree]);
+    expect(buildChartRows(data,'2026-10',restored)[0]?.expense).toBe(2000n);
+    expect(buildChartRows(data,'2026-10',{...config,accountIds:[]})[0]?.expense).toBe(3000n);
+    const legacy={...config,accountId:accountTwo};
+    delete (legacy as {accountIds?:string[]}).accountIds;
+    expect(buildChartRows(data,'2026-10',legacy)[0]?.expense).toBe(1000n);
+    expect(normalizeChartConfig({...config,accountIds:[accountOne,accountOne,null,5,'']})?.accountIds).toEqual([accountOne]);
+  });
+
   it('não converte transferência em receita ou despesa realizada', () => {
     const html = renderToStaticMarkup(createElement(FinanceCharts, {state: state(), month: '2026-10'}));
     expect(html).toContain('Entradas e saídas realizadas');
