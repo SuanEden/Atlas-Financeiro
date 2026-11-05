@@ -432,7 +432,7 @@ function ChartEditor({ initial, state, month, onSave, onCancel }: { initial: Cha
   const selectCategories = (ids: string[]) => setDraft((previous) => ({ ...previous, categoryId: '', categoryIds: ids }));
   return <DialogFrame title={initial.title ? 'Editar gráfico' : 'Novo gráfico'} onClose={onCancel} wide>
     <form className="chart-editor" onSubmit={(event) => { event.preventDefault(); if (!periodValid) return; onSave({ ...draft, title: draft.title.trim() || 'Meu gráfico' }); }}>
-      <div className="chart-editor-fields">
+      <div className="chart-editor-group"><div className="chart-editor-group-heading"><span>01</span><div><strong>Apresentação</strong><small>Nome e formato do gráfico</small></div></div><div className="chart-editor-fields">
         <label className="chart-field chart-field--full">Título do gráfico<input maxLength={80} value={draft.title} onChange={(event) => set('title', event.target.value)} placeholder="Ex.: Minhas despesas" /></label>
         <label className="chart-field">Visualização<select value={draft.type} onChange={(event) => {
           const type = event.target.value as ChartType;
@@ -441,6 +441,8 @@ function ChartEditor({ initial, state, month, onSave, onCancel }: { initial: Cha
         <label className="chart-field">Origem dos dados<select value={draft.source} onChange={(event) => set('source', event.target.value as ChartSource)}><option value="realized">Realizado · valores pagos/recebidos</option><option value="forecast">Previsto · compromissos futuros</option></select></label>
         <label className="chart-field">Valores<select value={draft.measure} onChange={(event) => set('measure', event.target.value as ChartMeasure)}>{measures.filter((measure) => !circular || (measure !== 'both' && measure !== 'net')).map((measure) => <option key={measure} value={measure}>{measureLabel[measure]}</option>)}</select></label>
         <label className="chart-field">Agrupar por<select value={draft.dimension} onChange={(event) => set('dimension', event.target.value as ChartDimension)}>{dimensions.map((dimension) => <option key={dimension} value={dimension}>{dimensionLabel[dimension]}</option>)}</select></label>
+        </div></div>
+        <div className="chart-editor-group"><div className="chart-editor-group-heading"><span>02</span><div><strong>Dados e período</strong><small>Escolha o que entra na análise</small></div></div><div className="chart-editor-fields">
         <label className="chart-field">Período<select value={dayPeriod ? 'days' : customPeriod ? 'custom' : String(draft.months)} onChange={(event) => changePeriod(event.target.value)}>{periods.map((period) => <option key={period} value={period}>{period === 1 ? '1 mês' : period + ' meses'}</option>)}<option value="custom">Calendário · intervalo</option><option value="days">Calendário · dias específicos</option></select></label>
         <label className="chart-field">Tamanho<select value={draft.size} onChange={(event) => set('size', event.target.value as ChartSize)}>{sizes.map((size) => <option key={size} value={size}>{sizeLabel[size]}</option>)}</select></label>
         {customPeriod ? <div className="chart-custom-period chart-field--full">
@@ -452,12 +454,13 @@ function ChartEditor({ initial, state, month, onSave, onCancel }: { initial: Cha
           {!periodValid ? <p className="chart-period-error" role="alert">Selecione datas válidas em um intervalo de até 24 meses (máximo de 730 dias).</p> :
             <p className="chart-category-caption">{draft.source==='forecast'?'Previsões sem dia definido não entram no recorte diário.':'O filtro usa as datas efetivas de pagamento e recebimento.'}</p>}
         </div> : null}
-        <div className="chart-editor-section-heading chart-field--full"><strong>Filtros dos dados</strong><span>Escolha várias contas ou categorias nas listas abaixo.</span></div>
+        </div></div>
+        <div className="chart-editor-group"><div className="chart-editor-group-heading"><span>03</span><div><strong>Filtros</strong><small>Selecione contas e categorias, se necessário</small></div></div><div className="chart-editor-fields">
         <ChartMultiFilter title="Filtrar por conta" allLabel="Todas as contas" options={state.accounts} selected={selectedAccountIds} onChange={selectAccounts} />
         <ChartMultiFilter title="Filtrar por categoria" allLabel="Todas as categorias" options={state.categories} selected={selectedCategoryIds} onChange={selectCategories} />
-      </div>
+      </div></div>
       <p className="chart-editor-hint">{draft.source === 'realized' ? 'Somente liquidações efetivas; transferências e ajustes não entram nas receitas ou despesas.' : 'Previsões não são dinheiro realizado. Valores brutos sem líquido informado ficam de fora.'} {circular ? 'Pizza e rosca exibem apenas valores positivos.' : ''}</p>
-      <div className="chart-editor-preview"><strong>Prévia</strong><ChartVisual rows={preview} config={draft} /></div>
+      <div className="chart-editor-preview"><strong>Prévia do gráfico</strong><ChartVisual rows={preview} config={draft} /></div>
       <div className="chart-editor-actions"><button type="button" className="button button--secondary" onClick={onCancel}>Cancelar</button><button type="submit" className="button button--primary" disabled={!periodValid}>Salvar gráfico</button></div>
     </form>
   </DialogFrame>;
