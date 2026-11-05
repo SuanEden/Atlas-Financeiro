@@ -359,7 +359,7 @@ function ChartCalendar({mode, start, end, days, focusMonth, onRange, onDays, onC
               event.preventDefault();
               if(anchor.current){const a=anchor.current;onRange(a<date?a:date,a<date?date:a);anchor.current=null;pointerOrigin.current=null;return;}
               anchor.current=date;pointerOrigin.current=date;dragged.current=false;onRange(date,date);
-              try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* Browser may decline capture; click selection remains available. */ }
+              try { event.currentTarget.closest<HTMLElement>('.chart-calendar')?.setPointerCapture(event.pointerId); } catch { /* Click selection remains available if capture fails. */ }
             }:undefined}
             onPointerEnter={mode==='range' ? (event)=>{
               if(!pointerOrigin.current || (event.buttons&1)===0)return;
@@ -396,6 +396,7 @@ function ChartCalendar({mode, start, end, days, focusMonth, onRange, onDays, onC
     if(date){const a=pointerOrigin.current;onRange(a<date?a:date,a<date?date:a);}
     if(dragged.current)anchor.current=null;
     pointerOrigin.current=null;dragged.current=false;
+    try { if(event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); } catch { /* Capture may already have ended. */ }
   }} onPointerCancel={()=>{pointerOrigin.current=null;dragged.current=false;}}>
     <div className="chart-calendar-toolbar">
       <div className="chart-calendar-toolbar-title"><strong>{mode==='range'?'Escolha um intervalo':'Escolha dias específicos'}</strong><span>{mode==='range'?'Arraste entre duas datas ou clique no início e no fim.':'Clique nos dias para marcar ou desmarcar.'}</span></div>
