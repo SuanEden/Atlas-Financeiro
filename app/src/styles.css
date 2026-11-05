@@ -1418,3 +1418,242 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .app-shell[data-theme="dark"] .bank-sync-status {background:#22271d;border-color:#414c32;}
 .app-shell[data-theme="dark"] .bank-sync-dot {background:var(--accent);}
 .app-shell[data-theme="dark"] .bank-sync-status p {color:#adb4a5;}
+
+
+/* Atlas Daylight — warm, dimensional companion to Atlas Noir.
+   Explicit light-only selectors keep the saved dark experience untouched. */
+.app-shell[data-theme="light"] {
+  --bg:#f4f5ed;
+  --subtle:#edf1e5;
+  --surface:#ffffff;
+  --ink:#18241a;
+  --muted:#5d695d;
+  --line:#dce3d5;
+  --accent:#176b46;
+  --accent-dark:#125438;
+  --accent-soft:#e1efd9;
+  --positive:#176b46;
+  --negative:#a73e43;
+  --atlas-shadow:0 2px 5px rgba(39,55,32,.025),0 15px 35px rgba(35,55,29,.065);
+  color-scheme:light;
+  background:radial-gradient(ellipse 72% 33% at 88% 5%,rgba(204,232,160,.23),transparent 78%),var(--bg);
+}
+.app-shell[data-theme="light"] .sidebar {
+  background:linear-gradient(180deg,#fcfdf8 0%,#f5f8ed 100%);
+  border-right:1px solid #d8e2d3;
+}
+.app-shell[data-theme="light"] .brand-mark {
+  background:#1e3f2d;
+  color:#dcfa84;
+  box-shadow:0 5px 15px rgba(25,66,44,.17);
+}
+.app-shell[data-theme="light"] .brand strong {color:#1c3324;}
+.app-shell[data-theme="light"] .sidebar-section-label {color:#75816c;}
+.app-shell[data-theme="light"] .sidebar nav button {color:#4d5c50;}
+.app-shell[data-theme="light"] .sidebar nav button:hover {background:#edf2e7;color:#163b28;}
+.app-shell[data-theme="light"] .sidebar nav button.is-active {
+  background:#e4efdb;
+  color:#194b31;
+  box-shadow:inset 0 0 0 1px #d4e6c6;
+}
+.app-shell[data-theme="light"] .sidebar nav button.is-active::before {background:#548e3d;}
+.app-shell[data-theme="light"] .sidebar-footer {color:#687663;}
+.app-shell[data-theme="light"] .topbar {
+  background:rgba(255,255,251,.94);
+  border-bottom:1px solid #e0e7d9;
+}
+.app-shell[data-theme="light"] .topbar-context span {color:#4b7750;font-weight:800;}
+.app-shell[data-theme="light"] .topbar-context strong {color:#24402e;}
+.app-shell[data-theme="light"] .device-status {
+  border:1px solid #d9e5d4;
+  background:#f0f6ea;
+  color:#3b6846;
+}
+.app-shell[data-theme="light"] .icon-button {
+  background:#eff3e9;
+  border:1px solid #d7e1d0;
+  color:#22432c;
+}
+.app-shell[data-theme="light"] .icon-button:hover {background:#e5eddd;}
+.app-shell[data-theme="light"] .page-heading h1 {color:#1d3021;}
+.app-shell[data-theme="light"] .page-heading p {color:#647164;}
+.app-shell[data-theme="light"] .section-kicker {
+  color:#52784a;
+  font-weight:760;
+}
+.app-shell[data-theme="light"] .button--primary {
+  background:#1b7049;
+  border-color:#1b7049;
+  color:#fff;
+  box-shadow:0 5px 15px rgba(21,104,64,.17);
+}
+.app-shell[data-theme="light"] .button--primary:hover {background:#125a39;}
+.app-shell[data-theme="light"] .button--secondary {
+  background:#fff;
+  border-color:#d6e0ce;
+  color:#254b30;
+}
+.app-shell[data-theme="light"] .button--secondary:hover {background:#f0f6e9;}
+.app-shell[data-theme="light"] .button--ghost {background:#f8faf4;border-color:#d8e3d2;}
+.app-shell[data-theme="light"] .text-button {color:#205f3a;}
+.app-shell[data-theme="light"] .balance-hero {
+  background:
+    radial-gradient(circle at 88% 11%,rgba(217,255,113,.22) 0%,transparent 38%),
+    linear-gradient(120deg,#1b4c31 1%,#286e43 63%,#3c8550 100%);
+  color:#fff;
+  border:1px solid rgba(26,80,46,.14);
+  box-shadow:0 18px 43px rgba(27,86,54,.21);
+}
+.app-shell[data-theme="light"] .balance-hero-kicker {color:#e1f6cc;}
+.app-shell[data-theme="light"] .balance-hero-dot {background:#d4fb81;box-shadow:0 0 0 5px rgba(255,255,255,.1);}
+.app-shell[data-theme="light"] .balance-hero h2 {color:#fff;}
+.app-shell[data-theme="light"] .balance-hero p {color:#d6edda;}
+.app-shell[data-theme="light"] .balance-hero-orbit {border-color:rgba(246,255,228,.28);}
+.app-shell[data-theme="light"] .balance-hero-symbol {color:rgba(230,255,199,.13);}
+.app-shell[data-theme="light"] .balance-hero-action {
+  background:#e8f9c0;
+  border-color:#e8f9c0;
+  color:#24472b;
+}
+.app-shell[data-theme="light"] .balance-hero-action--soft {
+  background:rgba(255,255,255,.12);
+  border-color:rgba(255,255,255,.32);
+  color:#fff;
+}
+.app-shell[data-theme="light"] .dashboard-quick-actions button {
+  background:#fff;
+  border-color:#dbe5d4;
+  box-shadow:0 5px 18px rgba(34,65,31,.045);
+}
+.app-shell[data-theme="light"] .dashboard-quick-actions button:hover:not(:disabled) {
+  border-color:#83ac75;
+  box-shadow:0 8px 22px rgba(30,81,46,.12);
+}
+.app-shell[data-theme="light"] .quick-action-icon {
+  background:#e9f2dd;
+  color:#36754c;
+}
+.app-shell[data-theme="light"] .insight-prompt {
+  background:linear-gradient(135deg,#fff 0%,#fafcf3 100%);
+  border:1px solid #d9e5d0;
+  box-shadow:var(--atlas-shadow);
+}
+.app-shell[data-theme="light"] .insight-prompt-spark {
+  background:#dff3c3;
+  color:#39762d;
+}
+.app-shell[data-theme="light"] .insight-prompt-options button {
+  background:#f2f5ed;
+  border-color:#d9e2d2;
+  color:#36543a;
+}
+.app-shell[data-theme="light"] .insight-prompt-options button:hover {border-color:#8ab178;background:#eaf2e2;}
+.app-shell[data-theme="light"] .insight-prompt-options button[aria-pressed="true"] {
+  background:#244d32;
+  color:#f3ffc5;
+  border-color:#244d32;
+}
+.app-shell[data-theme="light"] .insight-prompt-answer {
+  background:linear-gradient(105deg,#ebf4df,#f2f8e8);
+  border:1px solid #d5e7c6;
+}
+.app-shell[data-theme="light"] .insight-prompt-answer strong {color:#20452b;}
+.app-shell[data-theme="light"] .insight-prompt-answer button {border-color:#acc8a1;color:#285936;}
+.app-shell[data-theme="light"] .money-summary > div {
+  background:linear-gradient(150deg,#fff 45%,#fbfdf8 100%);
+  border:1px solid #dbe4d3;
+  box-shadow:var(--atlas-shadow);
+}
+.app-shell[data-theme="light"] .money-summary > div:last-child {border-color:#dbe4d3;}
+.app-shell[data-theme="light"] .money-summary span {color:#64725d;}
+.app-shell[data-theme="light"] .money-summary strong {color:#233d2b;}
+.app-shell[data-theme="light"] .flow-band > div,
+.app-shell[data-theme="light"] .forecast-grid > div,
+.app-shell[data-theme="light"] .dashboard-columns > section {
+  background:#fff;
+  border-color:#dce5d5;
+  box-shadow:var(--atlas-shadow);
+}
+.app-shell[data-theme="light"] .flow-band > div:first-child {border-top:3px solid #69a877;}
+.app-shell[data-theme="light"] .flow-band > div:nth-child(2) {border-top:3px solid #d6937e;}
+.app-shell[data-theme="light"] .flow-band > div:nth-child(3) {border-top:3px solid #a7b960;}
+.app-shell[data-theme="light"] .chart-studio-card,
+.app-shell[data-theme="light"] .account-card,
+.app-shell[data-theme="light"] .history-list,
+.app-shell[data-theme="light"] .category-list,
+.app-shell[data-theme="light"] .more-menu > button,
+.app-shell[data-theme="light"] .backup-panel,
+.app-shell[data-theme="light"] .scope-panel {
+  background:#fff;
+  border-color:#dce5d5;
+  box-shadow:var(--atlas-shadow);
+}
+.app-shell[data-theme="light"] .chart-studio-card:hover,
+.app-shell[data-theme="light"] .more-menu > button:hover {
+  border-color:#a9c9a1;
+  box-shadow:0 12px 30px rgba(31,78,48,.11);
+}
+.app-shell[data-theme="light"] .more-menu-icon,
+.app-shell[data-theme="light"] .account-icon,
+.app-shell[data-theme="light"] .movement-icon:not(.movement-icon--expense) {
+  background:#eaf3e0;
+  color:#367346;
+}
+.app-shell[data-theme="light"] .local-status {
+  background:#f7faf3;
+  border-color:#d9e6d1;
+}
+.app-shell[data-theme="light"] .movement-filters {
+  background:#fff;
+  border-color:#dce5d5;
+  box-shadow:var(--atlas-shadow);
+}
+.app-shell[data-theme="light"] .chart-editor-group {
+  border-color:#dce5d5;
+  background:#fff;
+  box-shadow:0 4px 20px rgba(27,64,38,.035);
+}
+.app-shell[data-theme="light"] .chart-editor-group-heading > span {
+  background:#e9f2db;
+  color:#2f693e;
+}
+.app-shell[data-theme="light"] .chart-editor-preview {
+  background:#f2f6eb;
+  border:1px solid #dfe9d7;
+}
+.app-shell[data-theme="light"] .chart-custom-period {background:#f1f6e9;border-color:#d7e5cf;}
+.app-shell[data-theme="light"] .cloud-control-card {background:#f1f7eb;border-color:#d4e3c9;}
+.app-shell[data-theme="light"] .cloud-control-mark {background:#dceecb;color:#25613d;}
+.app-shell[data-theme="light"] .sync-panel {border-color:#dce5d5;background:#fff;}
+.app-shell[data-theme="light"] .sidebar-cloud-controls .sync-panel {background:#f5f9ef;border-color:#dce5d3;}
+.app-shell[data-theme="light"] .banks-page > .sync-panel {background:#fff;border-color:#dce5d5;box-shadow:var(--atlas-shadow);}
+.app-shell[data-theme="light"] .bank-sync-status {background:#eef6e5;border-color:#d6e6cb;}
+.app-shell[data-theme="light"] .mobile-cloud-controls {background:#fff;border-color:#d6e2cd;box-shadow:0 6px 19px rgba(24,66,32,.065);}
+.app-shell[data-theme="light"] .mobile-cloud-controls > summary {color:#254c30;}
+.app-shell[data-theme="light"] .empty-panel,
+.app-shell[data-theme="light"] .compact-empty {background:#fff;border-color:#dce5d5;}
+.app-shell[data-theme="light"] .bottom-nav {
+  background:color-mix(in srgb,#fffef9 96%,transparent);
+  border-top:1px solid #dbe5d3;
+  box-shadow:0 -8px 26px rgba(26,62,35,.09);
+}
+.app-shell[data-theme="light"] .bottom-nav > button.is-active {color:#205f3d;}
+.app-shell[data-theme="light"] .bottom-nav > button.is-active > svg {background:#e2f0d5;}
+.app-shell[data-theme="light"] .bottom-nav .bottom-add {
+  background:#1d6443;
+  color:#fff;
+  box-shadow:0 8px 24px rgba(25,101,64,.25);
+}
+.app-shell[data-theme="light"] .bottom-nav .bottom-add span {color:#445f4b;}
+@media(max-width:760px) {
+  .app-shell[data-theme="light"] .topbar {background:rgba(255,255,251,.97);}
+  .app-shell[data-theme="light"] .money-summary > div {
+    box-shadow:0 5px 18px rgba(27,67,35,.065);
+  }
+  .app-shell[data-theme="light"] .flow-band > div {
+    border-top-width:1px;
+    border-left:3px solid #a7bc91;
+  }
+  .app-shell[data-theme="light"] .flow-band > div:first-child {border-left-color:#69a877;}
+  .app-shell[data-theme="light"] .flow-band > div:nth-child(2) {border-left-color:#d6937e;}
+}
