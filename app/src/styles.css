@@ -549,6 +549,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .chart-category-choice:hover { background:var(--accent-soft); }
 .chart-category-choice input[type="checkbox"] { width:17px; height:17px; min-height:0; margin:0; padding:0; flex:0 0 auto; accent-color:var(--accent); }
 .chart-category-caption { margin:0; color:var(--muted); font-size:.76rem; font-weight:400; }
+.chart-custom-period { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding:12px; border:1px solid var(--line); border-radius:10px; background:var(--subtle); }
+.chart-custom-period > p { grid-column:1/-1; }
+.chart-custom-period input[type="date"] { color-scheme:light dark; }
+.chart-period-error { margin:0; color:var(--negative); font-size:.78rem; }
+@media(max-width:520px){.chart-custom-period{grid-template-columns:1fr;}}
 .chart-editor-section-heading { display:flex; flex-direction:column; gap:4px; padding-top:9px; border-top:1px solid var(--line); }
 .chart-editor-section-heading strong { font-size:.92rem; color:var(--ink); }
 .chart-editor-section-heading span { font-size:.78rem; color:var(--muted); }
