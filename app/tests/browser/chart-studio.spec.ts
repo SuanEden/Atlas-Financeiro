@@ -152,3 +152,31 @@ test('editor permite selecionar todas as categorias sem perder o gráfico',async
   await expect(page.getByRole('dialog').getByRole('checkbox',{name:'Todas as categorias'})).toBeChecked();
   await expect(page.getByRole('dialog').getByRole('checkbox',{name:'Todas as contas'})).toBeChecked();
 });
+
+test('período personalizado mantém seleção compacta, valida datas e persiste', async ({page}) => {
+  await page.goto('/');
+  await page.getByRole('button',{name:'Novo gráfico'}).click();
+  const editor=page.getByRole('dialog');
+  await editor.getByLabel('Título do gráfico').fill('Período escolhido');
+  await editor.getByLabel('Período').selectOption('custom');
+  await expect(editor.getByLabel('Data inicial')).toBeVisible();
+  await editor.getByLabel('Data inicial').fill('2026-10-21');
+  await editor.getByLabel('Data final').fill('2026-10-20');
+  await expect(editor.getByRole('button',{name:'Salvar gráfico'})).toBeDisabled();
+  await editor.getByLabel('Data final').fill('2026-10-25');
+  await expect(editor.getByRole('button',{name:'Salvar gráfico'})).toBeEnabled();
+  await editor.getByRole('button',{name:'Salvar gráfico'}).click();
+  await expect(page.getByRole('heading',{name:'Período escolhido'})).toBeVisible();
+  await page.getByRole('button',{name:'Organizar',exact:true}).click();
+  await page.getByRole('button',{name:'Editar Período escolhido'}).click();
+  await expect(page.getByRole('dialog').getByLabel('Período')).toHaveValue('custom');
+  await expect(page.getByRole('dialog').getByLabel('Data inicial')).toHaveValue('2026-10-21');
+  await expect(page.getByRole('dialog').getByLabel('Data final')).toHaveValue('2026-10-25');
+  await page.getByRole('dialog').getByLabel('Período').selectOption('3');
+  await expect(page.getByRole('dialog').getByLabel('Data inicial')).toHaveCount(0);
+  await page.getByRole('dialog').getByRole('button',{name:'Salvar gráfico'}).click();
+  await page.reload();
+  await page.getByRole('button',{name:'Organizar',exact:true}).click();
+  await page.getByRole('button',{name:'Editar Período escolhido'}).click();
+  await expect(page.getByRole('dialog').getByLabel('Período')).toHaveValue('3');
+});
