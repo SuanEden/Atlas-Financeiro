@@ -53,6 +53,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
   const [page, setPage] = useState<Page | 'banks'>('dashboard');
   const [modal, setModal] = useState<Modal>();
   const [notice, setNotice] = useState('');
+  // Navigation is presentation-only; financial state remains unchanged.
   const [dark, setDark] = useState(() => localStorage.getItem('atlas-financeiro:theme:v1') === 'dark');
   const today = context.today();
 
