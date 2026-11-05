@@ -30,8 +30,10 @@ describe('gráficos do dashboard financeiro', () => {
     const data = state();
     const accountId = data.accounts[0]!.id;
     const categoryOne = data.categories[0]!.id;
-    const categoryTwo = data.categories[1]!.id;
-    const categoryThree = data.categories[2]!.id;
+    const categoryTwo = '00000000-0000-4000-8000-000000000021';
+    const categoryThree = '00000000-0000-4000-8000-000000000022';
+    data.categories.push({id:categoryTwo,userId:owner,name:'Categoria B',kind:'both'});
+    data.categories.push({id:categoryThree,userId:owner,name:'Categoria C',kind:'both'});
     for (const [index, categoryId] of [categoryOne, categoryTwo, categoryThree].entries()) {
       const eventId = 'category-event-' + index;
       data.events.push({
