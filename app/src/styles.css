@@ -549,6 +549,20 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .chart-category-choice:hover { background:var(--accent-soft); }
 .chart-category-choice input[type="checkbox"] { width:17px; height:17px; min-height:0; margin:0; padding:0; flex:0 0 auto; accent-color:var(--accent); }
 .chart-category-caption { margin:0; color:var(--muted); font-size:.76rem; font-weight:400; }
+.chart-editor-section-heading { display:flex; flex-direction:column; gap:4px; padding-top:9px; border-top:1px solid var(--line); }
+.chart-editor-section-heading strong { font-size:.92rem; color:var(--ink); }
+.chart-editor-section-heading span { font-size:.78rem; color:var(--muted); }
+.chart-filter-toolbar { display:flex; justify-content:space-between; gap:10px; align-items:center; }
+.chart-filter-reset { border:0; background:transparent; color:var(--accent-dark); font-size:.76rem; font-weight:650; cursor:pointer; }
+.chart-filter-reset:hover { text-decoration:underline; }
+.chart-category-choice--all { font-weight:650; }
+.chart-category-choice:has(input:checked) { background:var(--accent-soft); color:var(--accent-dark); }
+.chart-category-list { scrollbar-width:thin; }
+.chart-category-list:focus-within { border-color:var(--accent); }
+.chart-filter-search { min-height:38px !important; font-size:.8rem; }
+.chart-filter-empty { grid-column:1/-1; margin:4px 0; font-size:.76rem; color:var(--muted); }
+.chart-category-choice input[type="checkbox"]:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
 @media(max-width:580px){.chart-category-list{grid-template-columns:1fr;}}
 
 .chart-field input, .chart-field select { width:100%; min-height:42px; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--ink); font-weight:400; }
