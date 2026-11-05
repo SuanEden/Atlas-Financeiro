@@ -43,11 +43,12 @@ test('aba Bancos aparece e funciona na navegação móvel sem perder Ajustes',as
   test.skip(testInfo.project.name!=='mobile-edge','Somente interface móvel');
   await page.goto('/');
   const nav=page.getByRole('navigation',{name:'Navegação móvel'});
-  const banks=nav.getByRole('button',{name:'Bancos',exact:true});
-  await expect(banks).toBeVisible();
-  await banks.click();
+  const more=nav.getByRole('button',{name:'Mais',exact:true});
+  await expect(more).toBeVisible();
+  await more.click();
+  await page.getByRole('button',{name:'Bancos',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Bancos conectados'})).toBeVisible();
-  await nav.getByRole('button',{name:'Ajustes',exact:true}).click();
+  await more.click();
   await expect(page.getByRole('button',{name:'Backup',exact:true})).toBeVisible();
   const noHorizontalOverflow=await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth);
   expect(noHorizontalOverflow).toBe(true);
