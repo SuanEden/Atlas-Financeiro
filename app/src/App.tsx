@@ -113,8 +113,8 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
         <div className="sidebar-section-label">ESPAÇO FINANCEIRO</div>
         <nav aria-label="Navegação principal">{[...desktopNavigation, ...(integration || bankPanel !== undefined ? [{page:'banks' as const,label:'Bancos',Icon:Landmark}] : [])].map(({ page: target, label, Icon }) => <button className={page === target ? 'is-active' : ''} key={target} onClick={() => setPage(target)}><Icon size={19} /><span>{label}</span></button>)}</nav>
         <div className="sidebar-section-label sidebar-section-label--foot">SEUS DADOS</div>
-        {sessionControls ? <div className="sidebar-cloud-controls">{sessionControls}</div>
-          : <div className="sidebar-footer"><HardDrive size={17} /><span><strong>{testMode ? 'Modo de teste isolado' : 'Salvo neste dispositivo'}</strong><small>{state.outbox.length} pendente{state.outbox.length === 1 ? '' : 's'} · nuvem desligada</small></span></div>}
+        {sessionControls ? <div className="sidebar-cloud-controls">{sessionControls}</div> : null}
+        {!integration ? <div className="sidebar-footer"><HardDrive size={17} /><span><strong>{testMode ? 'Modo de teste isolado' : 'Salvo neste dispositivo'}</strong><small>{state.outbox.length} pendente{state.outbox.length === 1 ? '' : 's'} · nuvem desligada</small></span></div> : null}
       </aside>
 
       <section className="workspace">
