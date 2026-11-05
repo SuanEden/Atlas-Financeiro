@@ -1147,3 +1147,20 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .chart-editor .chart-editor-actions {margin:0 -15px -22px;padding:13px 15px calc(16px + env(safe-area-inset-bottom));}
   .chart-editor .chart-editor-actions .button {flex:1;}
 }
+
+/* Mobile follows the reading flow: money -> actions -> activity -> analysis. */
+@media(max-width:760px) {
+  .app-shell .page-content:has(> .balance-hero) {display:flex;flex-direction:column;gap:0;}
+  .page-content > .page-heading {order:0;}
+  .page-content > .balance-hero {order:1;}
+  .page-content > .dashboard-quick-actions {order:2;}
+  .page-content > .money-summary {order:3;}
+  .page-content > .dashboard-data-note {order:4;}
+  .page-content > .flow-section[aria-labelledby="flow-title"] {order:5;}
+  .page-content > .dashboard-columns {order:6;margin:0 0 30px;}
+  .page-content > .finance-charts {order:7;margin-bottom:30px;}
+  .page-content > .flow-section[aria-labelledby="forecast-title"] {order:8;}
+  .page-content > .empty-panel {order:9;}
+  .app-shell .finance-chart-grid.chart-studio-grid:not(.chart-studio-grid--free) {grid-template-columns:minmax(0,1fr);}
+  .app-shell .finance-chart-grid.chart-studio-grid > .chart-studio-card {grid-column:1 / -1!important;}
+}
