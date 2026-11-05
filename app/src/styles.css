@@ -559,6 +559,23 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .chart-filter-dropdown .chart-category-list { display:flex; flex-direction:column; gap:3px; max-height:205px; padding:4px; border:0; }
 .chart-filter-dropdown .chart-category-choice { min-height:32px; }
 .chart-filter-details > summary:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.chart-calendar { grid-column:1/-1; display:flex; flex-direction:column; gap:12px; width:100%; min-width:0; user-select:none; }
+.chart-calendar-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.chart-calendar-toolbar span { font-size:.78rem; color:var(--muted); text-align:center; }
+.chart-calendar-toolbar button { flex:0 0 34px; height:34px; padding:0; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--ink); font-size:1.45rem; cursor:pointer; }
+.chart-calendar-toolbar button:hover { border-color:var(--accent); color:var(--accent-dark); }
+.chart-calendar-months { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.chart-calendar-month { min-width:0; padding:10px; border:1px solid var(--line); border-radius:11px; background:var(--surface); }
+.chart-calendar-month > strong { display:block; margin-bottom:10px; text-align:center; text-transform:capitalize; color:var(--ink); font-size:.82rem; }
+.chart-calendar-days { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:3px; }
+.chart-calendar-weekday { text-align:center; font-size:.68rem; color:var(--muted); padding:4px 0; }
+.chart-calendar-day { display:grid; place-items:center; width:100%; aspect-ratio:1; min-width:0; min-height:28px; border:1px solid transparent; border-radius:7px; padding:0; background:transparent; color:var(--ink); font-size:.77rem; font-weight:500; cursor:pointer; touch-action:none; }
+.chart-calendar-day:hover { background:var(--accent-soft); border-color:var(--accent); }
+.chart-calendar-day.is-selected { background:var(--accent-soft); color:var(--accent-dark); font-weight:750; }
+.chart-calendar-day.is-endpoint { background:var(--accent); color:var(--surface); }
+.chart-calendar-day:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+.chart-calendar-footer { text-align:center; font-size:.78rem; font-weight:650; color:var(--accent-dark); }
+@media(max-width:600px){.chart-calendar-months{grid-template-columns:1fr;}.chart-calendar-day{min-height:34px;}}
 .chart-custom-period { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding:12px; border:1px solid var(--line); border-radius:10px; background:var(--subtle); }
 .chart-custom-period > p { grid-column:1/-1; }
 .chart-custom-period input[type="date"] { color-scheme:light dark; }
