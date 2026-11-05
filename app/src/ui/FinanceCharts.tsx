@@ -18,6 +18,9 @@ export interface ChartConfig {
   measure: ChartMeasure;
   dimension: ChartDimension;
   months: ChartMonths;
+  /** Optional inclusive calendar-day interval. Old layouts keep their monthly preset. */
+  dateStart?: string;
+  dateEnd?: string;
   accountId: string;
   /** Selected accounts; empty means all. Absent means legacy accountId. */
   accountIds?: string[];
@@ -48,6 +51,20 @@ const monthAt = (month: string, offset: number): string => {
 };
 const monthLabel = (month: string): string => new Intl.DateTimeFormat('pt-BR', { month: 'short', year: '2-digit', timeZone: 'UTC' }).format(new Date(month + '-01T12:00:00Z')).replace('.', '');
 const isOneOf = <T extends string | number>(value: unknown, options: readonly T[]): value is T => options.includes(value as T);
+const validDate = (value: unknown): value is string => {
+  if (typeof value !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/.test(value)) return false;
+  const date = new Date(value + 'T12:00:00Z');
+  return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0,10) === value;
+};
+const lastDayOfMonth = (month:string) => {
+  const [year,number] = month.split('-').map(Number);
+  return new Date(Date.UTC(year,number,0)).toISOString().slice(0,10);
+};
+const calendarMonths = (start:string,end:string) => {
+  const [sy,sm] = start.slice(0,7).split('-').map(Number);
+  const [ey,em] = end.slice(0,7).split('-').map(Number);
+  return (ey-sy)*12+em-sm+1;
+};
 
 export const defaultCharts = (): ChartConfig[] => [
   { id: 'default-realized', title: 'Entradas e saídas realizadas', type: 'bar', source: 'realized', measure: 'both', dimension: 'month', months: 6, accountId: '', categoryId: '', size: 'half' },
@@ -70,6 +87,7 @@ export function normalizeChartConfig(raw: unknown): ChartConfig | null {
     measure: isCircular && (value.measure === 'both' || value.measure === 'net') ? 'expense' : value.measure,
     dimension: value.dimension,
     months: value.months,
+    ...(validDate(value.dateStart) && validDate(value.dateEnd) && value.dateStart <= value.dateEnd && calendarMonths(value.dateStart,value.dateEnd) <= 24 ? {dateStart:value.dateStart,dateEnd:value.dateEnd} : {}),
     accountId: typeof value.accountId === 'string' ? value.accountId.slice(0, 100) : '',
     ...(Array.isArray(value.accountIds) ? { accountIds: [...new Set(value.accountIds.filter((id): id is string => typeof id === 'string' && id.length > 0 && id.length <= 100))].slice(0, 200) } : {}),
     categoryId: typeof value.categoryId === 'string' ? value.categoryId.slice(0, 100) : '',
@@ -130,8 +148,9 @@ export function findFreeChartPosition(rects:readonly BoardRect[], id:string, des
 }
 
 export function buildChartRows(state: LocalFinancialState, month: string, config: ChartConfig): ChartRow[] {
-  const start = config.source === 'realized' ? monthAt(month, 1 - config.months) : month;
-  const end = config.source === 'realized' ? month : monthAt(month, config.months - 1);
+  const custom = validDate(config.dateStart) && validDate(config.dateEnd) && config.dateStart <= config.dateEnd && calendarMonths(config.dateStart,config.dateEnd) <= 24;
+  const start = custom ? config.dateStart!.slice(0,7) : config.source === 'realized' ? monthAt(month, 1 - config.months) : month;
+  const end = custom ? config.dateEnd!.slice(0,7) : config.source === 'realized' ? month : monthAt(month, config.months - 1);
   const eventById = new Map(state.events.map((event) => [event.id, event]));
   const accountNames = new Map(state.accounts.map((account) => [account.id, account.name]));
   const categoryNames = new Map(state.categories.map((category) => [category.id, category.name]));
@@ -141,12 +160,15 @@ export function buildChartRows(state: LocalFinancialState, month: string, config
     : (config.categoryIds.length ? new Set(config.categoryIds) : null);
   const totals = new Map<string, ChartRow>();
   if (config.dimension === 'month') {
-    for (let index = 0; index < config.months; index += 1) {
+    for (let index = 0; index < (custom ? calendarMonths(config.dateStart!,config.dateEnd!) : config.months); index += 1) {
       const key = monthAt(start, index);
       totals.set(key, { label: monthLabel(key), income: 0n, expense: 0n });
     }
   }
-  const accumulate = (eventId: string, dateMonth: string, kind: 'income' | 'expense', amount: bigint) => {
+  const accumulate = (eventId: string, date: string | undefined, kind: 'income' | 'expense', amount: bigint) => {
+    if (!date) return;
+    const dateMonth = date.slice(0,7);
+    if (custom && (date.length !== 10 || date < config.dateStart! || date > config.dateEnd!)) return;
     if (dateMonth < start || dateMonth > end) return;
     const event = eventById.get(eventId);
     if (!event || (selectedAccounts && !selectedAccounts.has(event.accountId)) || (selectedCategories && !selectedCategories.has(event.categoryId ?? ''))) return;
@@ -163,15 +185,16 @@ export function buildChartRows(state: LocalFinancialState, month: string, config
     for (const settlement of state.settlements) {
       const event = eventById.get(settlement.eventId);
       if (event?.kind !== 'income' && event?.kind !== 'expense') continue;
-      accumulate(event.id, settlement.settlementDate.slice(0, 7), event.kind,
+      accumulate(event.id, settlement.settlementDate, event.kind,
         settlement.amountCents * (event.reversesEventId === undefined ? 1n : -1n));
     }
   } else {
     // Forecast items explicitly exclude gross-only reference amounts and already realized cash.
-    const forecast = calculateFinancialForecast(state, month, config.months);
+    const forecast = calculateFinancialForecast(state, custom ? start : month, custom ? calendarMonths(config.dateStart!,config.dateEnd!) : config.months);
     for (const item of forecast.items) {
       if (item.amountBasis !== 'cash') continue;
-      accumulate(item.eventId, item.month, item.kind, item.amountCents);
+      // A forecast with month only cannot be allocated honestly to a custom day range.
+      accumulate(item.eventId, custom ? item.date : item.month, item.kind, item.amountCents);
     }
   }
   const rows = [...totals.values()];
@@ -293,12 +316,18 @@ function ChartEditor({ initial, state, month, onSave, onCancel }: { initial: Cha
   const preview = useMemo(() => buildChartRows(state, month, draft), [state, month, draft]);
   const set = <K extends keyof ChartConfig>(key: K, value: ChartConfig[K]) => setDraft((previous) => ({ ...previous, [key]: value }));
   const circular = draft.type === 'donut' || draft.type === 'pie';
+  const customPeriod = draft.dateStart !== undefined || draft.dateEnd !== undefined;
+  const periodValid = !customPeriod || (validDate(draft.dateStart) && validDate(draft.dateEnd) && draft.dateStart <= draft.dateEnd && calendarMonths(draft.dateStart,draft.dateEnd) <= 24);
+  const changePeriod = (value:string) => setDraft(previous => value === 'custom'
+    ? {...previous,dateStart: previous.dateStart ?? (previous.source === 'realized' ? monthAt(month,1-previous.months) + '-01' : month + '-01'),
+      dateEnd: previous.dateEnd ?? lastDayOfMonth(previous.source === 'realized' ? month : monthAt(month,previous.months-1))}
+    : {...previous,months:Number(value) as ChartMonths,dateStart:undefined,dateEnd:undefined});
   const selectedAccountIds = draft.accountIds ?? (draft.accountId ? [draft.accountId] : []);
   const selectedCategoryIds = draft.categoryIds ?? (draft.categoryId ? [draft.categoryId] : []);
   const selectAccounts = (ids: string[]) => setDraft((previous) => ({ ...previous, accountId: '', accountIds: ids }));
   const selectCategories = (ids: string[]) => setDraft((previous) => ({ ...previous, categoryId: '', categoryIds: ids }));
   return <DialogFrame title={initial.title ? 'Editar gráfico' : 'Novo gráfico'} onClose={onCancel} wide>
-    <form className="chart-editor" onSubmit={(event) => { event.preventDefault(); onSave({ ...draft, title: draft.title.trim() || 'Meu gráfico' }); }}>
+    <form className="chart-editor" onSubmit={(event) => { event.preventDefault(); if (!periodValid) return; onSave({ ...draft, title: draft.title.trim() || 'Meu gráfico' }); }}>
       <div className="chart-editor-fields">
         <label className="chart-field chart-field--full">Título do gráfico<input maxLength={80} value={draft.title} onChange={(event) => set('title', event.target.value)} placeholder="Ex.: Minhas despesas" /></label>
         <label className="chart-field">Visualização<select value={draft.type} onChange={(event) => {
@@ -308,15 +337,20 @@ function ChartEditor({ initial, state, month, onSave, onCancel }: { initial: Cha
         <label className="chart-field">Origem dos dados<select value={draft.source} onChange={(event) => set('source', event.target.value as ChartSource)}><option value="realized">Realizado · valores pagos/recebidos</option><option value="forecast">Previsto · compromissos futuros</option></select></label>
         <label className="chart-field">Valores<select value={draft.measure} onChange={(event) => set('measure', event.target.value as ChartMeasure)}>{measures.filter((measure) => !circular || (measure !== 'both' && measure !== 'net')).map((measure) => <option key={measure} value={measure}>{measureLabel[measure]}</option>)}</select></label>
         <label className="chart-field">Agrupar por<select value={draft.dimension} onChange={(event) => set('dimension', event.target.value as ChartDimension)}>{dimensions.map((dimension) => <option key={dimension} value={dimension}>{dimensionLabel[dimension]}</option>)}</select></label>
-        <label className="chart-field">Período<select value={draft.months} onChange={(event) => set('months', Number(event.target.value) as ChartMonths)}>{periods.map((period) => <option key={period} value={period}>{period === 1 ? '1 mês' : period + ' meses'}</option>)}</select></label>
+        <label className="chart-field">Período<select value={customPeriod ? 'custom' : String(draft.months)} onChange={(event) => changePeriod(event.target.value)}>{periods.map((period) => <option key={period} value={period}>{period === 1 ? '1 mês' : period + ' meses'}</option>)}<option value="custom">Personalizado · escolher datas</option></select></label>
         <label className="chart-field">Tamanho<select value={draft.size} onChange={(event) => set('size', event.target.value as ChartSize)}>{sizes.map((size) => <option key={size} value={size}>{sizeLabel[size]}</option>)}</select></label>
+        {customPeriod ? <div className="chart-custom-period chart-field--full">
+          <label className="chart-field">Data inicial<input type="date" value={draft.dateStart ?? ''} onChange={(event) => set('dateStart',event.target.value)} required /></label>
+          <label className="chart-field">Data final<input type="date" value={draft.dateEnd ?? ''} min={draft.dateStart} onChange={(event) => set('dateEnd',event.target.value)} required /></label>
+          {!periodValid ? <p className="chart-period-error" role="alert">Informe um intervalo válido, com a data inicial anterior ou igual à final e no máximo 24 meses.</p> : <p className="chart-category-caption">Datas incluídas no intervalo. {draft.source === 'forecast' ? 'Previsões sem dia definido não entram no recorte personalizado.' : 'São consideradas as datas efetivas de pagamento ou recebimento.'}</p>}
+        </div> : null}
         <div className="chart-editor-section-heading chart-field--full"><strong>Filtros dos dados</strong><span>Selecione várias contas e categorias. Os filtros são combinados.</span></div>
         <ChartMultiFilter title="Filtrar por conta" allLabel="Todas as contas" options={state.accounts} selected={selectedAccountIds} onChange={selectAccounts} />
         <ChartMultiFilter title="Filtrar por categoria" allLabel="Todas as categorias" options={state.categories} selected={selectedCategoryIds} onChange={selectCategories} />
       </div>
       <p className="chart-editor-hint">{draft.source === 'realized' ? 'Somente liquidações efetivas; transferências e ajustes não entram nas receitas ou despesas.' : 'Previsões não são dinheiro realizado. Valores brutos sem líquido informado ficam de fora.'} {circular ? 'Pizza e rosca exibem apenas valores positivos.' : ''}</p>
       <div className="chart-editor-preview"><strong>Prévia</strong><ChartVisual rows={preview} config={draft} /></div>
-      <div className="chart-editor-actions"><button type="button" className="button button--secondary" onClick={onCancel}>Cancelar</button><button type="submit" className="button button--primary">Salvar gráfico</button></div>
+      <div className="chart-editor-actions"><button type="button" className="button button--secondary" onClick={onCancel}>Cancelar</button><button type="submit" className="button button--primary" disabled={!periodValid}>Salvar gráfico</button></div>
     </form>
   </DialogFrame>;
 }
