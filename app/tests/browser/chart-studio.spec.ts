@@ -175,12 +175,13 @@ test('calendário seleciona intervalo entre meses por arraste e salva', async ({
     await calendar.getByRole('button',{name:'Meses anteriores'}).click();
   await expect(from).toBeVisible();
   await expect(to).toBeVisible();
-  await from.scrollIntoViewIfNeeded();
   await to.scrollIntoViewIfNeeded();
+  await from.hover();
   const startBox=await from.boundingBox(),endBox=await to.boundingBox();
   expect(startBox).not.toBeNull();expect(endBox).not.toBeNull();
   await page.mouse.move(startBox!.x+startBox!.width/2,startBox!.y+startBox!.height/2);
   await page.mouse.down();
+  await expect(from).toHaveAttribute('aria-pressed','true');
   await page.mouse.move(endBox!.x+endBox!.width/2,endBox!.y+endBox!.height/2,{steps:16});
   await page.mouse.up();
   await expect(from).toHaveAttribute('aria-pressed','true');
