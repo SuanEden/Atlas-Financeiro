@@ -83,6 +83,35 @@ describe('gráficos do dashboard financeiro', () => {
     expect(normalizeChartConfig({...config,accountIds:[accountOne,accountOne,null,5,'']})?.accountIds).toEqual([accountOne]);
   });
 
+  it('aplica intervalo personalizado por dia inclusivo em pagamentos e recebimentos', () => {
+    const data=state();
+    for(const [index,date] of ['2026-10-10','2026-10-11','2026-10-20','2026-11-01'].entries()){
+      const eventId='range-event-'+index;
+      data.events.push({id:eventId,userId:owner,kind:'expense',source:'manual',status:'confirmed',certainty:'confirmed',
+        amountCents:1000n,accountId:data.accounts[0]!.id,categoryId:data.categories[0]!.id,
+        description:'Despesa por dia',competenceDate:date});
+      data.settlements.push({id:'range-settlement-'+index,userId:owner,eventId,amountCents:1000n,
+        paymentDate:date,settlementDate:date});
+    }
+    const config={...defaultCharts()[0]!,months:6 as const,dateStart:'2026-10-11',dateEnd:'2026-10-20'};
+    const result=buildChartRows(data,'2026-11',config);
+    expect(result).toHaveLength(1);
+    expect(result[0]?.expense).toBe(2000n);
+    expect(normalizeChartConfig(JSON.parse(JSON.stringify(config)))).toMatchObject({dateStart:config.dateStart,dateEnd:config.dateEnd});
+    expect(normalizeChartConfig({...config,dateStart:'2026-02-30'})).not.toHaveProperty('dateStart');
+    expect(normalizeChartConfig({...config,dateStart:'2026-10-21'})).not.toHaveProperty('dateEnd');
+  });
+
+  it('não atribui previsões sem dia certo a um intervalo personalizado', () => {
+    const data=state();
+    data.events.push({id:'planned-date-range',userId:owner,kind:'income',source:'manual',status:'planned',
+      certainty:'confirmed',amountCents:2500n,accountId:data.accounts[0]!.id,
+      description:'Receita prevista sem data exata',competenceDate:'2026-11-12'});
+    const config={...defaultCharts()[1]!,dateStart:'2026-11-10',dateEnd:'2026-11-20',months:1 as const};
+    expect(buildChartRows(data,'2026-11',config)[0]?.income).toBe(0n);
+    expect(buildChartRows(data,'2026-11',{...config,dateStart:undefined,dateEnd:undefined})[0]?.income).toBe(2500n);
+  });
+
   it('não converte transferência em receita ou despesa realizada', () => {
     const html = renderToStaticMarkup(createElement(FinanceCharts, {state: state(), month: '2026-10'}));
     expect(html).toContain('Entradas e saídas realizadas');
