@@ -7,12 +7,12 @@ async function navigate(page: Page, testInfo: TestInfo, destination: 'Início' |
     await page.getByRole('button', { name: 'Extrato', exact: true }).click();
     return;
   }
-  if (testInfo.project.name === 'mobile-edge' && (destination === 'Categorias' || destination === 'Backup')) {
+  if (testInfo.project.name === 'mobile-edge' && (destination === 'Categorias' || destination === 'Backup' || destination === 'Contas')) {
     await page.getByRole('button', { name: 'Mais', exact: true }).click();
     await page.getByRole('button', { name: destination, exact: true }).click();
     return;
   }
-  await page.getByRole('button', { name: destination, exact: true }).click();
+  await page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('button', { name: destination, exact: true }).click();
 }
 
 test('conta, categoria, despesa, correção e backup sobrevivem à recarga', async ({ page }, testInfo) => {
