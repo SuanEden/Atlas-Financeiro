@@ -117,3 +117,38 @@ test('transferência para reserva mantém o total entre contas', async ({ page }
   await expect(summary).toContainText('R$ 10,00');
   await expect(summary).toContainText('R$ 50,00');
 });
+
+
+test('conta e categoria sem dependências podem ser editadas e excluídas com confirmação', async ({page},testInfo) => {
+  await page.goto('/');
+  await page.getByRole('button',{name:'Criar minha primeira conta'}).click();
+  await page.getByLabel('Nome da conta').fill('Conta antiga');
+  await page.getByRole('dialog').getByRole('button',{name:'Criar conta'}).click();
+
+  await navigate(page,testInfo,'Contas');
+  const card=page.locator('.account-card').filter({hasText:'Conta antiga'});
+  await card.getByRole('button',{name:'Editar'}).click();
+  await page.getByRole('dialog').getByLabel('Nome').fill('Conta renomeada');
+  await page.getByRole('dialog').getByRole('button',{name:'Salvar alterações'}).click();
+  await expect(page.locator('.account-card')).toContainText('Conta renomeada');
+  await page.locator('.account-card').getByRole('button',{name:'Excluir'}).click();
+  await expect(page.getByRole('dialog')).toContainText('Conta renomeada');
+  await page.getByRole('dialog').getByRole('button',{name:'Confirmar exclusão'}).click();
+  await expect(page.getByText('Crie sua primeira conta')).toBeVisible();
+
+  await navigate(page,testInfo,'Categorias');
+  await page.getByRole('button',{name:'Nova categoria'}).click();
+  await page.getByRole('dialog').getByLabel('Nome').fill('Categoria antiga');
+  await page.getByRole('dialog').getByRole('button',{name:'Criar categoria'}).click();
+  await page.locator('.category-list').getByRole('button',{name:'Editar'}).click();
+  await page.getByRole('dialog').getByLabel('Nome').fill('Categoria renomeada');
+  await page.getByRole('dialog').getByRole('button',{name:'Salvar alterações'}).click();
+  await expect(page.locator('.category-list')).toContainText('Categoria renomeada');
+  await page.locator('.category-list').getByRole('button',{name:'Excluir'}).click();
+  await page.getByRole('dialog').getByRole('button',{name:'Confirmar exclusão'}).click();
+  await expect(page.getByText('Nenhuma categoria criada')).toBeVisible();
+
+  await page.reload();
+  await navigate(page,testInfo,'Categorias');
+  await expect(page.getByText('Nenhuma categoria criada')).toBeVisible();
+});
