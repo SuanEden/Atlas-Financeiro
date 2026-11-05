@@ -327,22 +327,26 @@ function ChartMultiFilter({ title, allLabel, options, selected, onChange }: {
 }
 
 type CalendarSelectionMode = 'range' | 'days';
-function ChartCalendar({mode, start, end, days, focusMonth, onRange, onDays}:{
+function ChartCalendar({mode, start, end, days, focusMonth, onRange, onDays, onClear}:{
   mode:CalendarSelectionMode; start:string; end:string; days:string[]; focusMonth:string;
-  onRange:(start:string,end:string)=>void; onDays:(days:string[])=>void;
+  onRange:(start:string,end:string)=>void; onDays:(days:string[])=>void; onClear:()=>void;
 }){
   const [shownMonth,setShownMonth] = useState(focusMonth);
   const anchor = useRef<string|null>(null);
   const pointerOrigin = useRef<string|null>(null);
   const dragged = useRef(false);
   const selected = new Set(days);
+  const today = new Date().toLocaleDateString('en-CA'); // Navigation only: no financial dates are inferred.
+  const selectionDescription = mode==='range'
+    ? start&&end ? 'De '+start.split('-').reverse().join('/')+' até '+end.split('-').reverse().join('/') : 'Selecione o primeiro dia'
+    : days.length+' '+(days.length===1?'dia selecionado':'dias selecionados');
   const renderMonth=(month:string)=>{
     const first = new Date(month+'-01T12:00:00Z').getUTCDay();
     const offset = (first+6)%7;
     const total=Number(lastDayOfMonth(month).slice(8));
     return <div className="chart-calendar-month" key={month}>
       <strong>{new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(month+'-01T12:00:00Z'))}</strong>
-      <div className="chart-calendar-days">{['S','T','Q','Q','S','S','D'].map((label,i)=><span key={'weekday-'+i} className="chart-calendar-weekday">{label}</span>)}
+      <div className="chart-calendar-days">{['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map((label,i)=><span key={'weekday-'+i} className="chart-calendar-weekday">{label}</span>)}
         {Array.from({length:offset},(_,i)=><span key={'padding-'+i} aria-hidden="true" />)}
         {Array.from({length:total},(_,i)=>{
           const date=month+'-'+String(i+1).padStart(2,'0');
@@ -354,6 +358,7 @@ function ChartCalendar({mode, start, end, days, focusMonth, onRange, onDays}:{
               event.preventDefault();
               if(anchor.current){const a=anchor.current;onRange(a<date?a:date,a<date?date:a);anchor.current=null;pointerOrigin.current=null;return;}
               anchor.current=date;pointerOrigin.current=date;dragged.current=false;onRange(date,date);
+              try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* Browser may decline capture; click selection remains available. */ }
             }:undefined}
             onPointerEnter={mode==='range' ? (event)=>{
               if(!pointerOrigin.current || (event.buttons&1)===0)return;
@@ -392,12 +397,15 @@ function ChartCalendar({mode, start, end, days, focusMonth, onRange, onDays}:{
     pointerOrigin.current=null;dragged.current=false;
   }} onPointerCancel={()=>{pointerOrigin.current=null;dragged.current=false;}}>
     <div className="chart-calendar-toolbar">
-      <button type="button" aria-label="Meses anteriores" onClick={()=>setShownMonth(m=>monthAt(m,-1))}>‹</button>
-      <span>{mode==='range'?'Arraste ou clique em duas datas':'Clique nos dias desejados'}</span>
-      <button type="button" aria-label="Próximos meses" onClick={()=>setShownMonth(m=>monthAt(m,1))}>›</button>
+      <div className="chart-calendar-toolbar-title"><strong>{mode==='range'?'Escolha um intervalo':'Escolha dias específicos'}</strong><span>{mode==='range'?'Arraste entre duas datas ou clique no início e no fim.':'Clique nos dias para marcar ou desmarcar.'}</span></div>
+      <div className="chart-calendar-nav">
+        <button type="button" className="chart-calendar-today" onClick={()=>setShownMonth(today.slice(0,7))}>Hoje</button>
+        <button type="button" aria-label="Meses anteriores" onClick={()=>setShownMonth(m=>monthAt(m,-1))}>‹</button>
+        <button type="button" aria-label="Próximos meses" onClick={()=>setShownMonth(m=>monthAt(m,1))}>›</button>
+      </div>
     </div>
     <div className="chart-calendar-months">{renderMonth(shownMonth)}{renderMonth(monthAt(shownMonth,1))}</div>
-    <div className="chart-calendar-footer">{mode==='range'?(start&&end?'De '+start.split('-').reverse().join('/')+' até '+end.split('-').reverse().join('/'):'Selecione o primeiro dia'):days.length+' '+(days.length===1?'dia selecionado':'dias selecionados')}</div>
+    <div className="chart-calendar-footer" aria-live="polite"><span>{selectionDescription}</span><button type="button" onClick={()=>{anchor.current=null;pointerOrigin.current=null;onClear();}}>Limpar seleção</button></div>
   </div>;
 }
 
@@ -438,7 +446,8 @@ function ChartEditor({ initial, state, month, onSave, onCancel }: { initial: Cha
           <ChartCalendar key={dayPeriod?'days':'range'} mode={dayPeriod?'days':'range'} start={draft.dateStart ?? ''} end={draft.dateEnd ?? ''}
             days={draft.selectedDates ?? []} focusMonth={dayPeriod ? (draft.selectedDates?.[0]?.slice(0,7)??month) : (draft.dateStart?.slice(0,7)??month)}
             onRange={(dateStart,dateEnd)=>setDraft(previous=>({...previous,dateStart,dateEnd}))}
-            onDays={(selectedDates)=>setDraft(previous=>({...previous,selectedDates}))} />
+            onDays={(selectedDates)=>setDraft(previous=>({...previous,selectedDates}))}
+            onClear={()=>setDraft(previous=>dayPeriod?{...previous,selectedDates:[]}:{...previous,dateStart:'',dateEnd:''})} />
           {!periodValid ? <p className="chart-period-error" role="alert">Selecione datas válidas em um intervalo de até 24 meses (máximo de 730 dias).</p> :
             <p className="chart-category-caption">{draft.source==='forecast'?'Previsões sem dia definido não entram no recorte diário.':'O filtro usa as datas efetivas de pagamento e recebimento.'}</p>}
         </div> : null}
