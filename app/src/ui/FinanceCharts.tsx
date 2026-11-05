@@ -296,20 +296,24 @@ function ChartMultiFilter({ title, allLabel, options, selected, onChange }: {
   const filtered = options.filter((option) => option.name.toLocaleLowerCase('pt-BR').includes(search.trim().toLocaleLowerCase('pt-BR')));
   const selectedSet = new Set(selected);
   const toggle = (id: string) => onChange(selectedSet.has(id) ? selected.filter((entry) => entry !== id) : [...selected, id]);
-  return <fieldset className="chart-field chart-field--categories chart-field--full">
-    <legend>{title}</legend>
-    <div className="chart-filter-toolbar">
-      <span className="chart-category-caption" aria-live="polite">{selected.length === 0 ? allLabel : selected.length + (selected.length === 1 ? ' selecionada' : ' selecionadas')}</span>
-      {selected.length ? <button type="button" className="chart-filter-reset" onClick={() => onChange([])}>Limpar filtro</button> : null}
-    </div>
-    {options.length > 6 ? <input type="search" className="chart-filter-search" aria-label={'Pesquisar ' + title.toLocaleLowerCase('pt-BR')} placeholder="Pesquisar opções…" value={search} onChange={(event) => setSearch(event.target.value)} /> : null}
-    <div className="chart-category-list" role="group" aria-label={title}>
-      <label className="chart-category-choice chart-category-choice--all"><input type="checkbox" checked={selected.length === 0} onChange={() => onChange([])} />{allLabel}</label>
-      {filtered.map((option) => <label key={option.id} className="chart-category-choice"><input type="checkbox" checked={selectedSet.has(option.id)} onChange={() => toggle(option.id)} />{option.name}</label>)}
-      {filtered.length === 0 ? <p className="chart-filter-empty">Nenhuma opção encontrada.</p> : null}
-    </div>
-    <span className="chart-category-caption">Escolha quantas opções quiser. {allLabel} inclui também novos itens cadastrados.</span>
-  </fieldset>;
+  return <div className="chart-field chart-filter-compact">
+    <span>{title}</span>
+    <details className="chart-filter-details">
+      <summary aria-label={title + ': escolher'}>{selected.length === 0 ? allLabel : selected.length + (selected.length === 1 ? ' selecionada' : ' selecionadas')}</summary>
+      <div className="chart-filter-dropdown">
+        <div className="chart-filter-toolbar">
+          <span className="chart-category-caption">Escolha uma ou várias opções</span>
+          {selected.length ? <button type="button" className="chart-filter-reset" onClick={() => onChange([])}>Limpar filtro</button> : null}
+        </div>
+        {options.length > 6 ? <input type="search" className="chart-filter-search" aria-label={'Pesquisar ' + title.toLocaleLowerCase('pt-BR')} placeholder="Pesquisar opções…" value={search} onChange={(event) => setSearch(event.target.value)} /> : null}
+        <div className="chart-category-list" role="group" aria-label={title}>
+          <label className="chart-category-choice chart-category-choice--all"><input type="checkbox" checked={selected.length === 0} onChange={() => onChange([])} />{allLabel}</label>
+          {filtered.map((option) => <label key={option.id} className="chart-category-choice"><input type="checkbox" checked={selectedSet.has(option.id)} onChange={() => toggle(option.id)} />{option.name}</label>)}
+          {filtered.length === 0 ? <p className="chart-filter-empty">Nenhuma opção encontrada.</p> : null}
+        </div>
+      </div>
+    </details>
+  </div>;
 }
 
 function ChartEditor({ initial, state, month, onSave, onCancel }: { initial: ChartConfig; state: LocalFinancialState; month: string; onSave: (chart: ChartConfig) => void; onCancel: () => void }) {
@@ -345,7 +349,7 @@ function ChartEditor({ initial, state, month, onSave, onCancel }: { initial: Cha
           <label className="chart-field">Data final<input type="date" value={draft.dateEnd ?? ''} min={draft.dateStart} onChange={(event) => set('dateEnd',event.target.value)} required /></label>
           {!periodValid ? <p className="chart-period-error" role="alert">Informe um intervalo válido, com a data inicial anterior ou igual à final e no máximo 24 meses.</p> : <p className="chart-category-caption">Datas incluídas no intervalo. {draft.source === 'forecast' ? 'Previsões sem dia definido não entram no recorte personalizado.' : 'São consideradas as datas efetivas de pagamento ou recebimento.'}</p>}
         </div> : null}
-        <div className="chart-editor-section-heading chart-field--full"><strong>Filtros dos dados</strong><span>Selecione várias contas e categorias. Os filtros são combinados.</span></div>
+        <div className="chart-editor-section-heading chart-field--full"><strong>Filtros dos dados</strong><span>Escolha várias contas ou categorias nas listas abaixo.</span></div>
         <ChartMultiFilter title="Filtrar por conta" allLabel="Todas as contas" options={state.accounts} selected={selectedAccountIds} onChange={selectAccounts} />
         <ChartMultiFilter title="Filtrar por categoria" allLabel="Todas as categorias" options={state.categories} selected={selectedCategoryIds} onChange={selectCategories} />
       </div>
