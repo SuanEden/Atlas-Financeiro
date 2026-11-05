@@ -170,7 +170,6 @@ test('calendário seleciona intervalo entre meses por arraste e salva', async ({
   const from=calendar.getByRole('button',{name:'2026-01-20'});
   const to=calendar.getByRole('button',{name:'2026-02-25'});
   // Navigate to January 2026 so both months are visible.
-  const current=await calendar.locator('.chart-calendar-month').first().locator('strong').textContent();
   // The custom preset starts from a preceding month. Use navigation until January is shown.
   for(let i=0;i<24 && !(await calendar.getByRole('button',{name:'2026-01-20'}).count());i++)
     await calendar.getByRole('button',{name:'Meses anteriores'}).click();
@@ -202,11 +201,11 @@ test('calendário permite escolher dias separados e persiste após recarga',asyn
   await editor.getByLabel('Período').selectOption('days');
   const calendar=editor.locator('.chart-calendar');
   await expect(editor.getByRole('button',{name:'Salvar gráfico'})).toBeDisabled();
-  // Starting from the dashboard month, choose 15, 20 and 31 in the same visible month.
-  const first=await calendar.locator('.chart-calendar-month').first().locator('button[data-chart-date="2026-11-15"]').count();
-  const month=first?'2026-11':'2026-10';
-  for(const day of [15,20,30]) {
-    await calendar.getByRole('button',{name:month+'-'+String(day).padStart(2,'0')}).click();
+  // Select October 15, 20 and 31: not a continuous interval.
+  for(let i=0;i<24 && !(await calendar.getByRole('button',{name:'2026-10-31'}).count());i++)
+    await calendar.getByRole('button',{name:'Meses anteriores'}).click();
+  for(const day of [15,20,31]) {
+    await calendar.getByRole('button',{name:'2026-10-'+day}).click();
   }
   await expect(calendar.getByText('3 dias selecionados')).toBeVisible();
   await editor.getByRole('button',{name:'Salvar gráfico'}).click();
