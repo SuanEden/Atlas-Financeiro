@@ -371,11 +371,21 @@ function ChartCalendar({mode, start, end, days, focusMonth, onRange, onDays}:{
       </div>
     </div>;
   };
-  return <div className="chart-calendar" onPointerUp={(event)=>{
+  const dayAtPointer=(event:ReactPointerEvent<HTMLDivElement>)=>{
+    const target=event.currentTarget.ownerDocument.elementFromPoint(event.clientX,event.clientY);
+    return target instanceof Element ? target.closest<HTMLButtonElement>('[data-chart-date]')?.dataset.chartDate : undefined;
+  };
+  return <div className="chart-calendar" onPointerMove={(event)=>{
     if(mode!=='range'||!pointerOrigin.current)return;
-    const target=event.target;
-    const button=target instanceof Element ? target.closest<HTMLButtonElement>('[data-chart-date]'):null;
-    const date=button?.dataset.chartDate;
+    if((event.buttons&1)===0 && event.pointerType==='mouse')return;
+    const date=dayAtPointer(event);
+    if(!date)return;
+    const a=pointerOrigin.current;
+    if(date!==a)dragged.current=true;
+    onRange(a<date?a:date,a<date?date:a);
+  }} onPointerUp={(event)=>{
+    if(mode!=='range'||!pointerOrigin.current)return;
+    const date=dayAtPointer(event);
     if(date){const a=pointerOrigin.current;onRange(a<date?a:date,a<date?date:a);}
     if(dragged.current)anchor.current=null;
     pointerOrigin.current=null;dragged.current=false;
