@@ -1379,3 +1379,32 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
  .app-shell .mobile-cloud-controls .sync-panel {margin:0 9px 9px;padding:14px;border-radius:12px;}
  .app-shell .mobile-cloud-controls > summary {min-height:48px;display:flex;align-items:center;gap:4px;}
 }
+
+/* Pierre-like mobile density: swipeable balances without hiding any values. */
+@media(max-width:760px){
+  .app-shell .money-summary {
+    display:flex;
+    align-items:stretch;
+    gap:11px;
+    width:calc(100% + 16px);
+    margin-right:-16px;
+    padding:1px 16px 9px 0;
+    overflow-x:auto;
+    overflow-y:hidden;
+    overscroll-behavior-x:contain;
+    scroll-snap-type:x proximity;
+    scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+  }
+  .app-shell .money-summary::-webkit-scrollbar {display:none;}
+  .app-shell .money-summary > div,
+  .app-shell .money-summary > div:first-child,
+  .app-shell .money-summary > div:last-child {
+    flex:0 0 clamp(188px,63vw,248px);
+    min-width:0;
+    min-height:102px;
+    padding:17px;
+    scroll-snap-align:start;
+    grid-column:auto;
+  }
+}
