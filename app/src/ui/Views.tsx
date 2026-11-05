@@ -42,6 +42,7 @@ interface DashboardProps {
 
 export function Dashboard({ state, today, userId, onAddAccount, onAddTransaction, onNavigate, integration=false }: DashboardProps) {
   const [selectedMonth, setSelectedMonth] = useState(today.slice(0, 7));
+  const [quickInsight, setQuickInsight] = useState<'expense'|'income'|'pending'>('expense');
   const period = financialMonthPeriod(`${selectedMonth}-01`);
   const cash = calculateCashTotals(state, period);
   const forecast = calculateFinancialForecast(state, selectedMonth, 6);
@@ -91,6 +92,19 @@ export function Dashboard({ state, today, userId, onAddAccount, onAddTransaction
           <div className="balance-hero-actions"><button className="balance-hero-action" type="button" onClick={() => onNavigate('accounts')}><WalletCards size={17}/>Ver contas</button><button className="balance-hero-action balance-hero-action--soft" type="button" onClick={() => onNavigate('movements')}><ArrowLeftRight size={17}/>Ver extrato</button></div>
         </div>
         <div className="balance-hero-aside" aria-hidden="true"><span className="balance-hero-orbit balance-hero-orbit--one"/><span className="balance-hero-orbit balance-hero-orbit--two"/><span className="balance-hero-symbol">A</span></div>
+      </section>
+      <section className="insight-prompt" aria-labelledby="insight-title">
+        <div className="insight-prompt-heading"><span className="insight-prompt-spark" aria-hidden="true">✳</span><div><p className="section-kicker">SEU DINHEIRO EM FOCO</p><h2 id="insight-title">O que você quer entender?</h2><p>Explore respostas reais, calculadas a partir dos seus lançamentos.</p></div></div>
+        <div className="insight-prompt-options" role="group" aria-label="Perguntas financeiras rápidas">
+          <button type="button" aria-pressed={quickInsight==='expense'} onClick={()=>setQuickInsight('expense')}>Quanto gastei?</button>
+          <button type="button" aria-pressed={quickInsight==='income'} onClick={()=>setQuickInsight('income')}>Quanto recebi?</button>
+          <button type="button" aria-pressed={quickInsight==='pending'} onClick={()=>setQuickInsight('pending')}>O que vem aí?</button>
+        </div>
+        <div className="insight-prompt-answer" role="status">
+          <div><span>{quickInsight==='expense'?'Saídas realizadas no mês':quickInsight==='income'?'Entradas realizadas no mês':'Obrigações previstas nos próximos 6 meses'}</span>
+          <strong>{formatBRL(quickInsight==='expense'?cash.expenseCents:quickInsight==='income'?cash.incomeCents:forecast.obligationCents)}</strong></div>
+          <button type="button" onClick={()=>onNavigate('movements')}>Explorar movimentações <ArrowUpRight size={16}/></button>
+        </div>
       </section>
       <div className="dashboard-quick-actions" aria-label="Ações rápidas">
         <button type="button" onClick={onAddTransaction} disabled={state.accounts.length === 0}><span className="quick-action-icon"><Plus size={19}/></span><span>Novo lançamento</span></button>
