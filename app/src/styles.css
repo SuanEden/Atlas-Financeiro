@@ -1127,3 +1127,23 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 @media(prefers-reduced-motion:reduce) {
   .app-shell .sidebar nav button,.app-shell .button,.app-shell .dashboard-quick-actions button {transition:none;}
 }
+
+/* Focused graph editor: progressive grouping instead of a wall of fields. */
+.chart-editor {display:flex;flex-direction:column;gap:14px;}
+.chart-editor-group {border:1px solid var(--line);border-radius:17px;padding:18px;background:var(--surface);}
+.chart-editor-group-heading {display:flex;align-items:center;gap:11px;margin:0 0 18px;}
+.chart-editor-group-heading > span {display:grid;place-items:center;flex:0 0 31px;width:31px;height:31px;border-radius:10px;background:var(--accent-soft);color:var(--accent-dark);font-size:.68rem;font-weight:800;}
+.chart-editor-group-heading > div {display:flex;flex-direction:column;gap:3px;}
+.chart-editor-group-heading strong {color:var(--ink);font-size:.93rem;letter-spacing:-.025em;}
+.chart-editor-group-heading small {color:var(--muted);font-size:.74rem;font-weight:400;}
+.chart-editor-group .chart-editor-fields {gap:13px;}
+.chart-editor .chart-editor-hint {margin:0;padding:0 4px;font-size:.74rem;}
+.chart-editor .chart-editor-preview {margin:0;border-radius:17px;background:var(--subtle);padding:17px;}
+.chart-editor .chart-editor-actions {position:sticky;bottom:0;z-index:3;margin:0 -24px -24px;padding:16px 24px;background:var(--surface);border-top:1px solid var(--line);border-radius:0 0 17px 17px;}
+@media(max-width:760px) {
+  .chart-editor {gap:12px;padding:12px 15px 22px;}
+  .chart-editor-group {padding:15px;border-radius:15px;}
+  .chart-editor-group-heading {margin-bottom:14px;}
+  .chart-editor .chart-editor-actions {margin:0 -15px -22px;padding:13px 15px calc(16px + env(safe-area-inset-bottom));}
+  .chart-editor .chart-editor-actions .button {flex:1;}
+}
