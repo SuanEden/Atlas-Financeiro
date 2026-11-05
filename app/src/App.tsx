@@ -113,13 +113,13 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
         <div className="sidebar-section-label">ESPAÇO FINANCEIRO</div>
         <nav aria-label="Navegação principal">{[...desktopNavigation, ...(integration || bankPanel !== undefined ? [{page:'banks' as const,label:'Bancos',Icon:Landmark}] : [])].map(({ page: target, label, Icon }) => <button className={page === target ? 'is-active' : ''} key={target} onClick={() => setPage(target)}><Icon size={19} /><span>{label}</span></button>)}</nav>
         <div className="sidebar-section-label sidebar-section-label--foot">SEUS DADOS</div>
-        {integration && sessionControls ? <div className="sidebar-cloud-controls">{sessionControls}</div>
+        {sessionControls ? <div className="sidebar-cloud-controls">{sessionControls}</div>
           : <div className="sidebar-footer"><HardDrive size={17} /><span><strong>{testMode ? 'Modo de teste isolado' : 'Salvo neste dispositivo'}</strong><small>{state.outbox.length} pendente{state.outbox.length === 1 ? '' : 's'} · nuvem desligada</small></span></div>}
       </aside>
 
       <section className="workspace">
         <header className="topbar"><div className="mobile-brand"><Brand /></div><div className="topbar-context"><span>VISÃO FINANCEIRA</span><strong>{page === 'dashboard' ? 'Visão geral' : page === 'movements' ? 'Movimentações' : page === 'accounts' ? 'Minhas contas' : page === 'banks' ? 'Bancos' : page === 'categories' ? 'Categorias' : page === 'backup' ? 'Backup e dados' : 'Mais opções'}</strong></div>{page === 'dashboard' ? null : <button className="button button--primary topbar-create" onClick={openTransaction} disabled={state.accounts.length === 0}><Plus size={17} />Novo lançamento</button>}<span className="device-status"><HardDrive size={16} />{testMode ? 'Modo de teste · local' : integration ? 'Modo nuvem · cópia local' : 'Salvo neste dispositivo'}</span><button className="icon-button" type="button" onClick={toggleTheme} aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'} aria-pressed={dark}>{dark ? <Sun size={19} /> : <Moon size={19} />}</button></header>
-        {integration && sessionControls ? <details className="mobile-cloud-controls"><summary>Modo nuvem <span>· {state.outbox.length} pendente{state.outbox.length === 1 ? '' : 's'}</span></summary>{sessionControls}</details> : null}
+        {sessionControls ? <details className="mobile-cloud-controls"><summary><span className="mobile-sync-title">Sincronização</span> <span>· {integration ? state.outbox.length+' pendentes' : 'bancos e nuvem'}</span></summary>{sessionControls}</details> : null}
         {error === undefined ? null : <div className="error-banner" role="alert"><span>{error}</span><button onClick={clearError}>Fechar</button></div>}
         <div className="sr-only" role="status">{notice}</div>
         {loading ? <div className="loading-state"><span className="spinner" />Carregando dados locais…</div> : (
