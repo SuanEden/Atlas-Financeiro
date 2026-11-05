@@ -26,8 +26,8 @@ import {
   type CreateCategoryInput,
   type TransactionInput,
 } from './application';
-import type { Account, FinancialEvent } from './domain';
-import { AccountForm, AccountReconciliationForm, CategoryForm, DialogFrame, TransactionForm } from './ui/Forms';
+import type { Account, Category, FinancialEvent } from './domain';
+import { AccountForm, AccountReconciliationForm, CategoryForm, DialogFrame, MetadataEditForm, TransactionForm } from './ui/Forms';
 import { AccountsView, BackupView, CategoriesView, Dashboard, MovementsView, type Page } from './ui/Views';
 import { useLocalFinance } from './ui/use-local-finance';
 
@@ -35,6 +35,9 @@ type Modal =
   | { type: 'account' }
   | { type: 'reconcile'; account: Account }
   | { type: 'category' }
+  | { type: 'edit_account'; account: Account }
+  | { type: 'edit_category'; category: Category }
+  | { type: 'delete_entity'; entity: Account | Category; kind: 'account' | 'category' }
   | { type: 'transaction'; initial?: FinancialEvent; kind?: TransactionInput['kind'] }
   | { type: 'reverse'; event: FinancialEvent };
 
@@ -51,7 +54,7 @@ export function App({bankPanel}:{bankPanel?:ReactNode}={}) {
 }
 
 export function FinancialWorkspace({finance,sessionControls,integration=false,exportJson,importJson,serverId,bankPanel,testMode=false}:{finance:ReturnType<typeof useLocalFinance>;sessionControls?:ReactNode;integration?:boolean;exportJson?:()=>Promise<string>;importJson?:(json:string)=>Promise<number>;serverId?:string;bankPanel?:ReactNode;testMode?:boolean}) {
-  const { state, loading, busy, error, clearError, execute, recover, readState, context, userId } = finance;
+  const { state, loading, busy, error, clearError, execute, modifyEntity, recover, readState, context, userId } = finance;
   const [page, setPage] = useState<Page | 'banks' | 'more'>('dashboard');
   const [modal, setModal] = useState<Modal>();
   const [notice, setNotice] = useState('');
@@ -83,6 +86,32 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
     await execute(createCategoryCommand(input, context));
     setNotice('Categoria salva neste dispositivo.');
     setModal(undefined);
+  }
+
+  async function saveMetadata(changes:{name:string;kind:string;availability?:string;parentId?:string}) {
+    if(modal?.type!=='edit_account'&&modal?.type!=='edit_category')return;
+    const kind=modal.type==='edit_account'?'account':'category';
+    const id=modal.type==='edit_account'?modal.account.id:modal.category.id;
+    await modifyEntity('edit',kind,id,changes);
+    setNotice('Alterações salvas neste dispositivo.');
+    setModal(undefined);
+  }
+
+  async function deleteEntity() {
+    if(modal?.type!=='delete_entity')return;
+    const {entity,kind}=modal;
+    try {
+      if(kind==='account'){
+        const links=JSON.parse(localStorage.getItem('atlas:pluggy-mappings:v1:'+userId)||'{}') as Record<string,{atlasAccountId?:string}>;
+        if(Object.values(links).some(row=>row?.atlasAccountId===entity.id))
+          throw new Error('Desative primeiro a importação bancária vinculada a esta conta.');
+      }
+      await modifyEntity('delete',kind,entity.id);
+      setNotice(kind==='account'?'Conta sem movimentações excluída.':'Categoria não utilizada excluída.');
+      setModal(undefined);
+    } catch (reason) {
+      setNotice(reason instanceof Error ? reason.message : 'Não foi possível excluir.');
+    }
   }
 
   async function saveTransaction(input: TransactionInput) {
@@ -134,9 +163,9 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
             </div></section> : null}
             {page === 'dashboard' ? <Dashboard integration={integration} state={state} today={today} userId={userId} onAddAccount={() => setModal({ type: 'account' })} onAddTransaction={openTransaction} onNavigate={(next)=>setPage(next)} /> : null}
             {page === 'movements' ? <MovementsView integration={integration} state={state} onAdd={openTransaction} onEdit={(event) => setModal({ type: 'transaction', initial: event })} onReverse={(event) => setModal({ type: 'reverse', event })} /> : null}
-            {page === 'accounts' ? <AccountsView state={state} onAdd={() => setModal({ type: 'account' })} onReconcile={(account) => setModal({ type: 'reconcile', account })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
+            {page === 'accounts' ? <AccountsView state={state} canManage={!integration} onAdd={() => setModal({ type: 'account' })} onEdit={(account)=>setModal({type:'edit_account',account})} onDelete={(account)=>setModal({type:'delete_entity',entity:account,kind:'account'})} onReconcile={(account) => setModal({ type: 'reconcile', account })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
             {page === 'categories' || page === 'backup' ? <div className="mobile-settings-tabs"><button className={page === 'categories' ? 'is-active' : ''} onClick={() => setPage('categories')}>Categorias</button><button className={page === 'backup' ? 'is-active' : ''} onClick={() => setPage('backup')}>Backup</button></div> : null}
-            {page === 'categories' ? <CategoriesView state={state} onAdd={() => setModal({ type: 'category' })} /> : null}
+            {page === 'categories' ? <CategoriesView state={state} canManage={!integration} onAdd={() => setModal({ type: 'category' })} onEdit={(category)=>setModal({type:'edit_category',category})} onDelete={(category)=>setModal({type:'delete_entity',entity:category,kind:'category'})} /> : null}
             {page === 'backup' ? <BackupView testMode={testMode} integration={integration} {...(serverId?{serverId}:{})} {...(exportJson?{exportJson}:{})} {...(importJson?{importJson}:{})} onRecover={recover} busy={busy} readState={readState} state={state} userId={userId} today={today} /> : null}
           </>
         )}
@@ -153,6 +182,9 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
       {modal?.type === 'account' ? <DialogFrame title="Nova conta" onClose={() => setModal(undefined)}><AccountForm today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveAccount} /></DialogFrame> : null}
       {modal?.type === 'reconcile' ? <DialogFrame title="Conciliar saldo inicial" onClose={() => setModal(undefined)}><AccountReconciliationForm account={modal.account} today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveReconciliation} /></DialogFrame> : null}
       {modal?.type === 'category' ? <DialogFrame title="Nova categoria" onClose={() => setModal(undefined)}><CategoryForm categories={state.categories} busy={busy} onCancel={() => setModal(undefined)} onSave={saveCategory} /></DialogFrame> : null}
+      {modal?.type === 'edit_account' ? <DialogFrame title="Editar conta" onClose={()=>setModal(undefined)}><MetadataEditForm entity={modal.account} accounts={state.accounts} busy={busy} onCancel={()=>setModal(undefined)} onSave={saveMetadata}/></DialogFrame> : null}
+      {modal?.type === 'edit_category' ? <DialogFrame title="Editar categoria" onClose={()=>setModal(undefined)}><MetadataEditForm entity={modal.category} categories={state.categories} busy={busy} onCancel={()=>setModal(undefined)} onSave={saveMetadata}/></DialogFrame> : null}
+      {modal?.type === 'delete_entity' ? <DialogFrame title={modal.kind==='account'?'Excluir conta':'Excluir categoria'} onClose={()=>setModal(undefined)}><div className="confirm-dialog"><p>Deseja excluir <strong>{modal.entity.name}</strong>?</p><p className="form-note">A exclusão é permitida apenas para registros sem lançamentos, conciliações, importações vinculadas ou dependências. Caso contrário, será bloqueada para preservar o histórico financeiro.</p><footer className="dialog-actions"><button type="button" className="button button--ghost" onClick={()=>setModal(undefined)}>Cancelar</button><button type="button" className="button button--danger" disabled={busy} onClick={()=>void deleteEntity()}>{busy?'Excluindo…':'Confirmar exclusão'}</button></footer></div></DialogFrame> : null}
       {modal?.type === 'transaction' ? <DialogFrame title={modal.initial === undefined ? 'Novo lançamento' : 'Corrigir lançamento'} onClose={() => setModal(undefined)} wide><TransactionForm defaultKind={modal.kind ?? 'expense'} accounts={state.accounts} categories={state.categories} recurrenceRules={state.events.filter((event) => event.recurrenceJson !== undefined && event.status === 'planned')} {...(modal.initial === undefined ? {} : { initial: modal.initial })} today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveTransaction} /></DialogFrame> : null}
       {modal?.type === 'reverse' ? <DialogFrame title="Confirmar estorno" onClose={() => setModal(undefined)}><div className="confirm-dialog"><p>O lançamento <strong>{modal.event.description}</strong> não será apagado. Uma contrapartida inversa será adicionada para preservar o histórico.</p><div className="dialog-actions"><button className="button button--ghost" onClick={() => setModal(undefined)}>Cancelar</button><button className="button button--danger" disabled={busy} onClick={() => void confirmReverse()}>{busy ? 'Estornando…' : 'Estornar lançamento'}</button></div></div></DialogFrame> : null}
     </main>
