@@ -140,7 +140,9 @@ test('editor permite selecionar todas as categorias sem perder o gráfico',async
   await page.getByRole('button',{name:'Organizar',exact:true}).click();
   await page.getByRole('button',{name:'Editar Entradas e saídas realizadas'}).click();
   const editor=page.getByRole('dialog');
-  const categories=editor.getByRole('group',{name:'Escolher categorias do gráfico'});
+  const categories=editor.getByRole('group',{name:'Filtrar por categoria'});
+  const accounts=editor.getByRole('group',{name:'Filtrar por conta'});
+  await expect(accounts.getByRole('checkbox',{name:'Todas as contas'})).toBeChecked();
   await expect(categories.getByRole('checkbox',{name:'Todas as categorias'})).toBeChecked();
   await expect(editor.getByText('Todas as categorias').first()).toBeVisible();
   await editor.getByRole('button',{name:'Salvar gráfico'}).click();
@@ -148,4 +150,5 @@ test('editor permite selecionar todas as categorias sem perder o gráfico',async
   await page.getByRole('button',{name:'Organizar',exact:true}).click();
   await page.getByRole('button',{name:'Editar Entradas e saídas realizadas'}).click();
   await expect(page.getByRole('dialog').getByRole('checkbox',{name:'Todas as categorias'})).toBeChecked();
+  await expect(page.getByRole('dialog').getByRole('checkbox',{name:'Todas as contas'})).toBeChecked();
 });
