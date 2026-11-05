@@ -3,10 +3,12 @@ import {
   HardDrive,
   Landmark,
   Home,
+  MoreHorizontal,
+  ChevronRight,
+  ShieldCheck,
   ListRestart,
   Moon,
   Plus,
-  Settings,
   Sun,
   Tags,
   WalletCards,
@@ -50,7 +52,7 @@ export function App({bankPanel}:{bankPanel?:ReactNode}={}) {
 
 export function FinancialWorkspace({finance,sessionControls,integration=false,exportJson,importJson,serverId,bankPanel,testMode=false}:{finance:ReturnType<typeof useLocalFinance>;sessionControls?:ReactNode;integration?:boolean;exportJson?:()=>Promise<string>;importJson?:(json:string)=>Promise<number>;serverId?:string;bankPanel?:ReactNode;testMode?:boolean}) {
   const { state, loading, busy, error, clearError, execute, recover, readState, context, userId } = finance;
-  const [page, setPage] = useState<Page | 'banks'>('dashboard');
+  const [page, setPage] = useState<Page | 'banks' | 'more'>('dashboard');
   const [modal, setModal] = useState<Modal>();
   const [notice, setNotice] = useState('');
   // Navigation is presentation-only; financial state remains unchanged.
@@ -108,19 +110,27 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
     <main className="app-shell" data-theme={dark ? 'dark' : 'light'}>
       <aside className="sidebar">
         <Brand />
+        <div className="sidebar-section-label">ESPAÇO FINANCEIRO</div>
         <nav aria-label="Navegação principal">{[...desktopNavigation, ...(integration || bankPanel !== undefined ? [{page:'banks' as const,label:'Bancos',Icon:Landmark}] : [])].map(({ page: target, label, Icon }) => <button className={page === target ? 'is-active' : ''} key={target} onClick={() => setPage(target)}><Icon size={19} /><span>{label}</span></button>)}</nav>
+        <div className="sidebar-section-label sidebar-section-label--foot">SEUS DADOS</div>
         {integration && sessionControls ? <div className="sidebar-cloud-controls">{sessionControls}</div>
           : <div className="sidebar-footer"><HardDrive size={17} /><span><strong>{testMode ? 'Modo de teste isolado' : 'Salvo neste dispositivo'}</strong><small>{state.outbox.length} pendente{state.outbox.length === 1 ? '' : 's'} · nuvem desligada</small></span></div>}
       </aside>
 
       <section className="workspace">
-        <header className="topbar"><div className="mobile-brand"><Brand /></div>{page === 'dashboard' ? null : <button className="button button--primary topbar-create" onClick={openTransaction} disabled={state.accounts.length === 0}><Plus size={17} />Novo lançamento</button>}<span className="device-status"><HardDrive size={16} />{testMode ? 'Modo de teste · local' : integration ? 'Modo nuvem · cópia local' : 'Salvo neste dispositivo'}</span><button className="icon-button" type="button" onClick={toggleTheme} aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'} aria-pressed={dark}>{dark ? <Sun size={19} /> : <Moon size={19} />}</button></header>
+        <header className="topbar"><div className="mobile-brand"><Brand /></div><div className="topbar-context"><span>MEU ESPAÇO</span><strong>{page === 'dashboard' ? 'Visão geral' : page === 'movements' ? 'Movimentações' : page === 'accounts' ? 'Minhas contas' : page === 'banks' ? 'Bancos' : page === 'categories' ? 'Categorias' : page === 'backup' ? 'Backup e dados' : 'Mais opções'}</strong></div>{page === 'dashboard' ? null : <button className="button button--primary topbar-create" onClick={openTransaction} disabled={state.accounts.length === 0}><Plus size={17} />Novo lançamento</button>}<span className="device-status"><HardDrive size={16} />{testMode ? 'Modo de teste · local' : integration ? 'Modo nuvem · cópia local' : 'Salvo neste dispositivo'}</span><button className="icon-button" type="button" onClick={toggleTheme} aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'} aria-pressed={dark}>{dark ? <Sun size={19} /> : <Moon size={19} />}</button></header>
         {integration && sessionControls ? <details className="mobile-cloud-controls"><summary>Modo nuvem <span>· {state.outbox.length} pendente{state.outbox.length === 1 ? '' : 's'}</span></summary>{sessionControls}</details> : null}
         {error === undefined ? null : <div className="error-banner" role="alert"><span>{error}</span><button onClick={clearError}>Fechar</button></div>}
         <div className="sr-only" role="status">{notice}</div>
         {loading ? <div className="loading-state"><span className="spinner" />Carregando dados locais…</div> : (
           <>
-            {page === 'banks' ? <section aria-label="Bancos"><h1>Bancos conectados</h1>{bankPanel ?? <p>Entre com Google para consultar seus bancos.</p>}</section> : null}
+            {page === 'banks' ? <section className="page-content banks-page" aria-label="Bancos"><div className="page-heading"><div><p className="section-kicker">Instituições e conexões</p><h1>Bancos conectados</h1><p>Suas conexões financeiras em um só lugar.</p></div></div>{bankPanel ?? <p>Entre com Google para consultar seus bancos.</p>}</section> : null}
+            {page === 'more' ? <section className="page-content more-page" aria-labelledby="more-title"><div className="page-heading"><div><p className="section-kicker">Seu espaço</p><h1 id="more-title">Mais opções</h1><p>Organize e proteja seus dados financeiros.</p></div></div><div className="more-menu">
+              {(integration || bankPanel !== undefined) ? <button type="button" onClick={()=>setPage('banks')}><span className="more-menu-icon"><Landmark size={20}/></span><span><strong>Bancos conectados</strong><small>Conexões e movimentações bancárias</small></span><ChevronRight size={20}/></button> : null}
+              <button type="button" onClick={()=>setPage('categories')}><span className="more-menu-icon"><Tags size={20}/></span><span><strong>Categorias</strong><small>Organize entradas e despesas</small></span><ChevronRight size={20}/></button>
+              <button type="button" onClick={()=>setPage('backup')}><span className="more-menu-icon"><ShieldCheck size={20}/></span><span><strong>Backup e segurança</strong><small>Guarde e recupere seus dados</small></span><ChevronRight size={20}/></button>
+              <button type="button" onClick={toggleTheme}><span className="more-menu-icon">{dark?<Sun size={20}/>:<Moon size={20}/>}</span><span><strong>Aparência</strong><small>{dark?'Mudar para tema claro':'Mudar para tema escuro'}</small></span><ChevronRight size={20}/></button>
+            </div></section> : null}
             {page === 'dashboard' ? <Dashboard integration={integration} state={state} today={today} userId={userId} onAddAccount={() => setModal({ type: 'account' })} onAddTransaction={openTransaction} onNavigate={(next)=>setPage(next)} /> : null}
             {page === 'movements' ? <MovementsView integration={integration} state={state} onAdd={openTransaction} onEdit={(event) => setModal({ type: 'transaction', initial: event })} onReverse={(event) => setModal({ type: 'reverse', event })} /> : null}
             {page === 'accounts' ? <AccountsView state={state} onAdd={() => setModal({ type: 'account' })} onReconcile={(account) => setModal({ type: 'reconcile', account })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
@@ -131,13 +141,12 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
         )}
       </section>
 
-      <nav className={'bottom-nav'+(integration || bankPanel !== undefined ? ' bottom-nav--with-banks' : '')} aria-label="Navegação móvel">
+      <nav className="bottom-nav" aria-label="Navegação móvel">
         <MobileNavButton active={page === 'dashboard'} label="Início" Icon={Home} onClick={() => setPage('dashboard')} />
-        <MobileNavButton active={page === 'movements'} label="Movimentos" Icon={ListRestart} onClick={() => setPage('movements')} />
-        <button className="bottom-add" onClick={openTransaction} disabled={state.accounts.length === 0} aria-label="Novo lançamento"><Plus size={28} /></button>
+        <MobileNavButton active={page === 'movements'} label="Extrato" Icon={ListRestart} onClick={() => setPage('movements')} />
+        <button className="bottom-add" onClick={openTransaction} disabled={state.accounts.length === 0} aria-label="Novo lançamento"><Plus size={27} /><span>Adicionar</span></button>
         <MobileNavButton active={page === 'accounts'} label="Contas" Icon={WalletCards} onClick={() => setPage('accounts')} />
-        {(integration || bankPanel !== undefined) ? <MobileNavButton active={page === 'banks'} label="Bancos" Icon={Landmark} onClick={() => setPage('banks')} /> : null}
-        <MobileNavButton active={page === 'categories' || page === 'backup'} label="Ajustes" Icon={Settings} onClick={() => setPage('categories')} />
+        <MobileNavButton active={['more','banks','categories','backup'].includes(page)} label="Mais" Icon={MoreHorizontal} onClick={() => setPage('more')} />
       </nav>
 
       {modal?.type === 'account' ? <DialogFrame title="Nova conta" onClose={() => setModal(undefined)}><AccountForm today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveAccount} /></DialogFrame> : null}
