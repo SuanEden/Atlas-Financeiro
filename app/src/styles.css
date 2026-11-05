@@ -1355,3 +1355,27 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .page-content > .flow-section[aria-labelledby="forecast-title"] {order:9;}
   .page-content > .empty-panel {order:10;}
 }
+
+/* Sync entry returns to the former always-accessible sidebar/mobile position. */
+.app-shell .sidebar-section-label--foot {margin-top:auto;}
+.app-shell .sidebar-cloud-controls {max-height:min(44vh,360px);overflow:auto;padding:10px 3px 8px;border:0;scrollbar-width:thin;}
+.app-shell .sidebar-cloud-controls .sync-panel {display:block;max-width:100%;margin:0;padding:13px;border-radius:13px;font-size:.76rem;}
+.app-shell .sidebar-cloud-controls .sync-panel p {line-height:1.5;margin:8px 0;}
+.app-shell .sidebar-cloud-controls .sync-panel .button {height:auto;white-space:normal;text-align:center;line-height:1.35;padding:9px 11px;font-size:.72rem;}
+.app-shell .sidebar-footer {padding:10px 8px 0;border-top:1px solid var(--line);}
+.app-shell .sidebar-footer small {font-size:.66rem;line-height:1.3;}
+.app-shell .banks-page > .sync-panel {display:block;margin:0;padding:24px;border:1px solid var(--line);border-radius:20px;background:var(--surface);}
+.app-shell .banks-page .sync-panel h2 {font-size:1.3rem;letter-spacing:-.04em;margin:0;}
+.app-shell .banks-page .sync-panel button {transition:border-color .17s,transform .17s;}
+.app-shell .banks-page .sync-panel button:hover:not(:disabled) {transform:translateY(-1px);}
+.app-shell[data-theme="dark"] .sidebar-cloud-controls .sync-panel {background:#1e211b;border-color:#3a4233;}
+.app-shell[data-theme="dark"] .banks-page > .sync-panel {background:#191c17;border-color:#363d30;}
+.app-shell[data-theme="dark"] .banks-page .sync-panel strong {color:var(--ink);}
+.app-shell[data-theme="dark"] .banks-page .sync-panel small {color:var(--muted);}
+.app-shell[data-theme="dark"] .mobile-cloud-controls .sync-panel {background:#1d211a;border-color:#3e4535;}
+.mobile-sync-title {font-weight:800!important;color:inherit!important;}
+@media(max-width:760px) {
+ .app-shell .banks-page > .sync-panel {padding:16px;border-radius:17px;}
+ .app-shell .mobile-cloud-controls .sync-panel {margin:0 9px 9px;padding:14px;border-radius:12px;}
+ .app-shell .mobile-cloud-controls > summary {min-height:48px;display:flex;align-items:center;gap:4px;}
+}
