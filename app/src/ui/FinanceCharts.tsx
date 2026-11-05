@@ -21,6 +21,8 @@ export interface ChartConfig {
   /** Optional inclusive calendar-day interval. Old layouts keep their monthly preset. */
   dateStart?: string | undefined;
   dateEnd?: string | undefined;
+  /** Individual chosen days; absent means preset or inclusive range. */
+  selectedDates?: string[] | undefined;
   accountId: string;
   /** Selected accounts; empty means all. Absent means legacy accountId. */
   accountIds?: string[];
@@ -89,6 +91,7 @@ export function normalizeChartConfig(raw: unknown): ChartConfig | null {
     dimension: value.dimension,
     months: value.months,
     ...(validDate(value.dateStart) && validDate(value.dateEnd) && value.dateStart <= value.dateEnd && calendarMonths(value.dateStart,value.dateEnd) <= 24 ? {dateStart:value.dateStart,dateEnd:value.dateEnd} : {}),
+    ...(Array.isArray(value.selectedDates) ? {selectedDates:[...new Set(value.selectedDates.filter(validDate))].sort().slice(0,730)} : {}),
     accountId: typeof value.accountId === 'string' ? value.accountId.slice(0, 100) : '',
     ...(Array.isArray(value.accountIds) ? { accountIds: [...new Set(value.accountIds.filter((id): id is string => typeof id === 'string' && id.length > 0 && id.length <= 100))].slice(0, 200) } : {}),
     categoryId: typeof value.categoryId === 'string' ? value.categoryId.slice(0, 100) : '',
@@ -149,9 +152,14 @@ export function findFreeChartPosition(rects:readonly BoardRect[], id:string, des
 }
 
 export function buildChartRows(state: LocalFinancialState, month: string, config: ChartConfig): ChartRow[] {
-  const custom = validDate(config.dateStart) && validDate(config.dateEnd) && config.dateStart <= config.dateEnd && calendarMonths(config.dateStart,config.dateEnd) <= 24;
-  const start = custom ? config.dateStart!.slice(0,7) : config.source === 'realized' ? monthAt(month, 1 - config.months) : month;
-  const end = custom ? config.dateEnd!.slice(0,7) : config.source === 'realized' ? month : monthAt(month, config.months - 1);
+  const explicitDays = Array.isArray(config.selectedDates) && config.selectedDates.length > 0
+    ? [...new Set(config.selectedDates.filter(validDate))].sort() : [];
+  const daySelection = explicitDays.length > 0;
+  const chosenDays = new Set(explicitDays);
+  const custom = !daySelection && validDate(config.dateStart) && validDate(config.dateEnd) && config.dateStart <= config.dateEnd && calendarMonths(config.dateStart,config.dateEnd) <= 24;
+  const start = daySelection ? explicitDays[0]!.slice(0,7) : custom ? config.dateStart!.slice(0,7) : config.source === 'realized' ? monthAt(month, 1 - config.months) : month;
+  const end = daySelection ? explicitDays[explicitDays.length-1]!.slice(0,7) : custom ? config.dateEnd!.slice(0,7) : config.source === 'realized' ? month : monthAt(month, config.months - 1);
+  const monthSpan = custom || daySelection ? calendarMonths(start,end) : config.months;
   const eventById = new Map(state.events.map((event) => [event.id, event]));
   const accountNames = new Map(state.accounts.map((account) => [account.id, account.name]));
   const categoryNames = new Map(state.categories.map((category) => [category.id, category.name]));
@@ -161,7 +169,7 @@ export function buildChartRows(state: LocalFinancialState, month: string, config
     : (config.categoryIds.length ? new Set(config.categoryIds) : null);
   const totals = new Map<string, ChartRow>();
   if (config.dimension === 'month') {
-    for (let index = 0; index < (custom ? calendarMonths(config.dateStart!,config.dateEnd!) : config.months); index += 1) {
+    for (let index = 0; index < monthSpan; index += 1) {
       const key = monthAt(start, index);
       totals.set(key, { label: monthLabel(key), income: 0n, expense: 0n });
     }
@@ -169,6 +177,7 @@ export function buildChartRows(state: LocalFinancialState, month: string, config
   const accumulate = (eventId: string, date: string | undefined, kind: 'income' | 'expense', amount: bigint) => {
     if (!date) return;
     const dateMonth = date.slice(0,7);
+    if (daySelection && !chosenDays.has(date)) return;
     if (custom && (date.length !== 10 || date < config.dateStart! || date > config.dateEnd!)) return;
     if (dateMonth < start || dateMonth > end) return;
     const event = eventById.get(eventId);
@@ -191,11 +200,11 @@ export function buildChartRows(state: LocalFinancialState, month: string, config
     }
   } else {
     // Forecast items explicitly exclude gross-only reference amounts and already realized cash.
-    const forecast = calculateFinancialForecast(state, custom ? start : month, custom ? calendarMonths(config.dateStart!,config.dateEnd!) : config.months);
+    const forecast = calculateFinancialForecast(state, custom || daySelection ? start : month, monthSpan);
     for (const item of forecast.items) {
       if (item.amountBasis !== 'cash') continue;
       // A forecast with month only cannot be allocated honestly to a custom day range.
-      accumulate(item.eventId, custom ? item.date : item.month, item.kind, item.amountCents);
+      accumulate(item.eventId, custom || daySelection ? item.date : item.month, item.kind, item.amountCents);
     }
   }
   const rows = [...totals.values()];
@@ -316,17 +325,87 @@ function ChartMultiFilter({ title, allLabel, options, selected, onChange }: {
   </div>;
 }
 
+type CalendarSelectionMode = 'range' | 'days';
+function ChartCalendar({mode, start, end, days, focusMonth, onRange, onDays}:{
+  mode:CalendarSelectionMode; start:string; end:string; days:string[]; focusMonth:string;
+  onRange:(start:string,end:string)=>void; onDays:(days:string[])=>void;
+}){
+  const [shownMonth,setShownMonth] = useState(focusMonth);
+  const anchor = useRef<string|null>(null);
+  const pointerOrigin = useRef<string|null>(null);
+  const dragged = useRef(false);
+  const selected = new Set(days);
+  const renderMonth=(month:string)=>{
+    const first = new Date(month+'-01T12:00:00Z').getUTCDay();
+    const offset = (first+6)%7;
+    const total=Number(lastDayOfMonth(month).slice(8));
+    return <div className="chart-calendar-month" key={month}>
+      <strong>{new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(month+'-01T12:00:00Z'))}</strong>
+      <div className="chart-calendar-days">{['S','T','Q','Q','S','S','D'].map((label,i)=><span key={'weekday-'+i} className="chart-calendar-weekday">{label}</span>)}
+        {Array.from({length:offset},(_,i)=><span key={'padding-'+i} aria-hidden="true" />)}
+        {Array.from({length:total},(_,i)=>{
+          const date=month+'-'+String(i+1).padStart(2,'0');
+          const marked=mode==='days'?selected.has(date):Boolean(start && end && date>=start && date<=end);
+          return <button type="button" key={date} data-chart-date={date}
+            aria-label={date} aria-pressed={marked} className={'chart-calendar-day'+(marked?' is-selected':'')+(mode==='range' && (date===start||date===end)?' is-endpoint':'')}
+            onPointerDown={mode==='range' ? (event)=>{
+              if(event.button!==0)return;
+              event.preventDefault();
+              if(anchor.current){const a=anchor.current;onRange(a<date?a:date,a<date?date:a);anchor.current=null;pointerOrigin.current=null;return;}
+              anchor.current=date;pointerOrigin.current=date;dragged.current=false;onRange(date,date);
+            }:undefined}
+            onPointerEnter={mode==='range' ? (event)=>{
+              if(!pointerOrigin.current || (event.buttons&1)===0)return;
+              const a=pointerOrigin.current;
+              if(date!==a)dragged.current=true;
+              onRange(a<date?a:date,a<date?date:a);
+            }:undefined}
+            onClick={(event)=>{
+              if(mode==='days'){onDays(selected.has(date)?days.filter(d=>d!==date):[...days,date].sort());return;}
+              if(event.detail!==0)return;
+              if(anchor.current){const a=anchor.current;onRange(a<date?a:date,a<date?date:a);anchor.current=null;}
+              else {anchor.current=date;onRange(date,date);}
+            }}
+          >{i+1}</button>;
+        })}
+      </div>
+    </div>;
+  };
+  return <div className="chart-calendar" onPointerUp={(event)=>{
+    if(mode!=='range'||!pointerOrigin.current)return;
+    const target=event.target;
+    const button=target instanceof Element ? target.closest<HTMLButtonElement>('[data-chart-date]'):null;
+    const date=button?.dataset.chartDate;
+    if(date){const a=pointerOrigin.current;onRange(a<date?a:date,a<date?date:a);}
+    if(dragged.current)anchor.current=null;
+    pointerOrigin.current=null;dragged.current=false;
+  }} onPointerCancel={()=>{pointerOrigin.current=null;dragged.current=false;}}>
+    <div className="chart-calendar-toolbar">
+      <button type="button" aria-label="Meses anteriores" onClick={()=>setShownMonth(m=>monthAt(m,-1))}>‹</button>
+      <span>{mode==='range'?'Arraste ou clique em duas datas':'Clique nos dias desejados'}</span>
+      <button type="button" aria-label="Próximos meses" onClick={()=>setShownMonth(m=>monthAt(m,1))}>›</button>
+    </div>
+    <div className="chart-calendar-months">{renderMonth(shownMonth)}{renderMonth(monthAt(shownMonth,1))}</div>
+    <div className="chart-calendar-footer">{mode==='range'?(start&&end?'De '+start.split('-').reverse().join('/')+' até '+end.split('-').reverse().join('/'):'Selecione o primeiro dia'):days.length+' '+(days.length===1?'dia selecionado':'dias selecionados')}</div>
+  </div>;
+}
+
 function ChartEditor({ initial, state, month, onSave, onCancel }: { initial: ChartConfig; state: LocalFinancialState; month: string; onSave: (chart: ChartConfig) => void; onCancel: () => void }) {
   const [draft, setDraft] = useState(initial);
   const preview = useMemo(() => buildChartRows(state, month, draft), [state, month, draft]);
   const set = <K extends keyof ChartConfig>(key: K, value: ChartConfig[K]) => setDraft((previous) => ({ ...previous, [key]: value }));
   const circular = draft.type === 'donut' || draft.type === 'pie';
-  const customPeriod = draft.dateStart !== undefined || draft.dateEnd !== undefined;
-  const periodValid = !customPeriod || (validDate(draft.dateStart) && validDate(draft.dateEnd) && draft.dateStart <= draft.dateEnd && calendarMonths(draft.dateStart,draft.dateEnd) <= 24);
+  const dayPeriod = draft.selectedDates !== undefined;
+  const customPeriod = dayPeriod || draft.dateStart !== undefined || draft.dateEnd !== undefined;
+  const periodValid = dayPeriod
+    ? Boolean(draft.selectedDates?.length && draft.selectedDates.length<=730 && draft.selectedDates.every(validDate)
+      && calendarMonths(draft.selectedDates[0]!,draft.selectedDates[draft.selectedDates.length-1]!)<=24)
+    : !customPeriod || (validDate(draft.dateStart) && validDate(draft.dateEnd) && draft.dateStart<=draft.dateEnd && calendarMonths(draft.dateStart,draft.dateEnd)<=24);
   const changePeriod = (value:string) => setDraft(previous => value === 'custom'
-    ? {...previous,dateStart: previous.dateStart ?? (previous.source === 'realized' ? monthAt(month,1-previous.months) + '-01' : month + '-01'),
+    ? {...previous,selectedDates:undefined,dateStart: previous.dateStart ?? (previous.source === 'realized' ? monthAt(month,1-previous.months) + '-01' : month + '-01'),
       dateEnd: previous.dateEnd ?? lastDayOfMonth(previous.source === 'realized' ? month : monthAt(month,previous.months-1))}
-    : {...previous,months:Number(value) as ChartMonths,dateStart:undefined,dateEnd:undefined});
+    : value === 'days' ? {...previous,selectedDates:[],dateStart:undefined,dateEnd:undefined}
+    : {...previous,months:Number(value) as ChartMonths,selectedDates:undefined,dateStart:undefined,dateEnd:undefined});
   const selectedAccountIds = draft.accountIds ?? (draft.accountId ? [draft.accountId] : []);
   const selectedCategoryIds = draft.categoryIds ?? (draft.categoryId ? [draft.categoryId] : []);
   const selectAccounts = (ids: string[]) => setDraft((previous) => ({ ...previous, accountId: '', accountIds: ids }));
@@ -342,12 +421,15 @@ function ChartEditor({ initial, state, month, onSave, onCancel }: { initial: Cha
         <label className="chart-field">Origem dos dados<select value={draft.source} onChange={(event) => set('source', event.target.value as ChartSource)}><option value="realized">Realizado · valores pagos/recebidos</option><option value="forecast">Previsto · compromissos futuros</option></select></label>
         <label className="chart-field">Valores<select value={draft.measure} onChange={(event) => set('measure', event.target.value as ChartMeasure)}>{measures.filter((measure) => !circular || (measure !== 'both' && measure !== 'net')).map((measure) => <option key={measure} value={measure}>{measureLabel[measure]}</option>)}</select></label>
         <label className="chart-field">Agrupar por<select value={draft.dimension} onChange={(event) => set('dimension', event.target.value as ChartDimension)}>{dimensions.map((dimension) => <option key={dimension} value={dimension}>{dimensionLabel[dimension]}</option>)}</select></label>
-        <label className="chart-field">Período<select value={customPeriod ? 'custom' : String(draft.months)} onChange={(event) => changePeriod(event.target.value)}>{periods.map((period) => <option key={period} value={period}>{period === 1 ? '1 mês' : period + ' meses'}</option>)}<option value="custom">Personalizado · escolher datas</option></select></label>
+        <label className="chart-field">Período<select value={dayPeriod ? 'days' : customPeriod ? 'custom' : String(draft.months)} onChange={(event) => changePeriod(event.target.value)}>{periods.map((period) => <option key={period} value={period}>{period === 1 ? '1 mês' : period + ' meses'}</option>)}<option value="custom">Calendário · intervalo</option><option value="days">Calendário · dias específicos</option></select></label>
         <label className="chart-field">Tamanho<select value={draft.size} onChange={(event) => set('size', event.target.value as ChartSize)}>{sizes.map((size) => <option key={size} value={size}>{sizeLabel[size]}</option>)}</select></label>
         {customPeriod ? <div className="chart-custom-period chart-field--full">
-          <label className="chart-field">Data inicial<input type="date" value={draft.dateStart ?? ''} onChange={(event) => set('dateStart',event.target.value)} required /></label>
-          <label className="chart-field">Data final<input type="date" value={draft.dateEnd ?? ''} min={draft.dateStart} onChange={(event) => set('dateEnd',event.target.value)} required /></label>
-          {!periodValid ? <p className="chart-period-error" role="alert">Informe um intervalo válido, com a data inicial anterior ou igual à final e no máximo 24 meses.</p> : <p className="chart-category-caption">Datas incluídas no intervalo. {draft.source === 'forecast' ? 'Previsões sem dia definido não entram no recorte personalizado.' : 'São consideradas as datas efetivas de pagamento ou recebimento.'}</p>}
+          <ChartCalendar key={dayPeriod?'days':'range'} mode={dayPeriod?'days':'range'} start={draft.dateStart ?? ''} end={draft.dateEnd ?? ''}
+            days={draft.selectedDates ?? []} focusMonth={dayPeriod ? (draft.selectedDates?.[0]?.slice(0,7)??month) : (draft.dateStart?.slice(0,7)??month)}
+            onRange={(dateStart,dateEnd)=>setDraft(previous=>({...previous,dateStart,dateEnd}))}
+            onDays={(selectedDates)=>setDraft(previous=>({...previous,selectedDates}))} />
+          {!periodValid ? <p className="chart-period-error" role="alert">Selecione datas válidas em um intervalo de até 24 meses (máximo de 730 dias).</p> :
+            <p className="chart-category-caption">{draft.source==='forecast'?'Previsões sem dia definido não entram no recorte diário.':'O filtro usa as datas efetivas de pagamento e recebimento.'}</p>}
         </div> : null}
         <div className="chart-editor-section-heading chart-field--full"><strong>Filtros dos dados</strong><span>Escolha várias contas ou categorias nas listas abaixo.</span></div>
         <ChartMultiFilter title="Filtrar por conta" allLabel="Todas as contas" options={state.accounts} selected={selectedAccountIds} onChange={selectAccounts} />
