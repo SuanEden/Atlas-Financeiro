@@ -77,6 +77,36 @@ export function useLocalFinance(mode: 'normal' | 'test' = 'normal') {
     }
   }, [local, refresh, mode]);
 
+  const modifyEntity = useCallback(async (
+    action: 'edit' | 'delete',
+    entity: 'account' | 'category',
+    id: string,
+    changes?: { name: string; kind: string; availability?: string; parentId?: string },
+  ) => {
+    if (executing.current) throw new Error('Uma operação já está em andamento.');
+    executing.current = true;
+    setBusy(true);
+    setError(undefined);
+    try {
+      await withLocalWriteLock(async () => {
+        if (localStorage.getItem(mode === 'test' ? TEST_OWNER_KEY : LOCAL_OWNER_KEY) !== local.userId)
+          throw new Error('A base ativa mudou em outra aba. Recarregue antes de salvar.');
+        if (action === 'delete') await local.store.deleteUnusedEntity(entity, id);
+        else {
+          if (!changes) throw new TypeError('Informe os dados da edição.');
+          await local.store.editEntityMetadata(entity, id, changes as Parameters<typeof local.store.editEntityMetadata>[2]);
+        }
+      });
+      await refresh();
+    } catch (reason) {
+      setError(messageFrom(reason));
+      throw reason;
+    } finally {
+      executing.current = false;
+      setBusy(false);
+    }
+  }, [local, refresh, mode]);
+
   const recover = async (json: string) => {
     if (mode === 'test') throw new Error('Para preservar o isolamento, o ambiente de teste não permite recuperar cópias de outra base. Crie lançamentos de teste diretamente neste ambiente.');
     if (executing.current) throw new Error('Aguarde a operação em andamento.');
@@ -92,7 +122,7 @@ export function useLocalFinance(mode: 'normal' | 'test' = 'normal') {
     }
   };
 
-  return { state, loading, busy, error, clearError: () => setError(undefined), execute, recover, readState: () => local.store.readLocalState(), context: local.context, userId: local.userId };
+  return { state, loading, busy, error, clearError: () => setError(undefined), execute, modifyEntity, recover, readState: () => local.store.readLocalState(), context: local.context, userId: local.userId };
 }
 
 function messageFrom(reason: unknown): string {
