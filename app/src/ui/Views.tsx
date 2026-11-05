@@ -82,7 +82,7 @@ export function Dashboard({ state, today, userId, onAddAccount, onAddTransaction
 
   return (
     <div className="page-content">
-      <PageHeading title="Sua vida financeira, em ordem." subtitle="Acompanhe seus saldos, entenda o que mudou e planeje com tranquilidade." action={<button className="button button--primary" onClick={onAddTransaction} disabled={state.accounts.length === 0}><Plus size={18} />Novo lançamento</button>} />
+      <PageHeading title="Visão geral" subtitle="Seu dinheiro, suas decisões. Tudo em um só lugar." action={<button className="button button--primary" onClick={onAddTransaction} disabled={state.accounts.length === 0}><Plus size={18} />Novo lançamento</button>} />
       <section className="balance-hero" aria-labelledby="balance-hero-title">
         <div className="balance-hero-content">
           <span className="balance-hero-kicker"><span className="balance-hero-dot" />Seu dinheiro disponível</span>
