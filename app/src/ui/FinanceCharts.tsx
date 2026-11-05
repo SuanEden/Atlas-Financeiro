@@ -336,7 +336,8 @@ function ChartCalendar({mode, start, end, days, focusMonth, onRange, onDays, onC
   const pointerOrigin = useRef<string|null>(null);
   const dragged = useRef(false);
   const selected = new Set(days);
-  const today = new Date().toLocaleDateString('en-CA'); // Navigation only: no financial dates are inferred.
+  const now = new Date();
+  const todayMonth = String(now.getFullYear()).padStart(4,'0')+'-'+String(now.getMonth()+1).padStart(2,'0');
   const selectionDescription = mode==='range'
     ? start&&end ? 'De '+start.split('-').reverse().join('/')+' até '+end.split('-').reverse().join('/') : 'Selecione o primeiro dia'
     : days.length+' '+(days.length===1?'dia selecionado':'dias selecionados');
@@ -399,7 +400,7 @@ function ChartCalendar({mode, start, end, days, focusMonth, onRange, onDays, onC
     <div className="chart-calendar-toolbar">
       <div className="chart-calendar-toolbar-title"><strong>{mode==='range'?'Escolha um intervalo':'Escolha dias específicos'}</strong><span>{mode==='range'?'Arraste entre duas datas ou clique no início e no fim.':'Clique nos dias para marcar ou desmarcar.'}</span></div>
       <div className="chart-calendar-nav">
-        <button type="button" className="chart-calendar-today" onClick={()=>setShownMonth(today.slice(0,7))}>Hoje</button>
+        <button type="button" className="chart-calendar-today" onClick={()=>setShownMonth(todayMonth)}>Hoje</button>
         <button type="button" aria-label="Meses anteriores" onClick={()=>setShownMonth(m=>monthAt(m,-1))}>‹</button>
         <button type="button" aria-label="Próximos meses" onClick={()=>setShownMonth(m=>monthAt(m,1))}>›</button>
       </div>
