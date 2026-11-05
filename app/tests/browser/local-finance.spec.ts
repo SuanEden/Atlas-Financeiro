@@ -4,12 +4,12 @@ import { join } from 'node:path';
 
 async function navigate(page: Page, testInfo: TestInfo, destination: 'Início' | 'Movimentações' | 'Contas' | 'Categorias' | 'Backup') {
   if (testInfo.project.name === 'mobile-edge' && destination === 'Movimentações') {
-    await page.getByRole('button', { name: 'Movimentos', exact: true }).click();
+    await page.getByRole('button', { name: 'Extrato', exact: true }).click();
     return;
   }
   if (testInfo.project.name === 'mobile-edge' && (destination === 'Categorias' || destination === 'Backup')) {
-    await page.getByRole('button', { name: 'Ajustes', exact: true }).click();
-    if (destination === 'Backup') await page.getByRole('button', { name: 'Backup', exact: true }).click();
+    await page.getByRole('button', { name: 'Mais', exact: true }).click();
+    await page.getByRole('button', { name: destination, exact: true }).click();
     return;
   }
   await page.getByRole('button', { name: destination, exact: true }).click();
