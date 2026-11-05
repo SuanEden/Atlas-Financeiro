@@ -214,4 +214,9 @@ test('calendário permite escolher dias separados e persiste após recarga',asyn
   await page.getByRole('button',{name:'Editar Dias avulsos'}).click();
   await expect(page.getByRole('dialog').getByLabel('Período')).toHaveValue('days');
   await expect(page.getByRole('dialog').getByText('3 dias selecionados')).toBeVisible();
+  await page.getByRole('dialog').getByRole('button',{name:'Limpar seleção'}).click();
+  await expect(page.getByRole('dialog').getByText('0 dias selecionados')).toBeVisible();
+  await expect(page.getByRole('dialog').getByRole('button',{name:'Salvar gráfico'})).toBeDisabled();
+  await page.getByRole('dialog').getByRole('button',{name:'Hoje'}).click();
+  await expect(page.getByRole('dialog').locator('.chart-calendar-month')).toHaveCount(2);
 });
