@@ -105,6 +105,91 @@ export class LocalFinancialStore {
     });
   }
 
+  /** Edits local account/category metadata atomically, retaining IDs and every financial record.
+   * Only an unsent create operation can be rewritten; remote edits require a future protocol version. */
+  async editEntityMetadata(entity: 'account' | 'category', id: string, changes: {
+    name: string;
+    kind: Account['kind'] | Category['kind'];
+    availability?: Account['availability'];
+    parentId?: string;
+  }): Promise<void> {
+    const name = changes.name.trim();
+    if (!name || name.length > 120) throw new TypeError('Informe um nome de até 120 caracteres.');
+    await this.#db.transaction('rw', ALL_TABLE_NAMES, async () => {
+      const current = await this.#readTables();
+      const collection = entity === 'account' ? current.accounts : current.categories;
+      const previous = collection.find(row => row.id === id);
+      if (!previous) throw new TypeError('Registro não encontrado.');
+      const next: FinancialDataset = structuredClone(current);
+      if (entity === 'account') {
+        const account = next.accounts.find(row => row.id === id)!;
+        account.name = name;
+        account.kind = changes.kind as Account['kind'];
+        account.availability = account.kind === 'transport' ? 'restricted' : (changes.availability ?? account.availability);
+      } else {
+        const category = next.categories.find(row => row.id === id)!;
+        category.name = name;
+        category.kind = changes.kind as Category['kind'];
+        if (changes.parentId) category.parentId = changes.parentId;
+        else delete category.parentId;
+      }
+      assertFinancialDataset(next, this.userId);
+      const pending = await this.#db.outbox.where('kind').equals(entity === 'account' ? 'create_account' : 'create_category').toArray();
+      const operation = pending.find(row => {
+        const payload = JSON.parse(row.payloadJson) as Record<string, unknown>;
+        const records = payload[entity === 'account' ? 'accounts' : 'categories'];
+        return Array.isArray(records) && records.some(record => record && typeof record === 'object' && (record as {id?:string}).id === id);
+      });
+      if (!operation) throw new TypeError('Este registro não possui criação local pendente. Para evitar divergências na sincronização, a edição ainda não está disponível.');
+      const payload = JSON.parse(operation.payloadJson) as Record<string, unknown>;
+      const key = entity === 'account' ? 'accounts' : 'categories';
+      const records = payload[key] as {id:string}[];
+      const updated = entity === 'account' ? next.accounts.find(row => row.id === id)! : next.categories.find(row => row.id === id)!;
+      payload[key] = records.map(row => row.id === id ? structuredClone(updated) : row);
+      const revisedOperation = {...operation,payloadJson:JSON.stringify(payload)};
+      assertPendingOperation(revisedOperation,this.userId);
+      if (entity === 'account') await this.#db.accounts.put(next.accounts.find(row => row.id === id)!);
+      else await this.#db.categories.put(next.categories.find(row => row.id === id)!);
+      await this.#db.outbox.put(revisedOperation);
+    });
+  }
+
+  /** Deletes only unused metadata and its unsent create command, within one rollback-safe transaction. */
+  async deleteUnusedEntity(entity:'account'|'category',id:string):Promise<void> {
+    await this.#db.transaction('rw',ALL_TABLE_NAMES,async()=>{
+      const current=await this.#readTables();
+      const rows=entity==='account'?current.accounts:current.categories;
+      if (!rows.some(row=>row.id===id)) throw new TypeError('Registro não encontrado.');
+      if (entity==='account' && (
+        current.events.some(row=>row.accountId===id||row.transferAccountId===id) ||
+        current.postings.some(row=>row.accountId===id) ||
+        (current.accountReconciliations??[]).some(row=>row.accountId===id)
+      )) throw new TypeError('Esta conta possui lançamentos ou conciliações e não pode ser excluída. O histórico deve ser preservado.');
+      if (entity==='category' && (
+        current.events.some(row=>row.categoryId===id) ||
+        current.categories.some(row=>row.parentId===id)
+      )) throw new TypeError('Esta categoria está sendo utilizada por lançamentos ou subcategorias e não pode ser excluída.');
+      const pending=await this.#db.outbox.where('kind').equals(entity==='account'?'create_account':'create_category').toArray();
+      const key=entity==='account'?'accounts':'categories';
+      const operation=pending.find(row=>{
+        const payload=JSON.parse(row.payloadJson) as Record<string,unknown>;
+        return Array.isArray(payload[key]) && (payload[key] as {id:string}[]).some(item=>item.id===id);
+      });
+      if(!operation)throw new TypeError('Registro sem operação local de criação. A exclusão foi bloqueada para proteger a sincronização.');
+      const payload=JSON.parse(operation.payloadJson) as Record<string,unknown>;
+      if(!Array.isArray(payload[key]) || payload[key].length!==1 ||
+        Object.entries(payload).some(([k,v])=>k!=='schemaVersion'&&k!=='userId'&&k!==key&&Array.isArray(v)&&v.length>0))
+        throw new TypeError('Esta criação contém outros dados vinculados; não pode ser excluída com segurança.');
+      const next:FinancialDataset=entity==='account'
+        ? {...current,accounts:current.accounts.filter(row=>row.id!==id)}
+        : {...current,categories:current.categories.filter(row=>row.id!==id)};
+      assertFinancialDataset(next,this.userId);
+      if(entity==='account')await this.#db.accounts.delete(id);
+      else await this.#db.categories.delete(id);
+      await this.#db.outbox.delete(operation.id);
+    });
+  }
+
   async readSnapshot(): Promise<FinancialDataset> {
     return this.#db.transaction('r', DATA_TABLE_NAMES, async () => {
       const dataset = await this.#readTables();
