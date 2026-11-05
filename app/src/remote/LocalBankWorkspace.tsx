@@ -245,6 +245,11 @@ export default function LocalBankWorkspace(){
   }
   const panel=<section className="sync-panel" aria-label="Bancos">
     <h2>Meus bancos</h2>
+    <div className="bank-sync-status" role="status"><span className="bank-sync-dot" aria-hidden="true" /><div>
+      <strong>{importing ? 'Sincronizando movimentações…' : session==='checking' ? 'Verificando conexão bancária…' : session==='connected' && Object.keys(links).length>0 ? 'Importação automática ativa' : session==='connected' ? 'Bancos conectados · vincule uma conta para importar' : 'Importação automática não ativa'}</strong>
+      <p>{session==='connected'&&Object.keys(links).length>0 ? Object.keys(links).length+' vínculo(s) ativo(s). Consulta ao abrir o app, ao retornar e a cada 10 minutos enquanto estiver aberto.' : 'A importação só começa após você autorizar e vincular uma conta bancária. Nenhum dado é enviado à nuvem por esta indicação.'}</p>
+    </div></div>
+    {location.hostname!=='atlas-financeiro-nine.vercel.app' && location.hostname!=='localhost' ? <p className="warning-copy">A autenticação bancária usa o endereço de produção <a href="https://atlas-financeiro-nine.vercel.app">atlas-financeiro-nine.vercel.app</a>. Antes de trocar de endereço, salve um backup: cada origem pode guardar dados locais separados.</p> : null}
     <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:16,margin:'18px 0 24px'}}>
       {BANKS.map(b=><button key={b.itemId} type="button" disabled={busy} className="button button--secondary" style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,minHeight:132,borderRadius:16}}
         onClick={()=>{if(session==='connected')void consult(b.name,b.itemId);else if(session==='disconnected')void connectBank();else setMessage('Aguarde a verificação da conexão bancária.');}}>
