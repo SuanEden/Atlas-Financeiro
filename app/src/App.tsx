@@ -56,13 +56,13 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
   const [modal, setModal] = useState<Modal>();
   const [notice, setNotice] = useState('');
   // Navigation is presentation-only; financial state remains unchanged.
-  const [dark, setDark] = useState(() => localStorage.getItem('atlas-financeiro:theme:v1') === 'dark');
+  const [dark, setDark] = useState(() => localStorage.getItem('atlas-financeiro:theme:v2') !== 'light');
   const today = context.today();
 
   function toggleTheme() {
     setDark((current) => {
       const next = !current;
-      localStorage.setItem('atlas-financeiro:theme:v1', next ? 'dark' : 'light');
+      localStorage.setItem('atlas-financeiro:theme:v2', next ? 'dark' : 'light');
       return next;
     });
   }
@@ -118,7 +118,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
       </aside>
 
       <section className="workspace">
-        <header className="topbar"><div className="mobile-brand"><Brand /></div><div className="topbar-context"><span>MEU ESPAÇO</span><strong>{page === 'dashboard' ? 'Visão geral' : page === 'movements' ? 'Movimentações' : page === 'accounts' ? 'Minhas contas' : page === 'banks' ? 'Bancos' : page === 'categories' ? 'Categorias' : page === 'backup' ? 'Backup e dados' : 'Mais opções'}</strong></div>{page === 'dashboard' ? null : <button className="button button--primary topbar-create" onClick={openTransaction} disabled={state.accounts.length === 0}><Plus size={17} />Novo lançamento</button>}<span className="device-status"><HardDrive size={16} />{testMode ? 'Modo de teste · local' : integration ? 'Modo nuvem · cópia local' : 'Salvo neste dispositivo'}</span><button className="icon-button" type="button" onClick={toggleTheme} aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'} aria-pressed={dark}>{dark ? <Sun size={19} /> : <Moon size={19} />}</button></header>
+        <header className="topbar"><div className="mobile-brand"><Brand /></div><div className="topbar-context"><span>VISÃO FINANCEIRA</span><strong>{page === 'dashboard' ? 'Visão geral' : page === 'movements' ? 'Movimentações' : page === 'accounts' ? 'Minhas contas' : page === 'banks' ? 'Bancos' : page === 'categories' ? 'Categorias' : page === 'backup' ? 'Backup e dados' : 'Mais opções'}</strong></div>{page === 'dashboard' ? null : <button className="button button--primary topbar-create" onClick={openTransaction} disabled={state.accounts.length === 0}><Plus size={17} />Novo lançamento</button>}<span className="device-status"><HardDrive size={16} />{testMode ? 'Modo de teste · local' : integration ? 'Modo nuvem · cópia local' : 'Salvo neste dispositivo'}</span><button className="icon-button" type="button" onClick={toggleTheme} aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'} aria-pressed={dark}>{dark ? <Sun size={19} /> : <Moon size={19} />}</button></header>
         {integration && sessionControls ? <details className="mobile-cloud-controls"><summary>Modo nuvem <span>· {state.outbox.length} pendente{state.outbox.length === 1 ? '' : 's'}</span></summary>{sessionControls}</details> : null}
         {error === undefined ? null : <div className="error-banner" role="alert"><span>{error}</span><button onClick={clearError}>Fechar</button></div>}
         <div className="sr-only" role="status">{notice}</div>
@@ -127,6 +127,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
             {page === 'banks' ? <section className="page-content banks-page" aria-label="Bancos"><div className="page-heading"><div><p className="section-kicker">Instituições e conexões</p><h1>Bancos conectados</h1><p>Suas conexões financeiras em um só lugar.</p></div></div>{bankPanel ?? <p>Entre com Google para consultar seus bancos.</p>}</section> : null}
             {page === 'more' ? <section className="page-content more-page" aria-labelledby="more-title"><div className="page-heading"><div><p className="section-kicker">Seu espaço</p><h1 id="more-title">Mais opções</h1><p>Organize e proteja seus dados financeiros.</p></div></div><div className="more-menu">
               {(integration || bankPanel !== undefined) ? <button type="button" aria-label="Bancos" onClick={()=>setPage('banks')}><span className="more-menu-icon"><Landmark size={20}/></span><span><strong>Bancos conectados</strong><small>Conexões e movimentações bancárias</small></span><ChevronRight size={20}/></button> : null}
+              <button type="button" aria-label="Contas" onClick={()=>setPage('accounts')}><span className="more-menu-icon"><WalletCards size={20}/></span><span><strong>Minhas contas</strong><small>Saldos, reservas e conciliação</small></span><ChevronRight size={20}/></button>
               <button type="button" aria-label="Categorias" onClick={()=>setPage('categories')}><span className="more-menu-icon"><Tags size={20}/></span><span><strong>Categorias</strong><small>Organize entradas e despesas</small></span><ChevronRight size={20}/></button>
               <button type="button" aria-label="Backup" onClick={()=>setPage('backup')}><span className="more-menu-icon"><ShieldCheck size={20}/></span><span><strong>Backup e segurança</strong><small>Guarde e recupere seus dados</small></span><ChevronRight size={20}/></button>
               <button type="button" onClick={toggleTheme}><span className="more-menu-icon">{dark?<Sun size={20}/>:<Moon size={20}/>}</span><span><strong>Aparência</strong><small>{dark?'Mudar para tema claro':'Mudar para tema escuro'}</small></span><ChevronRight size={20}/></button>
@@ -145,8 +146,8 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
         <MobileNavButton active={page === 'dashboard'} label="Início" Icon={Home} onClick={() => setPage('dashboard')} />
         <MobileNavButton active={page === 'movements'} label="Extrato" Icon={ListRestart} onClick={() => setPage('movements')} />
         <button className="bottom-add" onClick={openTransaction} disabled={state.accounts.length === 0} aria-label="Novo lançamento"><Plus size={27} /><span>Adicionar</span></button>
-        <MobileNavButton active={page === 'accounts'} label="Contas" Icon={WalletCards} onClick={() => setPage('accounts')} />
-        <MobileNavButton active={['more','banks','categories','backup'].includes(page)} label="Mais" Icon={MoreHorizontal} onClick={() => setPage('more')} />
+        {(integration || bankPanel !== undefined) ? <MobileNavButton active={page === 'banks'} label="Bancos" Icon={Landmark} onClick={() => setPage('banks')} /> : <MobileNavButton active={page === 'accounts'} label="Contas" Icon={WalletCards} onClick={() => setPage('accounts')} />}
+        <MobileNavButton active={['more','categories','backup',...(integration || bankPanel !== undefined ? ['accounts'] : [])].includes(page)} label="Mais" Icon={MoreHorizontal} onClick={() => setPage('more')} />
       </nav>
 
       {modal?.type === 'account' ? <DialogFrame title="Nova conta" onClose={() => setModal(undefined)}><AccountForm today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveAccount} /></DialogFrame> : null}
