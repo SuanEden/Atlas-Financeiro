@@ -19,8 +19,8 @@ export interface ChartConfig {
   dimension: ChartDimension;
   months: ChartMonths;
   /** Optional inclusive calendar-day interval. Old layouts keep their monthly preset. */
-  dateStart?: string;
-  dateEnd?: string;
+  dateStart?: string | undefined;
+  dateEnd?: string | undefined;
   accountId: string;
   /** Selected accounts; empty means all. Absent means legacy accountId. */
   accountIds?: string[];
@@ -57,12 +57,13 @@ const validDate = (value: unknown): value is string => {
   return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0,10) === value;
 };
 const lastDayOfMonth = (month:string) => {
-  const [year,number] = month.split('-').map(Number);
+  const year = Number(month.slice(0,4));
+  const number = Number(month.slice(5,7));
   return new Date(Date.UTC(year,number,0)).toISOString().slice(0,10);
 };
 const calendarMonths = (start:string,end:string) => {
-  const [sy,sm] = start.slice(0,7).split('-').map(Number);
-  const [ey,em] = end.slice(0,7).split('-').map(Number);
+  const sy = Number(start.slice(0,4)), sm = Number(start.slice(5,7));
+  const ey = Number(end.slice(0,4)), em = Number(end.slice(5,7));
   return (ey-sy)*12+em-sm+1;
 };
 
