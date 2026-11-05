@@ -112,6 +112,25 @@ describe('gráficos do dashboard financeiro', () => {
     expect(buildChartRows(data,'2026-11',{...config,dateStart:undefined,dateEnd:undefined})[0]?.income).toBe(2500n);
   });
 
+  it('filtra datas avulsas de um mês sem incluir dias intermediários', () => {
+    const data=state();
+    for (const [index,date] of ['2026-10-15','2026-10-16','2026-10-20','2026-10-31','2026-11-01'].entries()) {
+      const eventId='selected-day-event-'+index;
+      data.events.push({id:eventId,userId:owner,kind:'expense',source:'manual',status:'confirmed',certainty:'confirmed',
+        amountCents:1000n,accountId:data.accounts[0]!.id,categoryId:data.categories[0]!.id,
+        description:'Despesa com data exata',competenceDate:date});
+      data.settlements.push({id:'selected-day-settlement-'+index,userId:owner,eventId,
+        amountCents:1000n,paymentDate:date,settlementDate:date});
+    }
+    const dates=['2026-10-15','2026-10-20','2026-10-31'];
+    const config={...defaultCharts()[0]!,selectedDates:dates};
+    expect(buildChartRows(data,'2026-11',config)).toMatchObject([{expense:3000n}]);
+    expect(normalizeChartConfig({...config,selectedDates:[...dates,dates[0]!, '2026-02-30','invalido']})?.selectedDates).toEqual(dates);
+    const crossMonth={...config,selectedDates:['2026-10-31','2026-11-01']};
+    expect(buildChartRows(data,'2026-11',crossMonth).map(row=>row.expense)).toEqual([1000n,1000n]);
+    expect(normalizeChartConfig(JSON.parse(JSON.stringify(crossMonth)))?.selectedDates).toEqual(crossMonth.selectedDates);
+  });
+
   it('não converte transferência em receita ou despesa realizada', () => {
     const html = renderToStaticMarkup(createElement(FinanceCharts, {state: state(), month: '2026-10'}));
     expect(html).toContain('Entradas e saídas realizadas');
