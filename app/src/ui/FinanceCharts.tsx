@@ -19,6 +19,8 @@ export interface ChartConfig {
   dimension: ChartDimension;
   months: ChartMonths;
   accountId: string;
+  /** Selected accounts; empty means all. Absent means legacy accountId. */
+  accountIds?: string[];
   categoryId: string;
   /** Selected categories; an empty array means all. Absent means legacy categoryId. */
   categoryIds?: string[];
@@ -69,6 +71,7 @@ export function normalizeChartConfig(raw: unknown): ChartConfig | null {
     dimension: value.dimension,
     months: value.months,
     accountId: typeof value.accountId === 'string' ? value.accountId.slice(0, 100) : '',
+    ...(Array.isArray(value.accountIds) ? { accountIds: [...new Set(value.accountIds.filter((id): id is string => typeof id === 'string' && id.length > 0 && id.length <= 100))].slice(0, 200) } : {}),
     categoryId: typeof value.categoryId === 'string' ? value.categoryId.slice(0, 100) : '',
     ...(Array.isArray(value.categoryIds) ? { categoryIds: [...new Set(value.categoryIds.filter((id): id is string => typeof id === 'string' && id.length > 0 && id.length <= 100))].slice(0, 200) } : {}),
     size: value.size,
@@ -132,6 +135,8 @@ export function buildChartRows(state: LocalFinancialState, month: string, config
   const eventById = new Map(state.events.map((event) => [event.id, event]));
   const accountNames = new Map(state.accounts.map((account) => [account.id, account.name]));
   const categoryNames = new Map(state.categories.map((category) => [category.id, category.name]));
+  const selectedAccounts = config.accountIds === undefined ? (config.accountId ? new Set([config.accountId]) : null)
+    : (config.accountIds.length ? new Set(config.accountIds) : null);
   const selectedCategories = config.categoryIds === undefined ? (config.categoryId ? new Set([config.categoryId]) : null)
     : (config.categoryIds.length ? new Set(config.categoryIds) : null);
   const totals = new Map<string, ChartRow>();
@@ -144,7 +149,7 @@ export function buildChartRows(state: LocalFinancialState, month: string, config
   const accumulate = (eventId: string, dateMonth: string, kind: 'income' | 'expense', amount: bigint) => {
     if (dateMonth < start || dateMonth > end) return;
     const event = eventById.get(eventId);
-    if (!event || (config.accountId && event.accountId !== config.accountId) || (selectedCategories && !selectedCategories.has(event.categoryId ?? ''))) return;
+    if (!event || (selectedAccounts && !selectedAccounts.has(event.accountId)) || (selectedCategories && !selectedCategories.has(event.categoryId ?? ''))) return;
     const key = config.dimension === 'month' ? dateMonth
       : config.dimension === 'category' ? (categoryNames.get(event.categoryId ?? '') ?? 'Sem categoria')
       : (accountNames.get(event.accountId) ?? 'Conta removida');
@@ -259,14 +264,39 @@ function ChartDetails({ rows, config }: { rows: ChartRow[]; config: ChartConfig 
   </details>;
 }
 
+type FilterOption = { id: string; name: string };
+function ChartMultiFilter({ title, allLabel, options, selected, onChange }: {
+  title: string; allLabel: string; options: FilterOption[]; selected: string[]; onChange: (ids: string[]) => void;
+}) {
+  const [search, setSearch] = useState('');
+  const filtered = options.filter((option) => option.name.toLocaleLowerCase('pt-BR').includes(search.trim().toLocaleLowerCase('pt-BR')));
+  const selectedSet = new Set(selected);
+  const toggle = (id: string) => onChange(selectedSet.has(id) ? selected.filter((entry) => entry !== id) : [...selected, id]);
+  return <fieldset className="chart-field chart-field--categories chart-field--full">
+    <legend>{title}</legend>
+    <div className="chart-filter-toolbar">
+      <span className="chart-category-caption" aria-live="polite">{selected.length === 0 ? allLabel : selected.length + (selected.length === 1 ? ' selecionada' : ' selecionadas')}</span>
+      {selected.length ? <button type="button" className="chart-filter-reset" onClick={() => onChange([])}>Limpar filtro</button> : null}
+    </div>
+    {options.length > 6 ? <input type="search" className="chart-filter-search" aria-label={'Pesquisar ' + title.toLocaleLowerCase('pt-BR')} placeholder="Pesquisar opções…" value={search} onChange={(event) => setSearch(event.target.value)} /> : null}
+    <div className="chart-category-list" role="group" aria-label={title}>
+      <label className="chart-category-choice chart-category-choice--all"><input type="checkbox" checked={selected.length === 0} onChange={() => onChange([])} />{allLabel}</label>
+      {filtered.map((option) => <label key={option.id} className="chart-category-choice"><input type="checkbox" checked={selectedSet.has(option.id)} onChange={() => toggle(option.id)} />{option.name}</label>)}
+      {filtered.length === 0 ? <p className="chart-filter-empty">Nenhuma opção encontrada.</p> : null}
+    </div>
+    <span className="chart-category-caption">Escolha quantas opções quiser. {allLabel} inclui também novos itens cadastrados.</span>
+  </fieldset>;
+}
+
 function ChartEditor({ initial, state, month, onSave, onCancel }: { initial: ChartConfig; state: LocalFinancialState; month: string; onSave: (chart: ChartConfig) => void; onCancel: () => void }) {
   const [draft, setDraft] = useState(initial);
   const preview = useMemo(() => buildChartRows(state, month, draft), [state, month, draft]);
   const set = <K extends keyof ChartConfig>(key: K, value: ChartConfig[K]) => setDraft((previous) => ({ ...previous, [key]: value }));
   const circular = draft.type === 'donut' || draft.type === 'pie';
+  const selectedAccountIds = draft.accountIds ?? (draft.accountId ? [draft.accountId] : []);
   const selectedCategoryIds = draft.categoryIds ?? (draft.categoryId ? [draft.categoryId] : []);
+  const selectAccounts = (ids: string[]) => setDraft((previous) => ({ ...previous, accountId: '', accountIds: ids }));
   const selectCategories = (ids: string[]) => setDraft((previous) => ({ ...previous, categoryId: '', categoryIds: ids }));
-  const toggleCategory = (id: string) => selectCategories(selectedCategoryIds.includes(id) ? selectedCategoryIds.filter((item) => item !== id) : [...selectedCategoryIds, id]);
   return <DialogFrame title={initial.title ? 'Editar gráfico' : 'Novo gráfico'} onClose={onCancel} wide>
     <form className="chart-editor" onSubmit={(event) => { event.preventDefault(); onSave({ ...draft, title: draft.title.trim() || 'Meu gráfico' }); }}>
       <div className="chart-editor-fields">
@@ -280,15 +310,9 @@ function ChartEditor({ initial, state, month, onSave, onCancel }: { initial: Cha
         <label className="chart-field">Agrupar por<select value={draft.dimension} onChange={(event) => set('dimension', event.target.value as ChartDimension)}>{dimensions.map((dimension) => <option key={dimension} value={dimension}>{dimensionLabel[dimension]}</option>)}</select></label>
         <label className="chart-field">Período<select value={draft.months} onChange={(event) => set('months', Number(event.target.value) as ChartMonths)}>{periods.map((period) => <option key={period} value={period}>{period === 1 ? '1 mês' : period + ' meses'}</option>)}</select></label>
         <label className="chart-field">Tamanho<select value={draft.size} onChange={(event) => set('size', event.target.value as ChartSize)}>{sizes.map((size) => <option key={size} value={size}>{sizeLabel[size]}</option>)}</select></label>
-        <label className="chart-field">Filtrar por conta<select value={draft.accountId} onChange={(event) => set('accountId', event.target.value)}><option value="">Todas as contas</option>{state.accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label>
-        <fieldset className="chart-field chart-field--categories chart-field--full"><legend>Filtrar por categoria</legend>
-          <p className="chart-category-caption">{selectedCategoryIds.length === 0 ? 'Todas as categorias' : selectedCategoryIds.length + (selectedCategoryIds.length === 1 ? ' categoria selecionada' : ' categorias selecionadas')}</p>
-          <div className="chart-category-list" role="group" aria-label="Escolher categorias do gráfico">
-            <label className="chart-category-choice"><input type="checkbox" checked={selectedCategoryIds.length === 0} onChange={() => selectCategories([])} />Todas as categorias</label>
-            {state.categories.map((category) => <label key={category.id} className="chart-category-choice"><input type="checkbox" checked={selectedCategoryIds.includes(category.id)} onChange={() => toggleCategory(category.id)} />{category.name}</label>)}
-          </div>
-          <span className="chart-category-caption">Marque uma ou várias categorias. Desmarque todas para incluir todas as categorias.</span>
-        </fieldset>
+        <div className="chart-editor-section-heading chart-field--full"><strong>Filtros dos dados</strong><span>Selecione várias contas e categorias. Os filtros são combinados.</span></div>
+        <ChartMultiFilter title="Filtrar por conta" allLabel="Todas as contas" options={state.accounts} selected={selectedAccountIds} onChange={selectAccounts} />
+        <ChartMultiFilter title="Filtrar por categoria" allLabel="Todas as categorias" options={state.categories} selected={selectedCategoryIds} onChange={selectCategories} />
       </div>
       <p className="chart-editor-hint">{draft.source === 'realized' ? 'Somente liquidações efetivas; transferências e ajustes não entram nas receitas ou despesas.' : 'Previsões não são dinheiro realizado. Valores brutos sem líquido informado ficam de fora.'} {circular ? 'Pizza e rosca exibem apenas valores positivos.' : ''}</p>
       <div className="chart-editor-preview"><strong>Prévia</strong><ChartVisual rows={preview} config={draft} /></div>
