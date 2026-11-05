@@ -1164,3 +1164,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .app-shell .finance-chart-grid.chart-studio-grid:not(.chart-studio-grid--free) {grid-template-columns:minmax(0,1fr);}
   .app-shell .finance-chart-grid.chart-studio-grid > .chart-studio-card {grid-column:1 / -1!important;}
 }
+
+/* Keep the mobile quick-add label anchored to its button. */
+@media(max-width:760px) {
+  .app-shell .bottom-nav .bottom-add {position:relative;}
+}
