@@ -363,7 +363,7 @@ export function FinanceCharts({ state, month, ownerId = 'local' }: { state: Loca
     try{event.currentTarget.setPointerCapture(event.pointerId);}catch{/* A synthetic or unsupported pointer still offers keyboard controls. */}
     event.preventDefault();
   };
-  const movePointer=(event:ReactPointerEvent<HTMLButtonElement>)=>{
+  const movePointer=(event:ReactPointerEvent<HTMLElement>)=>{
     const origin=moveRef.current;
     if(!origin||!freeBoard)return;
     const chart=charts.find(item=>item.id===origin.id);
