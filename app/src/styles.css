@@ -1313,3 +1313,45 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .app-shell[data-theme="dark"] .mobile-cloud-controls {margin:10px 16px 0;border-radius:15px;}
   .app-shell[data-theme="dark"] .mobile-cloud-controls > summary {padding:14px 16px;}
 }
+
+
+/* Instant question shortcuts: a functional, deterministic analogue to Pierre's prompt-led feel. */
+.insight-prompt {margin:0 0 20px;padding:25px 27px;border:1px solid var(--line);border-radius:22px;background:var(--surface);box-shadow:var(--atlas-shadow);}
+.insight-prompt-heading {display:flex;align-items:flex-start;gap:15px;margin-bottom:20px;}
+.insight-prompt-spark {display:grid;place-items:center;width:43px;height:43px;flex:0 0 auto;border-radius:14px;background:var(--accent-soft);color:var(--accent);font-size:1.6rem;}
+.insight-prompt-heading .section-kicker {margin:0 0 6px;font-weight:800;letter-spacing:.13em;font-size:.64rem;}
+.insight-prompt-heading h2 {font-size:clamp(1.2rem,2vw,1.56rem);line-height:1.22;letter-spacing:-.045em;margin:0;}
+.insight-prompt-heading p:last-child {font-size:.79rem;line-height:1.5;color:var(--muted);margin:6px 0 0;}
+.insight-prompt-options {display:flex;flex-wrap:wrap;gap:9px;margin-bottom:18px;}
+.insight-prompt-options button {min-height:41px;padding:9px 15px;border-radius:999px;border:1px solid var(--line);background:var(--subtle);color:var(--ink);font-size:.8rem;font-weight:640;transition:background-color .15s,color .15s,border-color .15s;}
+.insight-prompt-options button[aria-pressed="true"] {background:var(--accent-soft);border-color:var(--accent);color:var(--accent-dark);}
+.insight-prompt-answer {display:flex;align-items:center;justify-content:space-between;gap:15px;padding:18px 20px;border-radius:15px;background:var(--subtle);}
+.insight-prompt-answer > div {display:flex;flex-direction:column;gap:6px;min-width:0;}
+.insight-prompt-answer span {color:var(--muted);font-size:.76rem;}
+.insight-prompt-answer strong {font-size:clamp(1.4rem,2.7vw,2rem);letter-spacing:-.045em;overflow-wrap:anywhere;}
+.insight-prompt-answer button {display:inline-flex;align-items:center;justify-content:center;gap:7px;flex:0 0 auto;min-height:38px;padding:0 12px;background:transparent;border:1px solid var(--line);border-radius:10px;color:var(--ink);font-size:.73rem;font-weight:700;}
+.app-shell[data-theme="dark"] .insight-prompt {background:#191b18;border-color:#343a2e;box-shadow:none;}
+.app-shell[data-theme="dark"] .insight-prompt-spark {background:#2b3a1d;color:var(--accent);}
+.app-shell[data-theme="dark"] .insight-prompt-options button {background:#272b24;border-color:#42483a;}
+.app-shell[data-theme="dark"] .insight-prompt-options button[aria-pressed="true"] {background:var(--accent);color:#14200b;border-color:var(--accent);}
+.app-shell[data-theme="dark"] .insight-prompt-answer {background:#10130e;border:1px solid #363f2e;}
+.app-shell[data-theme="dark"] .insight-prompt-answer button {border-color:#46503b;color:var(--accent);}
+@media(max-width:760px){
+  .insight-prompt {padding:19px 16px;margin-bottom:17px;border-radius:18px;}
+  .insight-prompt-heading {gap:10px;margin-bottom:17px;}
+  .insight-prompt-spark {width:36px;height:36px;font-size:1.3rem;border-radius:11px;}
+  .insight-prompt-heading h2 {font-size:1.25rem;}
+  .insight-prompt-options {gap:7px;}
+  .insight-prompt-options button {padding:9px 11px;font-size:.74rem;}
+  .insight-prompt-answer {padding:15px;align-items:flex-start;flex-direction:column;gap:13px;}
+  .insight-prompt-answer button {min-height:35px;}
+  .page-content > .insight-prompt {order:2;}
+  .page-content > .dashboard-quick-actions {order:3;}
+  .page-content > .money-summary {order:4;}
+  .page-content > .dashboard-data-note {order:5;}
+  .page-content > .flow-section[aria-labelledby="flow-title"] {order:6;}
+  .page-content > .dashboard-columns {order:7;}
+  .page-content > .finance-charts {order:8;}
+  .page-content > .flow-section[aria-labelledby="forecast-title"] {order:9;}
+  .page-content > .empty-panel {order:10;}
+}
