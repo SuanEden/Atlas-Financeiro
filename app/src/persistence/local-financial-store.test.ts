@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { IDBObjectStore as FakeObjectStore } from 'fake-indexeddb';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createAccountCommand, type CommandContext } from '../application';
+import { createAccountCommand, createCategoryCommand, type CommandContext } from '../application';
 import type { FinancialDataset } from '../domain';
 import { createLocalFinancialStore, LocalFinancialStore } from './local-financial-store';
 import { syntheticDataset } from './synthetic-fixture.test-helper';
@@ -174,4 +174,39 @@ describe('local financial persistence', () => {
     expect(state.accounts).toHaveLength(0);
     expect(state.outbox).toHaveLength(0);
   });
+  it('edits local account details with same ID and consistent pending creation',async()=>{
+    const store=openStore();
+    const context:CommandContext={userId:store.userId,nextId:()=>crypto.randomUUID(),now:()=> '2026-11-05T14:00:00.000Z',today:()=> '2026-11-05'};
+    const created=createAccountCommand({name:'Original',kind:'cash',availability:'free',openingDate:context.today()},context);
+    await store.commitOperation(created.aggregate,created.operation);
+    const id=created.aggregate.accounts![0]!.id;
+    await store.editEntityMetadata('account',id,{name:'Conta editada',kind:'checking',availability:'reserved'});
+    const current=await store.readLocalState();
+    expect(current.accounts[0]).toMatchObject({id,name:'Conta editada',kind:'checking',availability:'reserved'});
+    expect(JSON.parse(current.outbox[0]!.payloadJson).accounts[0]).toMatchObject({id,name:'Conta editada'});
+    expect(current.outbox[0]!.id).toBe(created.operation.id);
+  });
+
+  it('deletes a category without references and its pending operation atomically',async()=>{
+    const store=openStore();
+    const context:CommandContext={userId:store.userId,nextId:()=>crypto.randomUUID(),now:()=> '2026-11-05T14:00:00.000Z',today:()=> '2026-11-05'};
+    const created=createCategoryCommand({name:'Descartável',kind:'expense'},context);
+    await store.commitOperation(created.aggregate,created.operation);
+    const id=created.aggregate.categories![0]!.id;
+    await store.deleteUnusedEntity('category',id);
+    const current=await store.readLocalState();
+    expect(current.categories).toHaveLength(0);
+    expect(current.outbox).toHaveLength(0);
+  });
+
+  it('refuses deleting a reconciled account, preserving its balance and pending operations',async()=>{
+    const store=openStore();
+    const context:CommandContext={userId:store.userId,nextId:()=>crypto.randomUUID(),now:()=> '2026-11-05T14:00:00.000Z',today:()=> '2026-11-05'};
+    const created=createAccountCommand({name:'Com saldo',kind:'checking',availability:'free',openingDate:context.today(),openingBalanceCents:5000n,openingBalanceSource:'Teste',openingBalanceCertainty:'confirmed'},context);
+    await store.commitOperation(created.aggregate,created.operation);
+    const old=await store.readLocalState();
+    await expect(store.deleteUnusedEntity('account',old.accounts[0]!.id)).rejects.toThrow(/histórico|concilia/);
+    expect(await store.readLocalState()).toEqual(old);
+  });
+
 });
