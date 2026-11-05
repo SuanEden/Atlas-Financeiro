@@ -103,6 +103,49 @@ export function AccountForm({ today, busy, onCancel, onSave }: AccountFormProps)
   );
 }
 
+
+export function MetadataEditForm({ entity, accounts, categories, busy, onCancel, onSave }: {
+  entity: Account | Category;
+  accounts?: Account[];
+  categories?: Category[];
+  busy: boolean;
+  onCancel: () => void;
+  onSave: (changes: {name:string;kind:string;availability?:string;parentId?:string}) => Promise<void>;
+}) {
+  const account = accounts?.some(row => row.id === entity.id) ?? false;
+  const [name,setName] = useState(entity.name);
+  const [kind,setKind] = useState<string>(entity.kind);
+  const [availability,setAvailability] = useState<Account['availability']>(account ? (entity as Account).availability : 'free');
+  const [parentId,setParentId] = useState(!account ? (entity as Category).parentId ?? '' : '');
+  const [error,setError] = useState<string>();
+  async function submit(event:FormEvent) {
+    event.preventDefault();
+    setError(undefined);
+    try {
+      if (!name.trim()) throw new TypeError('Informe o nome.');
+      await onSave({name:name.trim(),kind,...(account ? {availability:kind==='transport'?'restricted':availability} : parentId ? {parentId} : {})});
+    } catch (reason) {
+      setError(reason instanceof Error?reason.message:'Não foi possível editar.');
+    }
+  }
+  return <form className="stack-form" onSubmit={submit}>
+    <label>Nome<input autoFocus maxLength={120} value={name} onChange={event=>setName(event.target.value)} /></label>
+    <div className="form-grid">
+      <label>{account?'Tipo de conta':'Natureza'}
+        <select value={kind} onChange={event=>setKind(event.target.value)}>
+          {account?Object.entries(accountKindLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)
+            : <><option value="expense">Despesa</option><option value="income">Receita</option><option value="both">Receita e despesa</option></>}
+        </select>
+      </label>
+      {account?<label>Disponibilidade<select disabled={kind==='transport'} value={kind==='transport'?'restricted':availability} onChange={event=>setAvailability(event.target.value as Account['availability'])}>{Object.entries(availabilityLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>:
+        <label>Categoria superior<select value={parentId} onChange={event=>setParentId(event.target.value)}><option value="">Nenhuma</option>{categories?.filter(row=>row.id!==entity.id).map(row=><option key={row.id} value={row.id}>{row.name}</option>)}</select></label>}
+    </div>
+    <p className="form-note">O identificador será preservado. Nenhum lançamento ou saldo será apagado.</p>
+    <FormError message={error}/>
+    <footer className="dialog-actions"><button type="button" className="button button--ghost" onClick={onCancel}>Cancelar</button><button type="submit" className="button button--primary" disabled={busy}>{busy?'Salvando…':'Salvar alterações'}</button></footer>
+  </form>;
+}
+
 interface AccountReconciliationFormProps {
   account: Account;
   today: string;
