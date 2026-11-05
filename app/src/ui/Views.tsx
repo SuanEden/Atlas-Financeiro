@@ -82,9 +82,21 @@ export function Dashboard({ state, today, userId, onAddAccount, onAddTransaction
 
   return (
     <div className="page-content">
-      <PageHeading title="Visão geral" action={<button className="button button--primary" onClick={onAddTransaction} disabled={state.accounts.length === 0}><Plus size={18} />Novo lançamento</button>} />
-      <p className="form-note">{integration ? `Cópia neste navegador. ${state.outbox.length} operações aguardando confirmação ou conferência. Consulte o painel de sincronização e guarde uma cópia em Backup.` : `Dados somente neste navegador. ${state.outbox.length} operações locais ainda sem envio remoto. Guarde uma cópia em Backup.`}</p>
-
+      <PageHeading title="Sua vida financeira, em ordem." subtitle="Acompanhe seus saldos, entenda o que mudou e planeje com tranquilidade." action={<button className="button button--primary" onClick={onAddTransaction} disabled={state.accounts.length === 0}><Plus size={18} />Novo lançamento</button>} />
+      <section className="balance-hero" aria-labelledby="balance-hero-title">
+        <div className="balance-hero-content">
+          <span className="balance-hero-kicker"><span className="balance-hero-dot" />Seu dinheiro disponível</span>
+          <h2 id="balance-hero-title">{freeComplete ? formatBRL(available) : 'Saldo a conciliar'}</h2>
+          <p>{freeComplete ? 'Soma das contas livres com saldo conciliado.' : 'Concilie suas contas para visualizar o valor disponível.'}</p>
+          <div className="balance-hero-actions"><button className="balance-hero-action" type="button" onClick={() => onNavigate('accounts')}><WalletCards size={17}/>Ver contas</button><button className="balance-hero-action balance-hero-action--soft" type="button" onClick={() => onNavigate('movements')}><ArrowLeftRight size={17}/>Ver extrato</button></div>
+        </div>
+        <div className="balance-hero-aside" aria-hidden="true"><span className="balance-hero-orbit balance-hero-orbit--one"/><span className="balance-hero-orbit balance-hero-orbit--two"/><span className="balance-hero-symbol">A</span></div>
+      </section>
+      <div className="dashboard-quick-actions" aria-label="Ações rápidas">
+        <button type="button" onClick={onAddTransaction} disabled={state.accounts.length === 0}><span className="quick-action-icon"><Plus size={19}/></span><span>Novo lançamento</span></button>
+        <button type="button" onClick={()=>onNavigate('movements')}><span className="quick-action-icon"><ArrowLeftRight size={19}/></span><span>Movimentações</span></button>
+        <button type="button" onClick={()=>onNavigate('accounts')}><span className="quick-action-icon"><WalletCards size={19}/></span><span>Minhas contas</span></button>
+      </div>
       <section className="money-summary" aria-label="Resumo dos saldos">
         <MoneyStat label="Saldo bancário conciliado" value={bankComplete ? formatBRL(bankBalance) : 'A conciliar'} />
         <MoneyStat label="Dinheiro físico" value={cashComplete ? formatBRL(physicalCash) : 'A conciliar'} />
@@ -94,6 +106,7 @@ export function Dashboard({ state, today, userId, onAddAccount, onAddTransaction
         <MoneyStat label="Saldo livre" value={freeComplete ? formatBRL(available) : 'A conciliar'} />
         <MoneyStat label="Saldo total conciliado" value={allAccountsComplete ? formatBRL(totalReconciled) : 'A conciliar'} />
       </section>
+      <p className="dashboard-data-note">{integration ? `Cópia local · ${state.outbox.length} operações aguardando conferência. Mantenha um backup atualizado.` : `Dados neste dispositivo · ${state.outbox.length} operações aguardando sincronização. Faça backup regularmente.`}</p>
 
       <section className="flow-section" aria-labelledby="flow-title">
         <div className="section-heading">
