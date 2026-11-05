@@ -1169,3 +1169,147 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 @media(max-width:760px) {
   .app-shell .bottom-nav .bottom-add {position:relative;}
 }
+
+
+/* Atlas Noir: Pierre-inspired dark-first financial experience.
+   Palette and layout are original Atlas components; no third-party assets are copied. */
+.app-shell[data-theme="dark"] {
+  --bg:#090a09;
+  --subtle:#141513;
+  --surface:#1a1c19;
+  --ink:#f7f8f4;
+  --muted:#a4a79d;
+  --line:#31352d;
+  --accent:#c5fb42;
+  --accent-dark:#d5ff65;
+  --accent-soft:#303f1c;
+  --positive:#bded60;
+  --negative:#ff8f92;
+  --atlas-shadow:0 12px 30px rgba(0,0,0,.22);
+  color-scheme:dark;
+}
+.app-shell[data-theme="dark"] .sidebar {
+  background:#10110f;
+  border-color:#252822;
+}
+.app-shell[data-theme="dark"] .brand-mark {
+  background:var(--accent);color:#141a0c;
+  box-shadow:0 0 0 1px rgba(198,251,66,.25),0 4px 18px rgba(198,251,66,.1);
+}
+.app-shell[data-theme="dark"] .sidebar-section-label {color:#8c9284;}
+.app-shell[data-theme="dark"] .sidebar nav button {color:#aaaead;}
+.app-shell[data-theme="dark"] .sidebar nav button:hover {background:#242a20;color:var(--ink);}
+.app-shell[data-theme="dark"] .sidebar nav button.is-active {
+  color:var(--accent);
+  background:#252d1d;
+}
+.app-shell[data-theme="dark"] .topbar {
+  background:#10110f;
+  border-color:#252822;
+}
+.app-shell[data-theme="dark"] .topbar-context span {color:var(--accent);letter-spacing:.2em;}
+.app-shell[data-theme="dark"] .device-status {background:#1b2019;border-color:#343d2f;color:#bec5b9;}
+.app-shell[data-theme="dark"] .icon-button {background:#22251f;border-color:#353a32;color:#f3f5ef;}
+.app-shell[data-theme="dark"] .button--primary {
+  color:#111709;
+  background:var(--accent);
+  box-shadow:0 5px 19px rgba(198,251,66,.15);
+}
+.app-shell[data-theme="dark"] .button--primary:hover {background:#d9ff82;}
+.app-shell[data-theme="dark"] .button--secondary,.app-shell[data-theme="dark"] .button--ghost {
+  color:var(--ink);background:#252720;border-color:#3a4035;
+}
+.app-shell[data-theme="dark"] .button--secondary:hover {background:#33392b;}
+.app-shell[data-theme="dark"] .balance-hero {
+  background:radial-gradient(circle at 87% 20%,rgba(189,239,60,.14),transparent 46%),linear-gradient(122deg,#1c2019,#131613 68%);
+  border:1px solid #414b32;
+  box-shadow:0 16px 38px rgba(0,0,0,.25);
+}
+.app-shell[data-theme="dark"] .balance-hero-kicker {color:#dceba9;}
+.app-shell[data-theme="dark"] .balance-hero-dot {background:var(--accent);}
+.app-shell[data-theme="dark"] .balance-hero h2 {color:#f6f9ed;}
+.app-shell[data-theme="dark"] .balance-hero p {color:#adb6a0;}
+.app-shell[data-theme="dark"] .balance-hero-orbit {border-color:rgba(198,251,66,.16);}
+.app-shell[data-theme="dark"] .balance-hero-symbol {color:rgba(198,251,66,.1);}
+.app-shell[data-theme="dark"] .balance-hero-action {
+  border-color:var(--accent);
+  background:var(--accent);
+  color:#17200c;
+}
+.app-shell[data-theme="dark"] .balance-hero-action--soft {
+  background:#303729;
+  color:#e9f2d9;
+  border-color:#424e32;
+}
+.app-shell[data-theme="dark"] .dashboard-quick-actions button {
+  background:#191c17;
+  border-color:#34382f;
+  color:#f0f1ed;
+}
+.app-shell[data-theme="dark"] .quick-action-icon {
+  color:var(--accent);
+  background:#303a25;
+}
+.app-shell[data-theme="dark"] .money-summary > div {
+  background:#1a1c19;border-color:#34372f;
+  box-shadow:0 10px 25px rgba(0,0,0,.1);
+}
+.app-shell[data-theme="dark"] .money-summary > div:last-child {border-color:#34372f;}
+.app-shell[data-theme="dark"] .money-summary span {color:#b3baac;}
+.app-shell[data-theme="dark"] .flow-band > div,.app-shell[data-theme="dark"] .forecast-grid > div,
+.app-shell[data-theme="dark"] .dashboard-columns > section {
+  background:#1a1c19;border-color:#34372f;box-shadow:none;
+}
+.app-shell[data-theme="dark"] .chart-studio-card,.app-shell[data-theme="dark"] .account-card,
+.app-shell[data-theme="dark"] .more-menu > button,.app-shell[data-theme="dark"] .history-list,
+.app-shell[data-theme="dark"] .category-list {
+  background:#1a1c19;
+  border-color:#34372f;
+  box-shadow:none;
+}
+.app-shell[data-theme="dark"] .chart-studio-card:hover,.app-shell[data-theme="dark"] .more-menu > button:hover {
+  border-color:#818e56;
+  box-shadow:0 10px 26px rgba(0,0,0,.2);
+}
+.app-shell[data-theme="dark"] .account-icon,.app-shell[data-theme="dark"] .movement-icon,.app-shell[data-theme="dark"] .more-menu-icon {background:#303a25;color:var(--accent);}
+.app-shell[data-theme="dark"] .chart-editor-group {background:#1a1c19;border-color:#383d31;}
+.app-shell[data-theme="dark"] .chart-editor-group-heading > span {background:#303a25;color:var(--accent);}
+.app-shell[data-theme="dark"] .chart-editor-preview {background:#121512;border-color:#373d31;}
+.app-shell[data-theme="dark"] .chart-custom-period {background:#131611;}
+.app-shell[data-theme="dark"] .cloud-control-card {background:#1f231b;border-color:#3e4833;}
+.app-shell[data-theme="dark"] .cloud-control-mark {background:#343e25;color:var(--accent);}
+.app-shell[data-theme="dark"] .cloud-control-dot {background:var(--accent);}
+.app-shell[data-theme="dark"] .cloud-control-state[data-status="offline"] .cloud-control-dot {background:#91978c;}
+.app-shell[data-theme="dark"] .mobile-cloud-controls {background:#20221e;border-color:#414739;}
+.app-shell[data-theme="dark"] .mobile-cloud-controls > summary {color:var(--accent);}
+.app-shell[data-theme="dark"] .access-card {background:#1a1c19;color:var(--ink);}
+.app-shell[data-theme="dark"] .page-heading h1 {color:#f9faf6;}
+.app-shell[data-theme="dark"] .section-kicker {color:var(--accent);}
+.app-shell[data-theme="dark"] .bottom-nav {
+  background:color-mix(in srgb,#121410 95%,transparent);
+  border-color:#31382b;
+}
+.app-shell[data-theme="dark"] .bottom-nav > button.is-active {color:var(--accent);}
+.app-shell[data-theme="dark"] .bottom-nav > button.is-active > svg {background:#303c20;}
+.app-shell[data-theme="dark"] .bottom-nav .bottom-add {
+  color:#17200c;
+  background:var(--accent);
+  box-shadow:0 7px 25px rgba(198,251,66,.19);
+}
+.app-shell[data-theme="dark"] .bottom-nav .bottom-add span {color:#adb69f;}
+.app-shell[data-theme="dark"] .page-heading p,.app-shell[data-theme="dark"] .chart-category-caption {color:#a7aea1;}
+.app-shell[data-theme="dark"] .chart-filter-details > summary {background:#232720;border-color:#414839;}
+.app-shell[data-theme="dark"] .chart-filter-dropdown {background:#20231e;}
+.app-shell[data-theme="dark"] .chart-calendar-month {background:#20231e;}
+.app-shell[data-theme="dark"] .chart-calendar-day.is-endpoint {color:#17200c;}
+.app-shell[data-theme="dark"] .chart-calendar-nav button {background:#252920;color:var(--ink);}
+.app-shell[data-theme="dark"] .chart-calendar-footer {background:#20241d;}
+.app-shell[data-theme="dark"] .dashboard-data-note {color:#a6b19d;}
+.app-shell[data-theme="dark"] .movement-amount--income {color:var(--positive);}
+.app-shell[data-theme="dark"] .movement-amount--expense {color:var(--negative);}
+@media(max-width:760px){
+  .app-shell[data-theme="dark"] .topbar {background:#10110f;}
+  .app-shell[data-theme="dark"] .balance-hero {border-color:#414b32;}
+  .app-shell[data-theme="dark"] .mobile-cloud-controls {margin:10px 16px 0;border-radius:15px;}
+  .app-shell[data-theme="dark"] .mobile-cloud-controls > summary {padding:14px 16px;}
+}
