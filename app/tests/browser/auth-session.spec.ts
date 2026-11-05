@@ -11,7 +11,7 @@ async function syntheticApp(page:Page) {
 async function navigateBackup(page:Page) {
   const mobile=(page.viewportSize()?.width??1280)<761;
   const nav=page.getByRole('navigation',{name:mobile?'Navegação móvel':'Navegação principal'});
-  await nav.getByRole('button',{name:mobile?'Ajustes':'Backup',exact:true}).click();
+  await nav.getByRole('button',{name:mobile?'Mais':'Backup',exact:true}).click();
   if(mobile)await page.getByRole('button',{name:'Backup',exact:true}).click();
 }
 async function expandCloudControls(page:Page) {
