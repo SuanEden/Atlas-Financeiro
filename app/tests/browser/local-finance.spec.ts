@@ -12,7 +12,7 @@ async function navigate(page: Page, testInfo: TestInfo, destination: 'Início' |
     await page.getByRole('button', { name: destination, exact: true }).click();
     return;
   }
-  await page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('button', { name: destination, exact: true }).click();
+  await page.getByRole('navigation', { name: testInfo.project.name === 'mobile-edge' ? 'Navegação móvel' : 'Navegação principal' }).getByRole('button', { name: destination, exact: true }).click();
 }
 
 test('conta, categoria, despesa, correção e backup sobrevivem à recarga', async ({ page }, testInfo) => {
