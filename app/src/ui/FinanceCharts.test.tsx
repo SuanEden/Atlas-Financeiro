@@ -26,6 +26,33 @@ describe('gráficos do dashboard financeiro', () => {
     expect(normalizeChartConfig(chart)).not.toHaveProperty('gridY');
   });
 
+  it('filtra múltiplas categorias e respeita filtros antigos ao recarregar', () => {
+    const data = state();
+    const accountId = data.accounts[0]!.id;
+    const categoryOne = data.categories[0]!.id;
+    const categoryTwo = data.categories[1]!.id;
+    const categoryThree = data.categories[2]!.id;
+    for (const [index, categoryId] of [categoryOne, categoryTwo, categoryThree].entries()) {
+      const eventId = 'category-event-' + index;
+      data.events.push({
+        id:eventId,userId:owner,kind:'expense',source:'manual',status:'confirmed',certainty:'confirmed',
+        amountCents:BigInt((index + 1) * 1000),accountId,categoryId,
+        description:'Despesa por categoria',competenceDate:'2026-10-28',
+      });
+      data.settlements.push({id:'category-settlement-' + index,userId:owner,eventId,
+        amountCents:BigInt((index + 1) * 1000),settlementDate:'2026-10-28',paymentDate:'2026-10-28'});
+    }
+    const chart = {...defaultCharts()[0]!,months:1 as const,measure:'expense' as const,categoryIds:[categoryOne,categoryThree]};
+    const persisted = normalizeChartConfig(JSON.parse(JSON.stringify(chart)))!;
+    expect(persisted.categoryIds).toEqual([categoryOne,categoryThree]);
+    expect(buildChartRows(data,'2026-10',persisted)[0]?.expense).toBe(4000n);
+    expect(buildChartRows(data,'2026-10',{...chart,categoryIds:[]})[0]?.expense).toBe(6000n);
+    const legacy = {...chart,categoryId:categoryTwo};
+    delete (legacy as {categoryIds?:string[]}).categoryIds;
+    expect(buildChartRows(data,'2026-10',legacy)[0]?.expense).toBe(2000n);
+    expect(normalizeChartConfig({...chart,categoryIds:[categoryOne,categoryOne,9,null,'']})?.categoryIds).toEqual([categoryOne]);
+  });
+
   it('não converte transferência em receita ou despesa realizada', () => {
     const html = renderToStaticMarkup(createElement(FinanceCharts, {state: state(), month: '2026-10'}));
     expect(html).toContain('Entradas e saídas realizadas');
