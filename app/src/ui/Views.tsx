@@ -8,6 +8,8 @@ import {
   FolderOpen,
   History,
   Plus,
+  Pencil,
+  Trash2,
   RefreshCcw,
   ShieldCheck,
   WalletCards,
@@ -262,7 +264,7 @@ function MovementHistoryArticle({
   </article>;
 }
 
-export function AccountsView({ state, onAdd, onReconcile, onTransfer }: { state: LocalFinancialState; onAdd: () => void; onReconcile: (account: LocalFinancialState['accounts'][number]) => void; onTransfer: () => void }) {
+export function AccountsView({ state, onAdd, onReconcile, onTransfer, onEdit, onDelete, canManage=true }: { state: LocalFinancialState; onAdd: () => void; onReconcile: (account: LocalFinancialState['accounts'][number]) => void; onTransfer: () => void; onEdit?: (account:LocalFinancialState['accounts'][number])=>void; onDelete?: (account:LocalFinancialState['accounts'][number])=>void; canManage?:boolean }) {
   return (
     <div className="page-content">
       <PageHeading title="Contas" subtitle="Organize o dinheiro disponível, reservado e restrito." action={<button className="button button--primary" onClick={onAdd}><Plus size={18} />Nova conta</button>} />
@@ -271,19 +273,19 @@ export function AccountsView({ state, onAdd, onReconcile, onTransfer }: { state:
         const confirmed = opening?.certainty === 'confirmed';
         const estimated = opening?.certainty === 'estimated';
         const openingAmount = opening?.balanceCents ?? 0n;
-        return <article className="account-card" key={account.id}><div className="account-card__top"><span className="account-icon"><WalletCards size={20} /></span><span className={`availability availability--${account.availability}`}>{availabilityLabels[account.availability]}</span></div><h2>{account.name}</h2><p>{accountKindLabels[account.kind]}</p><strong>{confirmed ? formatBRL(calculateAccountBalance(state, account.id)) : estimated ? `Estimado: ${formatBRL(openingAmount)}` : 'A conciliar'}</strong><p>{confirmed ? `Saldo confirmado em ${formatFinancialDate(opening?.referenceDate ?? '0001-01-01')}` : estimated ? 'Saldo informado como estimativa' : 'Saldo inicial ainda não informado'}</p>{confirmed ? null : <button className="text-button" onClick={() => onReconcile(account)}>{estimated ? 'Confirmar saldo' : 'Conciliar saldo'}</button>}</article>;
+        return <article className="account-card" key={account.id}><div className="account-card__top"><span className="account-icon"><WalletCards size={20} /></span><span className={`availability availability--${account.availability}`}>{availabilityLabels[account.availability]}</span></div><h2>{account.name}</h2><p>{accountKindLabels[account.kind]}</p><strong>{confirmed ? formatBRL(calculateAccountBalance(state, account.id)) : estimated ? `Estimado: ${formatBRL(openingAmount)}` : 'A conciliar'}</strong><p>{confirmed ? `Saldo confirmado em ${formatFinancialDate(opening?.referenceDate ?? '0001-01-01')}` : estimated ? 'Saldo informado como estimativa' : 'Saldo inicial ainda não informado'}</p>{confirmed ? null : <button className="text-button" onClick={() => onReconcile(account)}>{estimated ? 'Confirmar saldo' : 'Conciliar saldo'}</button>}<div className="entity-card-actions"><button type="button" className="entity-action" disabled={!canManage} title={canManage?'Editar conta':'Indisponível no modo nuvem I3'} onClick={()=>onEdit?.(account)}><Pencil size={15}/>Editar</button><button type="button" className="entity-action entity-action--danger" disabled={!canManage} title={canManage?'Excluir conta sem lançamentos':'Indisponível no modo nuvem I3'} onClick={()=>onDelete?.(account)}><Trash2 size={15}/>Excluir</button></div></article>;
       })}</div>}
       {state.accounts.length > 1 ? <button className="button button--secondary reserve-action" onClick={onTransfer}><ArrowLeftRight size={18} />Transferir ou separar reserva</button> : null}
     </div>
   );
 }
 
-export function CategoriesView({ state, onAdd }: { state: LocalFinancialState; onAdd: () => void }) {
+export function CategoriesView({ state, onAdd, onEdit, onDelete, canManage=true }: { state: LocalFinancialState; onAdd: () => void; onEdit?: (category:LocalFinancialState['categories'][number])=>void; onDelete?: (category:LocalFinancialState['categories'][number])=>void; canManage?:boolean }) {
   const parents = new Map(state.categories.map((category) => [category.id, category.name]));
   return (
     <div className="page-content">
       <PageHeading title="Categorias" subtitle="Organize receitas e despesas sem alterar o histórico financeiro." action={<button className="button button--primary" onClick={onAdd}><Plus size={18} />Nova categoria</button>} />
-      {state.categories.length === 0 ? <EmptyPanel icon={<FolderOpen />} title="Nenhuma categoria criada" description="Categorias são opcionais e ficam somente neste dispositivo." action="Criar categoria" onAction={onAdd} /> : <div className="category-list">{state.categories.map((category) => <article key={category.id}><span className={`category-dot category-dot--${category.kind}`} /><div><h2>{category.name}</h2><p>{category.kind === 'income' ? 'Receita' : category.kind === 'expense' ? 'Despesa' : 'Receita e despesa'}{category.parentId === undefined ? '' : ` · dentro de ${parents.get(category.parentId) ?? 'categoria'}`}</p></div></article>)}</div>}
+      {state.categories.length === 0 ? <EmptyPanel icon={<FolderOpen />} title="Nenhuma categoria criada" description="Categorias são opcionais e ficam somente neste dispositivo." action="Criar categoria" onAction={onAdd} /> : <div className="category-list">{state.categories.map((category) => <article key={category.id}><span className={`category-dot category-dot--${category.kind}`} /><div><h2>{category.name}</h2><p>{category.kind === 'income' ? 'Receita' : category.kind === 'expense' ? 'Despesa' : 'Receita e despesa'}{category.parentId === undefined ? '' : ` · dentro de ${parents.get(category.parentId) ?? 'categoria'}`}</p></div><div className="entity-card-actions"><button type="button" className="entity-action" disabled={!canManage} title={canManage?'Editar categoria':'Indisponível no modo nuvem I3'} onClick={()=>onEdit?.(category)}><Pencil size={15}/>Editar</button><button type="button" className="entity-action entity-action--danger" disabled={!canManage} title={canManage?'Excluir categoria não utilizada':'Indisponível no modo nuvem I3'} onClick={()=>onDelete?.(category)}><Trash2 size={15}/>Excluir</button></div></article>)}</div>}
     </div>
   );
 }
