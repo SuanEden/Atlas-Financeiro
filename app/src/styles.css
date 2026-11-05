@@ -1657,3 +1657,21 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .app-shell[data-theme="light"] .flow-band > div:first-child {border-left-color:#69a877;}
   .app-shell[data-theme="light"] .flow-band > div:nth-child(2) {border-left-color:#d6937e;}
 }
+
+/* Safe account / category actions — compact on cards, finger-friendly on mobile. */
+.entity-card-actions {display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:17px;padding-top:13px;border-top:1px solid var(--line);}
+.entity-action {display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:7px 11px;border:1px solid var(--line);border-radius:10px;background:var(--subtle);color:var(--ink);font-size:.76rem;font-weight:690;transition:border-color .15s,background-color .15s;}
+.entity-action:hover:not(:disabled) {border-color:var(--accent);background:var(--accent-soft);}
+.entity-action--danger {color:var(--negative);}
+.entity-action--danger:hover:not(:disabled) {border-color:var(--negative);background:color-mix(in srgb,var(--negative) 8%,var(--surface));}
+.category-list > article .entity-card-actions {margin:0 0 0 auto;padding:0;border:0;flex:0 0 auto;}
+.app-shell[data-theme="dark"] .entity-action {background:#262c24;border-color:#414a39;color:#d7e4cf;}
+.app-shell[data-theme="dark"] .entity-action:hover:not(:disabled) {background:#303d27;border-color:var(--accent);}
+.app-shell[data-theme="dark"] .entity-action--danger {color:#ffb5b5;}
+.app-shell[data-theme="dark"] .entity-action--danger:hover:not(:disabled) {background:#412a2a;border-color:#d78585;}
+@media(max-width:760px){
+  .entity-card-actions {gap:9px;}
+  .entity-action {min-height:43px;padding:9px 13px;}
+  .category-list > article {flex-wrap:wrap;row-gap:12px;}
+  .category-list > article .entity-card-actions {width:100%;padding-top:12px;border-top:1px solid var(--line);margin:3px 0 0;}
+}
