@@ -158,30 +158,61 @@ test('editor permite selecionar todas as categorias sem perder o gráfico',async
   await expect(page.getByRole('dialog').getByRole('checkbox',{name:'Todas as contas'})).toBeChecked();
 });
 
-test('período personalizado mantém seleção compacta, valida datas e persiste', async ({page}) => {
+test('calendário seleciona intervalo entre meses por arraste e salva', async ({page}) => {
+  await page.setViewportSize({width:1440,height:960});
   await page.goto('/');
   await page.getByRole('button',{name:'Novo gráfico'}).click();
   const editor=page.getByRole('dialog');
-  await editor.getByLabel('Título do gráfico').fill('Período escolhido');
+  await editor.getByLabel('Título do gráfico').fill('Intervalo personalizado');
   await editor.getByLabel('Período').selectOption('custom');
-  await expect(editor.getByLabel('Data inicial')).toBeVisible();
-  await editor.getByLabel('Data inicial').fill('2026-10-21');
-  await editor.getByLabel('Data final').fill('2026-10-20');
-  await expect(editor.getByRole('button',{name:'Salvar gráfico'})).toBeDisabled();
-  await editor.getByLabel('Data final').fill('2026-10-25');
-  await expect(editor.getByRole('button',{name:'Salvar gráfico'})).toBeEnabled();
+  const calendar=editor.locator('.chart-calendar');
+  await expect(calendar).toBeVisible();
+  const from=calendar.getByRole('button',{name:'2026-01-20'});
+  const to=calendar.getByRole('button',{name:'2026-02-25'});
+  // Navigate to January 2026 so both months are visible.
+  const current=await calendar.locator('.chart-calendar-month').first().locator('strong').textContent();
+  // The custom preset starts from a preceding month. Use navigation until January is shown.
+  for(let i=0;i<24 && !(await calendar.getByRole('button',{name:'2026-01-20'}).count());i++)
+    await calendar.getByRole('button',{name:'Meses anteriores'}).click();
+  await expect(from).toBeVisible();
+  await expect(to).toBeVisible();
+  const startBox=await from.boundingBox(),endBox=await to.boundingBox();
+  expect(startBox).not.toBeNull();expect(endBox).not.toBeNull();
+  await page.mouse.move(startBox!.x+startBox!.width/2,startBox!.y+startBox!.height/2);
+  await page.mouse.down();
+  await page.mouse.move(endBox!.x+endBox!.width/2,endBox!.y+endBox!.height/2,{steps:16});
+  await page.mouse.up();
+  await expect(from).toHaveAttribute('aria-pressed','true');
+  await expect(to).toHaveAttribute('aria-pressed','true');
+  await expect(calendar.getByText('De 20/01/2026 até 25/02/2026')).toBeVisible();
   await editor.getByRole('button',{name:'Salvar gráfico'}).click();
-  await expect(page.getByRole('heading',{name:'Período escolhido'})).toBeVisible();
   await page.getByRole('button',{name:'Organizar',exact:true}).click();
-  await page.getByRole('button',{name:'Editar Período escolhido'}).click();
+  await page.getByRole('button',{name:'Editar Intervalo personalizado'}).click();
   await expect(page.getByRole('dialog').getByLabel('Período')).toHaveValue('custom');
-  await expect(page.getByRole('dialog').getByLabel('Data inicial')).toHaveValue('2026-10-21');
-  await expect(page.getByRole('dialog').getByLabel('Data final')).toHaveValue('2026-10-25');
+  await expect(page.getByRole('dialog').getByText('De 20/01/2026 até 25/02/2026')).toBeVisible();
   await page.getByRole('dialog').getByLabel('Período').selectOption('3');
-  await expect(page.getByRole('dialog').getByLabel('Data inicial')).toHaveCount(0);
-  await page.getByRole('dialog').getByRole('button',{name:'Salvar gráfico'}).click();
+  await expect(page.getByRole('dialog').locator('.chart-calendar')).toHaveCount(0);
+});
+
+test('calendário permite escolher dias separados e persiste após recarga',async({page})=>{
+  await page.goto('/');
+  await page.getByRole('button',{name:'Novo gráfico'}).click();
+  const editor=page.getByRole('dialog');
+  await editor.getByLabel('Título do gráfico').fill('Dias avulsos');
+  await editor.getByLabel('Período').selectOption('days');
+  const calendar=editor.locator('.chart-calendar');
+  await expect(editor.getByRole('button',{name:'Salvar gráfico'})).toBeDisabled();
+  // Starting from the dashboard month, choose 15, 20 and 31 in the same visible month.
+  const first=await calendar.locator('.chart-calendar-month').first().locator('button[data-chart-date="2026-11-15"]').count();
+  const month=first?'2026-11':'2026-10';
+  for(const day of [15,20,30]) {
+    await calendar.getByRole('button',{name:month+'-'+String(day).padStart(2,'0')}).click();
+  }
+  await expect(calendar.getByText('3 dias selecionados')).toBeVisible();
+  await editor.getByRole('button',{name:'Salvar gráfico'}).click();
   await page.reload();
   await page.getByRole('button',{name:'Organizar',exact:true}).click();
-  await page.getByRole('button',{name:'Editar Período escolhido'}).click();
-  await expect(page.getByRole('dialog').getByLabel('Período')).toHaveValue('3');
+  await page.getByRole('button',{name:'Editar Dias avulsos'}).click();
+  await expect(page.getByRole('dialog').getByLabel('Período')).toHaveValue('days');
+  await expect(page.getByRole('dialog').getByText('3 dias selecionados')).toBeVisible();
 });
