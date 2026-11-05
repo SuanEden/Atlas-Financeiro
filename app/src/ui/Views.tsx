@@ -94,7 +94,7 @@ export function Dashboard({ state, today, userId, onAddAccount, onAddTransaction
       </section>
       <div className="dashboard-quick-actions" aria-label="Ações rápidas">
         <button type="button" onClick={onAddTransaction} disabled={state.accounts.length === 0}><span className="quick-action-icon"><Plus size={19}/></span><span>Novo lançamento</span></button>
-        <button type="button" onClick={()=>onNavigate('movements')}><span className="quick-action-icon"><ArrowLeftRight size={19}/></span><span>Movimentações</span></button>
+        <button type="button" onClick={()=>onNavigate('movements')}><span className="quick-action-icon"><ArrowLeftRight size={19}/></span><span>Ver movimentações</span></button>
         <button type="button" onClick={()=>onNavigate('accounts')}><span className="quick-action-icon"><WalletCards size={19}/></span><span>Minhas contas</span></button>
       </div>
       <section className="money-summary" aria-label="Resumo dos saldos">
