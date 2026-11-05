@@ -542,6 +542,15 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .chart-editor-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
 .chart-field { display:flex; flex-direction:column; gap:7px; color:var(--ink); font-size:.82rem; font-weight:650; min-width:0; }
 .chart-field--full { grid-column:1 / -1; }
+.chart-field--categories { margin:0; padding:0; border:0; }
+.chart-field--categories legend { padding:0 0 7px; font-size:.82rem; font-weight:650; }
+.chart-category-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; max-height:180px; overflow-y:auto; padding:10px; border:1px solid var(--line); border-radius:9px; background:var(--surface); }
+.chart-category-choice { display:flex; align-items:center; gap:9px; min-height:34px; padding:5px 8px; border-radius:7px; font-size:.79rem; font-weight:450; cursor:pointer; }
+.chart-category-choice:hover { background:var(--accent-soft); }
+.chart-category-choice input[type="checkbox"] { width:17px; height:17px; min-height:0; margin:0; padding:0; flex:0 0 auto; accent-color:var(--accent); }
+.chart-category-caption { margin:0; color:var(--muted); font-size:.76rem; font-weight:400; }
+@media(max-width:580px){.chart-category-list{grid-template-columns:1fr;}}
+
 .chart-field input, .chart-field select { width:100%; min-height:42px; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--ink); font-weight:400; }
 .chart-editor-hint { color:var(--muted); font-size:.78rem; line-height:1.55; margin:16px 0; }
 .chart-editor-preview { border:1px solid var(--line); border-radius:12px; background:var(--subtle); padding:16px; }
