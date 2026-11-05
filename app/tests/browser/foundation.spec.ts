@@ -52,7 +52,7 @@ test('aba Bancos aparece e funciona na navegação móvel sem perder Ajustes',as
   await more.click();
   await expect(page.getByRole('button',{name:'Backup',exact:true})).toBeVisible();
   const sync=page.locator('.mobile-cloud-controls');
-  await expect(sync.getByText('Sincronização')).toBeVisible();
+  await expect(sync.getByText('Sincronização',{exact:true})).toBeVisible();
   await sync.locator('summary').click();
   await expect(sync.getByRole('link',{name:'Abrir configuração da nuvem (I3)'})).toBeVisible();
   const noHorizontalOverflow=await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth);
