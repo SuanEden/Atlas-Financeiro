@@ -154,6 +154,7 @@ export function findFreeChartPosition(rects:readonly BoardRect[], id:string, des
 export function buildChartRows(state: LocalFinancialState, month: string, config: ChartConfig): ChartRow[] {
   const explicitDays = Array.isArray(config.selectedDates) && config.selectedDates.length > 0
     ? [...new Set(config.selectedDates.filter(validDate))].sort() : [];
+  if (config.selectedDates !== undefined && explicitDays.length === 0) return [];
   const daySelection = explicitDays.length > 0;
   const chosenDays = new Set(explicitDays);
   const custom = !daySelection && validDate(config.dateStart) && validDate(config.dateEnd) && config.dateStart <= config.dateEnd && calendarMonths(config.dateStart,config.dateEnd) <= 24;
