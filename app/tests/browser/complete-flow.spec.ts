@@ -6,9 +6,9 @@ import { join } from 'node:path';
 async function navigate(page: Page, destination: string) {
   const mobile = (page.viewportSize()?.width ?? 1280) < 761;
   const nav = page.getByRole('navigation', { name: mobile ? 'Navegação móvel' : 'Navegação principal' });
-  const label = mobile ? ({ Movimentações: 'Movimentos', Backup: 'Ajustes', Categorias: 'Ajustes' }[destination] ?? destination) : destination;
+  const label = mobile ? ({ Movimentações: 'Extrato', Backup: 'Mais', Categorias: 'Mais' }[destination] ?? destination) : destination;
   await nav.getByRole('button', { name: label, exact: true }).click();
-  if (mobile && destination === 'Backup') await page.getByRole('button', { name: 'Backup', exact: true }).click();
+  if (mobile && (destination === 'Backup' || destination === 'Categorias')) await page.getByRole('button', { name: destination, exact: true }).click();
 }
 
 async function record(page: Page, kind: string, amount: string, description: string, planned = false, repeated = false) {
