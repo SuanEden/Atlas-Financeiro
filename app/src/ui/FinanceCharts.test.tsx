@@ -64,7 +64,7 @@ describe('gráficos do dashboard financeiro', () => {
     const categoryTwo = '00000000-0000-4000-8000-000000000021';
     data.accounts.push({id:accountThree,userId:owner,name:'Terceira conta',kind:'cash',availability:'free'});
     data.categories.push({id:categoryTwo,userId:owner,name:'Outra categoria',kind:'both'});
-    for(const [index,[accountId,categoryId]] of [[accountOne,categoryOne],[accountTwo,categoryOne],[accountThree,categoryTwo],[accountThree,categoryOne]].entries()){
+    for(const [index,[accountId,categoryId]] of ([[accountOne,categoryOne],[accountTwo,categoryOne],[accountThree,categoryTwo],[accountThree,categoryOne]] as Array<[string,string]>).entries()){
       const eventId = 'account-filter-event-'+index;
       data.events.push({id:eventId,userId:owner,kind:'expense',source:'manual',status:'confirmed',certainty:'confirmed',amountCents:1000n,
         accountId,categoryId,description:'Teste filtro',competenceDate:'2026-10-25'});
