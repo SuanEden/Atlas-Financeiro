@@ -1,11 +1,10 @@
 import {
-  Download,
   HardDrive,
+  Cloud,
   Landmark,
   Home,
   MoreHorizontal,
   ChevronRight,
-  ShieldCheck,
   ListRestart,
   Moon,
   Plus,
@@ -46,7 +45,7 @@ const desktopNavigation = [
   { page: 'movements' as const, label: 'Movimentações', Icon: ListRestart },
   { page: 'accounts' as const, label: 'Contas', Icon: WalletCards },
   { page: 'categories' as const, label: 'Categorias', Icon: Tags },
-  { page: 'backup' as const, label: 'Backup', Icon: Download },
+  { page: 'backup' as const, label: 'Modo nuvem', Icon: Cloud },
 ];
 
 export function App({bankPanel}:{bankPanel?:ReactNode}={}) {
@@ -143,14 +142,12 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
         <Brand />
         <div className="sidebar-section-label">ESPAÇO FINANCEIRO</div>
         <nav aria-label="Navegação principal">{[...desktopNavigation, ...(integration || bankPanel !== undefined ? [{page:'banks' as const,label:'Bancos',Icon:Landmark}] : [])].map(({ page: target, label, Icon }) => <button className={page === target ? 'is-active' : ''} key={target} onClick={() => setPage(target)}><Icon size={19} /><span>{label}</span></button>)}</nav>
-        <div className="sidebar-section-label sidebar-section-label--foot">SEUS DADOS</div>
-        {sessionControls ? <div className="sidebar-cloud-controls">{sessionControls}</div> : null}
-        {!integration ? <div className="sidebar-footer"><HardDrive size={17} /><span><strong>{testMode ? 'Modo de teste isolado' : 'Salvo neste dispositivo'}</strong><small>{state.outbox.length} pendente{state.outbox.length === 1 ? '' : 's'} · nuvem desligada</small></span></div> : null}
+        <div className="sidebar-cloud-hint" role="status"><Cloud size={16} /><span>{integration ? 'Modo nuvem disponível' : 'Dados neste dispositivo'}</span></div>
       </aside>
 
       <section className="workspace">
-        <header className="topbar"><div className="mobile-brand"><Brand /></div><div className="topbar-context"><span>VISÃO FINANCEIRA</span><strong>{page === 'dashboard' ? 'Visão geral' : page === 'movements' ? 'Movimentações' : page === 'accounts' ? 'Minhas contas' : page === 'banks' ? 'Bancos' : page === 'categories' ? 'Categorias' : page === 'backup' ? 'Backup e dados' : 'Mais opções'}</strong></div>{page === 'dashboard' ? null : <button className="button button--primary topbar-create" onClick={openTransaction} disabled={state.accounts.length === 0}><Plus size={17} />Novo lançamento</button>}<span className="device-status"><HardDrive size={16} />{testMode ? 'Modo de teste · local' : integration ? 'Modo nuvem · cópia local' : 'Salvo neste dispositivo'}</span><button className="icon-button" type="button" onClick={toggleTheme} aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'} aria-pressed={dark}>{dark ? <Sun size={19} /> : <Moon size={19} />}</button></header>
-        {sessionControls ? <details className="mobile-cloud-controls"><summary><span className="mobile-sync-title">Sincronização</span> <span>· {integration ? state.outbox.length+' pendentes' : 'bancos e nuvem'}</span></summary>{sessionControls}</details> : null}
+        <header className="topbar"><div className="mobile-brand"><Brand /></div><div className="topbar-context"><span>VISÃO FINANCEIRA</span><strong>{page === 'dashboard' ? 'Visão geral' : page === 'movements' ? 'Movimentações' : page === 'accounts' ? 'Minhas contas' : page === 'banks' ? 'Bancos' : page === 'categories' ? 'Categorias' : page === 'backup' ? 'Modo nuvem' : 'Mais opções'}</strong></div>{page === 'dashboard' ? null : <button className="button button--primary topbar-create" onClick={openTransaction} disabled={state.accounts.length === 0}><Plus size={17} />Novo lançamento</button>}<span className="device-status"><HardDrive size={16} />{testMode ? 'Modo de teste · local' : integration ? 'Modo nuvem · cópia local' : 'Salvo neste dispositivo'}</span><button className="icon-button" type="button" onClick={toggleTheme} aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'} aria-pressed={dark}>{dark ? <Sun size={19} /> : <Moon size={19} />}</button></header>
+
         {error === undefined ? null : <div className="error-banner" role="alert"><span>{error}</span><button onClick={clearError}>Fechar</button></div>}
         <div className="sr-only" role="status">{notice}</div>
         {loading ? <div className="loading-state"><span className="spinner" />Carregando dados locais…</div> : (
@@ -160,15 +157,27 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
               {(integration || bankPanel !== undefined) ? <button type="button" aria-label="Bancos" onClick={()=>setPage('banks')}><span className="more-menu-icon"><Landmark size={20}/></span><span><strong>Bancos conectados</strong><small>Conexões e movimentações bancárias</small></span><ChevronRight size={20}/></button> : null}
               <button type="button" aria-label="Contas" onClick={()=>setPage('accounts')}><span className="more-menu-icon"><WalletCards size={20}/></span><span><strong>Minhas contas</strong><small>Saldos, reservas e conciliação</small></span><ChevronRight size={20}/></button>
               <button type="button" aria-label="Categorias" onClick={()=>setPage('categories')}><span className="more-menu-icon"><Tags size={20}/></span><span><strong>Categorias</strong><small>Organize entradas e despesas</small></span><ChevronRight size={20}/></button>
-              <button type="button" aria-label="Backup" onClick={()=>setPage('backup')}><span className="more-menu-icon"><ShieldCheck size={20}/></span><span><strong>Backup e segurança</strong><small>Guarde e recupere seus dados</small></span><ChevronRight size={20}/></button>
+              <button type="button" aria-label="Modo nuvem" onClick={()=>setPage('backup')}><span className="more-menu-icon"><Cloud size={20}/></span><span><strong>Modo nuvem</strong><small>Sincronização, backups e recuperação</small></span><ChevronRight size={20}/></button>
               <button type="button" onClick={toggleTheme}><span className="more-menu-icon">{dark?<Sun size={20}/>:<Moon size={20}/>}</span><span><strong>Aparência</strong><small>{dark?'Mudar para tema claro':'Mudar para tema escuro'}</small></span><ChevronRight size={20}/></button>
             </div></section> : null}
             {page === 'dashboard' ? <Dashboard integration={integration} state={state} today={today} userId={userId} onAddAccount={() => setModal({ type: 'account' })} onAddTransaction={openTransaction} onNavigate={(next)=>setPage(next)} /> : null}
             {page === 'movements' ? <MovementsView integration={integration} state={state} onAdd={openTransaction} onEdit={(event) => setModal({ type: 'transaction', initial: event })} onReverse={(event) => setModal({ type: 'reverse', event })} /> : null}
             {page === 'accounts' ? <AccountsView state={state} canManage={!integration} onAdd={() => setModal({ type: 'account' })} onEdit={(account)=>setModal({type:'edit_account',account})} onDelete={(account)=>{setDeleteFailure('');setModal({type:'delete_entity',entity:account,kind:'account'});}} onReconcile={(account) => setModal({ type: 'reconcile', account })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
-            {page === 'categories' || page === 'backup' ? <div className="mobile-settings-tabs"><button className={page === 'categories' ? 'is-active' : ''} onClick={() => setPage('categories')}>Categorias</button><button className={page === 'backup' ? 'is-active' : ''} onClick={() => setPage('backup')}>Backup</button></div> : null}
+            {page === 'categories' || page === 'backup' ? <div className="mobile-settings-tabs"><button className={page === 'categories' ? 'is-active' : ''} onClick={() => setPage('categories')}>Categorias</button><button className={page === 'backup' ? 'is-active' : ''} onClick={() => setPage('backup')}>Modo nuvem</button></div> : null}
             {page === 'categories' ? <CategoriesView state={state} canManage={!integration} onAdd={() => setModal({ type: 'category' })} onEdit={(category)=>setModal({type:'edit_category',category})} onDelete={(category)=>{setDeleteFailure('');setModal({type:'delete_entity',entity:category,kind:'category'});}} /> : null}
-            {page === 'backup' ? <BackupView testMode={testMode} integration={integration} {...(serverId?{serverId}:{})} {...(exportJson?{exportJson}:{})} {...(importJson?{importJson}:{})} onRecover={recover} busy={busy} readState={readState} state={state} userId={userId} today={today} /> : null}
+            {page === 'backup' ? <div className="cloud-hub" aria-label="Modo nuvem">
+              <section className="cloud-hub-header" aria-labelledby="cloud-hub-heading">
+                <span className="cloud-hub-symbol" aria-hidden="true"><Cloud size={23}/></span>
+                <div><p className="cloud-hub-eyebrow">SEUS DADOS</p><h1 id="cloud-hub-heading">Modo nuvem</h1><p>Sincronização, status da conexão e cópias de segurança em um único lugar.</p></div>
+              </section>
+              <section className="cloud-hub-section" aria-labelledby="cloud-hub-sync-heading">
+                <div className="cloud-hub-section-heading"><Cloud size={19}/><h2 id="cloud-hub-sync-heading">Sincronização</h2></div>
+                {sessionControls ?? <div className="cloud-hub-local"><HardDrive size={20}/><div><strong>Dados armazenados neste dispositivo</strong><p>A sincronização remota não está ativa. Você ainda pode exportar e restaurar cópias locais abaixo.</p></div></div>}
+              </section>
+              <section className="cloud-hub-section cloud-hub-section--backup" aria-label="Backup e recuperação">
+                <BackupView testMode={testMode} integration={integration} {...(serverId?{serverId}:{})} {...(exportJson?{exportJson}:{})} {...(importJson?{importJson}:{})} onRecover={recover} busy={busy} readState={readState} state={state} userId={userId} today={today} />
+              </section>
+            </div> : null}
           </>
         )}
       </section>

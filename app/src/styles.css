@@ -1675,3 +1675,40 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .category-list > article {flex-wrap:wrap;row-gap:12px;}
   .category-list > article .entity-card-actions {width:100%;padding-top:12px;border-top:1px solid var(--line);margin:3px 0 0;}
 }
+
+
+/* Atlas Cloud Hub — consolidated synchronization and backup experience */
+.app-shell .sidebar-cloud-hint {display:flex;align-items:center;gap:9px;margin-top:auto;padding:16px 12px 5px;color:var(--muted);font-size:.74rem;line-height:1.4;}
+.app-shell .sidebar-cloud-hint svg {color:var(--accent);flex:none;}
+.app-shell .cloud-hub {width:min(1250px,100%);margin:0 auto;padding:34px clamp(18px,3.6vw,58px) 78px;display:grid;gap:20px;}
+.app-shell .cloud-hub-header {display:flex;align-items:center;gap:18px;padding:26px;border:1px solid var(--line);border-radius:22px;background:var(--surface);box-shadow:var(--atlas-shadow);}
+.app-shell .cloud-hub-symbol {display:grid;place-items:center;flex:0 0 57px;height:57px;border-radius:18px;background:var(--accent-soft);color:var(--accent-dark);}
+.app-shell .cloud-hub-eyebrow {font-size:.67rem;letter-spacing:.14em;font-weight:800;color:var(--accent-dark);margin:0 0 5px;}
+.app-shell .cloud-hub-header h1 {font-size:clamp(1.65rem,2.8vw,2.2rem);letter-spacing:-.04em;line-height:1.15;margin:0;}
+.app-shell .cloud-hub-header p:last-child {font-size:.85rem;color:var(--muted);margin:8px 0 0;line-height:1.5;}
+.app-shell .cloud-hub-section {border:1px solid var(--line);border-radius:20px;padding:22px;background:var(--surface);box-shadow:var(--atlas-shadow);min-width:0;}
+.app-shell .cloud-hub-section-heading {display:flex;align-items:center;gap:10px;margin-bottom:16px;color:var(--accent-dark);}
+.app-shell .cloud-hub-section-heading h2 {font-size:1.1rem;color:var(--ink);letter-spacing:-.02em;margin:0;}
+.app-shell .cloud-hub-local {display:flex;align-items:flex-start;gap:12px;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--subtle);}
+.app-shell .cloud-hub-local p {margin:6px 0 0;color:var(--muted);font-size:.8rem;line-height:1.55;}
+.app-shell .cloud-hub-local > svg {color:var(--accent-dark);flex:none;}
+.app-shell .cloud-hub-section--backup {padding:0;overflow:hidden;}
+.app-shell .cloud-hub-section--backup > .page-content {padding:22px;width:100%;max-width:none;}
+.app-shell .cloud-hub-section--backup .page-heading {margin-bottom:20px;}
+.app-shell .cloud-hub-section--backup .page-heading h1 {font-size:1.36rem;letter-spacing:-.03em;}
+.app-shell .cloud-hub-section .sync-panel {width:100%;max-width:none;}
+.app-shell[data-theme="dark"] .cloud-hub-header,.app-shell[data-theme="dark"] .cloud-hub-section {background:#1a1c19;border-color:#34372f;box-shadow:none;}
+.app-shell[data-theme="dark"] .cloud-hub-symbol {background:#303a25;color:var(--accent);}
+.app-shell[data-theme="dark"] .cloud-hub-eyebrow,.app-shell[data-theme="dark"] .cloud-hub-section-heading {color:var(--accent);}
+.app-shell[data-theme="dark"] .cloud-hub-local {background:#131712;border-color:#394231;}
+@media(max-width:760px) {
+  .app-shell .cloud-hub {padding:18px 14px 42px;gap:12px;}
+  .app-shell .cloud-hub-header {padding:18px;gap:12px;border-radius:17px;}
+  .app-shell .cloud-hub-symbol {width:45px;flex-basis:45px;height:45px;border-radius:14px;}
+  .app-shell .cloud-hub-header h1 {font-size:1.5rem;}
+  .app-shell .cloud-hub-header p:last-child {font-size:.77rem;}
+  .app-shell .cloud-hub-section {padding:15px;border-radius:17px;}
+  .app-shell .cloud-hub-section--backup {padding:0;}
+  .app-shell .cloud-hub-section--backup > .page-content {padding:16px;}
+  .app-shell .cloud-hub-section .sync-panel button {min-height:42px;}
+}
