@@ -9,10 +9,10 @@ async function navigate(page: Page, testInfo: TestInfo, destination: 'Início' |
   }
   if (testInfo.project.name === 'mobile-edge' && (destination === 'Categorias' || destination === 'Backup' || destination === 'Contas')) {
     await page.getByRole('button', { name: 'Mais', exact: true }).click();
-    await page.getByRole('button', { name: destination, exact: true }).click();
+    await page.getByRole('button', { name: destination === 'Backup' ? 'Modo nuvem' : destination, exact: true }).click();
     return;
   }
-  await page.getByRole('navigation', { name: testInfo.project.name === 'mobile-edge' ? 'Navegação móvel' : 'Navegação principal' }).getByRole('button', { name: destination, exact: true }).click();
+  await page.getByRole('navigation', { name: testInfo.project.name === 'mobile-edge' ? 'Navegação móvel' : 'Navegação principal' }).getByRole('button', { name: destination === 'Backup' ? 'Modo nuvem' : destination, exact: true }).click();
 }
 
 test('conta, categoria, despesa, correção e backup sobrevivem à recarga', async ({ page }, testInfo) => {
