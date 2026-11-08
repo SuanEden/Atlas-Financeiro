@@ -6,6 +6,8 @@ export interface TransmissionGrant { userId: string; epoch: number; canTransmit:
 export interface SyncTransport {
   apply(envelope: SyncEnvelope): Promise<Receipt>;
   pull(after: string, through: string | null): Promise<ChangePage>;
+  /** Optional hint channel; missing messages are recovered by pull on focus/reconnect. */
+  watchRevisions?(userId: string, onRevision: (revision?: string) => void): () => void;
 }
 export type SyncResult = 'synced'|'offline'|'login_required'|'access_denied'|'quota'|'retry_later'|'conflict'|'unassociated';
 export class SyncFailure extends Error {
