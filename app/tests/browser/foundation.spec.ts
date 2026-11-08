@@ -35,7 +35,11 @@ test('dashboard local renderiza, alterna tema e mantém o primeiro uso vazio', a
 test('modo local preservado e nuvem acessível apenas por escolha explícita',async({page})=>{
   await page.goto('/');
   await expect(page.getByRole('heading',{name:'Visão geral'})).toBeVisible();
-  await expect(page.locator('.sidebar-cloud-hint')).toContainText('Dados neste dispositivo');
+  const cloud=page.getByRole('button',{name:'Modo nuvem',exact:true});
+  await expect(cloud).toContainText('Dados neste dispositivo');
+  await expect(page.getByRole('navigation',{name:'Navegação principal'}).getByRole('button',{name:'Modo nuvem',exact:true})).toHaveCount(0);
+  await cloud.click();
+  await expect(page.getByRole('heading',{name:'Modo nuvem',exact:true})).toBeVisible();
   await expect(page.getByRole('heading',{name:'Atlas Financeiro'})).toHaveCount(0);
 });
 
