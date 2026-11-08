@@ -72,7 +72,7 @@ describe('P03 archive lifecycle independent of financial records',()=>{
     const archive=decideLifecycleChange([],operation(op1,0,'archived'),1,true).record;
     const baseline=[archive];
     expect(()=>decideLifecycleChange(baseline,operation(op2,1,'active'),2,false)).toThrow(/não encontrada/);
-    expect(()=>decideLifecycleChange(baseline,operation(op2,1,'active','category',category),1,true))
+    expect(()=>decideLifecycleChange(baseline,operation(op2,0,'archived','category',category),1,true))
       .toThrow(/Revisão global/);
     expect(()=>decideLifecycleChange(baseline,{...operation(op2,1,'active'),expectedVersion:-1},2,true))
       .toThrow(/Versão esperada/);
