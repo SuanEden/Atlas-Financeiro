@@ -10,7 +10,7 @@ import { incorporateLifecyclePage } from '../domain/lifecycle';
 export const SYNC_PROTOCOL_VERSION = 1 as const;
 export const MAX_COMMAND_BYTES = 128 * 1024;
 export const MAX_BOOTSTRAP_BYTES = 2 * 1024 * 1024;
-export const DATA_TABLES = ['accounts', 'categories', 'events', 'settlements', 'postings', 'accountReconciliations', 'entityLifecycles'] as const;
+export const DATA_TABLES = ['accounts', 'categories', 'events', 'settlements', 'postings', 'accountReconciliations'] as const;
 export type JsonRecord = Record<string, unknown>;
 export interface WireOperation { id: string; userId: string; kind: PendingOperation['kind']; createdAt: string; payload: JsonRecord }
 interface EnvelopeBase { protocolVersion: 1; operationId: string; userId: string; baseRevision: string }
@@ -100,7 +100,7 @@ export async function prepareBootstrap(state: LocalFinancialState, sourceOwner: 
     row.recurrenceJson!==undefined||row.recurrenceRuleId!==undefined||row.recurrenceMonth!==undefined);
   if(hasLifecycles) {
     data.schemaVersion=4;
-    for(const row of data.entityLifecycles as JsonRecord[])row.revision=0;
+    for(const row of data.entityLifecycles as JsonRecord[]){row.revision=0;row.userId=authenticatedOwner;}
   } else if(hasReconciliations||hasRecurrences) {
     data.schemaVersion=3;
     delete data.entityLifecycles;
