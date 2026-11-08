@@ -35,7 +35,7 @@ test('dashboard local renderiza, alterna tema e mantém o primeiro uso vazio', a
 test('modo local preservado e nuvem acessível apenas por escolha explícita',async({page})=>{
   await page.goto('/');
   await expect(page.getByRole('heading',{name:'Visão geral'})).toBeVisible();
-  await expect(page.locator('.sidebar-footer')).toContainText('nuvem desligada');
+  await expect(page.locator('.sidebar-cloud-hint')).toContainText('Dados neste dispositivo');
   await expect(page.getByRole('heading',{name:'Atlas Financeiro'})).toHaveCount(0);
 });
 
@@ -50,11 +50,10 @@ test('aba Bancos aparece e funciona na navegação móvel sem perder Ajustes',as
   await banks.click();
   await expect(page.getByRole('heading',{name:'Bancos conectados'})).toBeVisible();
   await more.click();
-  await expect(page.getByRole('button',{name:'Backup',exact:true})).toBeVisible();
-  const sync=page.locator('.mobile-cloud-controls');
-  await expect(sync.getByText('Sincronização',{exact:true})).toBeVisible();
-  await sync.locator('summary').click();
-  await expect(sync.getByRole('link',{name:'Abrir configuração da nuvem (I3)'})).toBeVisible();
+  await page.getByRole('button',{name:'Modo nuvem',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Sincronização',exact:true})).toBeVisible();
+  await expect(page.locator('.cloud-hub')).toContainText('Dados locais preservados');
+  await expect(page.locator('.cloud-hub').getByRole('link',{name:'Abrir configuração da nuvem (I3)'})).toBeVisible();
   const noHorizontalOverflow=await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth);
   expect(noHorizontalOverflow).toBe(true);
 });

@@ -11,16 +11,12 @@ async function syntheticApp(page:Page) {
 async function navigateBackup(page:Page) {
   const mobile=(page.viewportSize()?.width??1280)<761;
   const nav=page.getByRole('navigation',{name:mobile?'Navegação móvel':'Navegação principal'});
-  await nav.getByRole('button',{name:mobile?'Mais':'Backup',exact:true}).click();
-  if(mobile)await page.getByRole('button',{name:'Backup',exact:true}).click();
+  await nav.getByRole('button',{name:mobile?'Mais':'Modo nuvem',exact:true}).click();
+  if(mobile)await page.getByRole('button',{name:'Modo nuvem',exact:true}).click();
 }
 async function expandCloudControls(page:Page) {
-  if ((page.viewportSize()?.width ?? 1280) < 761) {
-    const panel = page.locator('.mobile-cloud-controls');
-    if (!(await panel.evaluate(element => (element as HTMLDetailsElement).open))) {
-      await panel.locator('summary').click();
-    }
-  }
+  await navigateBackup(page);
+  await expect(page.getByRole('heading',{name:'Sincronização',exact:true})).toBeVisible();
 }
 test('Auth sintético: associação explícita, expiração offline, exportação I3 e logout bloqueiam sem apagar',async({page},info)=>{
   const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
@@ -33,11 +29,12 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   await page.getByRole('checkbox',{name:/Conferi a conta/}).check();
   await page.getByRole('button',{name:'Iniciar uma base vazia'}).click();
   await expect(page.getByRole('heading',{name:'Visão geral'})).toBeVisible();
-  await expect(page.locator('.sidebar-cloud-controls')).toContainText('Modo nuvem');
-  await expect(page.locator('.sidebar-cloud-controls')).toContainText('Cópia local ativa');
-  await expect(page.locator('.device-status')).toContainText('Modo nuvem');
   await expandCloudControls(page);
+  await expect(page.locator('.cloud-hub')).toContainText('Cópia local ativa');
+  await expect(page.locator('.device-status')).toContainText('Modo nuvem');
   await expect(page.getByRole('button',{name:'Sincronizar agora'})).toHaveCount(0);
+  const homeNav=page.getByRole('navigation',{name:(page.viewportSize()?.width??1280)<761?'Navegação móvel':'Navegação principal'});
+  await homeNav.getByRole('button',{name:'Início',exact:true}).click();
   // Hold the transport offline: a financial write must stay pending while
   // authentication remains valid and the foreground timer is enabled.
   await page.evaluate(()=>localStorage.setItem('synthetic-transport-offline','yes'));
