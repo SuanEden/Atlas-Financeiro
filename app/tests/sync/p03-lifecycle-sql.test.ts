@@ -84,7 +84,7 @@ describe('P03 schema v4 versioned entity management',()=>{
     expect(restored.revision).toBe('3');
     const renamed=manage(owner,account,2,'active');
     renamed.baseRevision='3';
-    renamed.operation.payload.lifecycleChange.metadata.name='Conta renomeada';
+    (renamed.operation.payload.lifecycleChange as {metadata:{name:string}}).metadata.name='Conta renomeada';
     const saved=await server.apply(owner,renamed);
     expect(saved.revision).toBe('4');
     const rows=await server.db.query<{entity_version:number;new_state:string;name:string}>(
