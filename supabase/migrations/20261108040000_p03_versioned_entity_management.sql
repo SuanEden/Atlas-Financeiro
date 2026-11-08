@@ -185,60 +185,74 @@ end $$;
 
 create function atlas_private.apply_entity_change(change jsonb, owner_id uuid, op_id uuid, next_revision bigint) returns void
 language plpgsql security invoker set search_path=pg_catalog as $$
-declare entity_kind text; entity_id uuid; expected integer; next_state text; metadata jsonb; current_version integer:=0;
-  current_state text:='active'; current_metadata jsonb; parent_id uuid; category_kind text;
+declare v_entity_kind text; v_entity_id uuid; v_expected integer; v_next_state text; v_metadata jsonb;
+  v_current_version integer:=0; v_current_state text:='active'; v_current_metadata jsonb;
+  v_parent_id uuid; v_cycle boolean:=false;
 begin
   perform atlas_private.assert_object(change,array['entity','entityId','expectedVersion','nextState','metadata'],array['entity','entityId','expectedVersion','nextState','metadata']);
-  entity_kind:=change->>'entity';entity_id:=(change->>'entityId')::uuid;expected:=(change->>'expectedVersion')::integer;
-  next_state:=change->>'nextState';metadata:=change->'metadata';
-  if entity_kind='account' then
-    select jsonb_build_object('name',name,'kind',kind,'availability',availability) into current_metadata
-      from atlas_private.accounts where user_id=owner_id and id=entity_id;
-  elsif entity_kind='category' then
-    select jsonb_strip_nulls(jsonb_build_object('name',name,'kind',kind,'parentId',parent_id::text)) into current_metadata
-      from atlas_private.categories where user_id=owner_id and id=entity_id;
+  v_entity_kind:=change->>'entity';v_entity_id:=(change->>'entityId')::uuid;
+  v_expected:=(change->>'expectedVersion')::integer;v_next_state:=change->>'nextState';v_metadata:=change->'metadata';
+  if v_entity_kind='account' then
+    select jsonb_build_object('name',a.name,'kind',a.kind,'availability',a.availability) into v_current_metadata
+      from atlas_private.accounts a where a.user_id=owner_id and a.id=v_entity_id;
+  elsif v_entity_kind='category' then
+    select jsonb_strip_nulls(jsonb_build_object('name',c.name,'kind',c.kind,'parentId',c.parent_id::text)) into v_current_metadata
+      from atlas_private.categories c where c.user_id=owner_id and c.id=v_entity_id;
   else raise exception 'Invalid entity kind' using errcode='22023';
   end if;
-  if current_metadata is null then raise exception 'Entity not found' using errcode='P0002'; end if;
-  select entity_version,new_state,metadata into current_version,current_state,current_metadata
-    from atlas_private.entity_lifecycle where user_id=owner_id and entity_kind=apply_entity_change.entity_kind and entity_id=apply_entity_change.entity_id
-    order by entity_version desc limit 1;
-  if not found then current_version:=0;current_state:='active';
-    if entity_kind='account' then
-      select jsonb_build_object('name',name,'kind',kind,'availability',availability) into current_metadata from atlas_private.accounts where user_id=owner_id and id=entity_id;
+  if v_current_metadata is null then raise exception 'Entity not found' using errcode='P0002'; end if;
+  select l.entity_version,l.new_state,l.metadata into v_current_version,v_current_state,v_current_metadata
+    from atlas_private.entity_lifecycle l where l.user_id=owner_id and l.entity_kind=v_entity_kind and l.entity_id=v_entity_id
+    order by l.entity_version desc limit 1;
+  if not found then
+    v_current_version:=0;v_current_state:='active';
+    if v_entity_kind='account' then
+      select jsonb_build_object('name',a.name,'kind',a.kind,'availability',a.availability) into v_current_metadata from atlas_private.accounts a where a.user_id=owner_id and a.id=v_entity_id;
     else
-      select jsonb_strip_nulls(jsonb_build_object('name',name,'kind',kind,'parentId',parent_id::text)) into current_metadata from atlas_private.categories where user_id=owner_id and id=entity_id;
+      select jsonb_strip_nulls(jsonb_build_object('name',c.name,'kind',c.kind,'parentId',c.parent_id::text)) into v_current_metadata from atlas_private.categories c where c.user_id=owner_id and c.id=v_entity_id;
     end if;
   end if;
-  if expected<>current_version then raise exception 'ENTITY_VERSION_CONFLICT' using errcode='40001'; end if;
-  if entity_kind='account' then
-    perform atlas_private.assert_object(metadata,array['name','kind','availability'],array['name','kind','availability']);
-    if metadata->>'kind' not in ('checking','savings','cash','digital','transport','investment','other')
-      or metadata->>'availability' not in ('free','reserved','restricted')
-      or (metadata->>'kind'='transport' and metadata->>'availability'<>'restricted') then raise exception 'Invalid account metadata' using errcode='22023'; end if;
+  if v_expected<>v_current_version then raise exception 'ENTITY_VERSION_CONFLICT' using errcode='40001'; end if;
+  if v_entity_kind='account' then
+    perform atlas_private.assert_object(v_metadata,array['name','kind','availability'],array['name','kind','availability']);
+    if v_metadata->>'kind' not in ('checking','savings','cash','digital','transport','investment','other')
+      or v_metadata->>'availability' not in ('free','reserved','restricted')
+      or (v_metadata->>'kind'='transport' and v_metadata->>'availability'<>'restricted') then raise exception 'Invalid account metadata' using errcode='22023'; end if;
   else
-    perform atlas_private.assert_object(metadata,array['name','kind','parentId'],array['name','kind']);
-    if metadata->>'kind' not in ('income','expense','both') then raise exception 'Invalid category metadata' using errcode='22023'; end if;
-    if metadata ? 'parentId' and metadata->>'parentId' is not null then
-      parent_id:=(metadata->>'parentId')::uuid;
-      if parent_id=entity_id or not exists(select 1 from atlas_private.categories where user_id=owner_id and id=parent_id) then
+    perform atlas_private.assert_object(v_metadata,array['name','kind','parentId'],array['name','kind']);
+    if v_metadata->>'kind' not in ('income','expense','both') then raise exception 'Invalid category metadata' using errcode='22023'; end if;
+    if v_metadata ? 'parentId' and v_metadata->>'parentId' is not null then
+      v_parent_id:=(v_metadata->>'parentId')::uuid;
+      if v_parent_id=v_entity_id or not exists(select 1 from atlas_private.categories c where c.user_id=owner_id and c.id=v_parent_id) then
         raise exception 'Invalid parent category' using errcode='22023';
       end if;
-      if exists(select 1 from atlas_private.entity_lifecycle l where l.user_id=owner_id and l.entity_kind='category' and l.entity_id=parent_id
-        and l.entity_version=(select max(x.entity_version) from atlas_private.entity_lifecycle x where x.user_id=owner_id and x.entity_kind='category' and x.entity_id=parent_id) and l.new_state='archived') then
+      if exists(select 1 from atlas_private.entity_lifecycle l where l.user_id=owner_id and l.entity_kind='category' and l.entity_id=v_parent_id
+        and l.entity_version=(select max(x.entity_version) from atlas_private.entity_lifecycle x where x.user_id=owner_id and x.entity_kind='category' and x.entity_id=v_parent_id) and l.new_state='archived') then
         raise exception 'Parent category is archived' using errcode='23514';
       end if;
+      with recursive ancestors(id,parent_id,path) as (
+        select c.id,coalesce(latest.metadata->>'parentId',c.parent_id::text)::uuid,array[c.id]
+          from atlas_private.categories c left join lateral(
+            select l.metadata from atlas_private.entity_lifecycle l where l.user_id=owner_id and l.entity_kind='category' and l.entity_id=c.id order by l.entity_version desc limit 1
+          ) latest on true where c.user_id=owner_id and c.id=v_parent_id
+        union all
+        select p.id,coalesce(latest.metadata->>'parentId',p.parent_id::text)::uuid,a.path||p.id
+          from ancestors a join atlas_private.categories p on p.user_id=owner_id and p.id=a.parent_id
+          left join lateral(select l.metadata from atlas_private.entity_lifecycle l where l.user_id=owner_id and l.entity_kind='category' and l.entity_id=p.id order by l.entity_version desc limit 1) latest on true
+          where not p.id=any(a.path)
+      ) select exists(select 1 from ancestors where id=v_entity_id) into v_cycle;
+      if v_cycle then raise exception 'Category hierarchy cannot contain a cycle' using errcode='23514'; end if;
     end if;
-    if metadata->>'kind'='income' and exists(select 1 from atlas_private.financial_events where user_id=owner_id and category_id=entity_id and kind='expense')
-      or metadata->>'kind'='expense' and exists(select 1 from atlas_private.financial_events where user_id=owner_id and category_id=entity_id and kind='income') then
+    if (v_metadata->>'kind'='income' and exists(select 1 from atlas_private.financial_events e where e.user_id=owner_id and e.category_id=v_entity_id and e.kind='expense'))
+      or (v_metadata->>'kind'='expense' and exists(select 1 from atlas_private.financial_events e where e.user_id=owner_id and e.category_id=v_entity_id and e.kind='income')) then
       raise exception 'Category kind conflicts with historical financial events' using errcode='23514';
     end if;
   end if;
-  if length(btrim(coalesce(metadata->>'name','')))=0 or length(metadata->>'name')>120 then raise exception 'Invalid entity name' using errcode='22023'; end if;
-  if next_state not in ('active','archived') then raise exception 'Invalid lifecycle state' using errcode='22023'; end if;
-  if current_state=next_state and current_metadata=metadata then raise exception 'No entity change' using errcode='22023'; end if;
+  if length(btrim(coalesce(v_metadata->>'name','')))=0 or length(v_metadata->>'name')>120 then raise exception 'Invalid entity name' using errcode='22023'; end if;
+  if v_next_state not in ('active','archived') then raise exception 'Invalid lifecycle state' using errcode='22023'; end if;
+  if v_current_state=v_next_state and v_current_metadata=v_metadata then raise exception 'No entity change' using errcode='22023'; end if;
   insert into atlas_private.entity_lifecycle(user_id,operation_id,entity_kind,entity_id,expected_version,entity_version,new_state,feed_revision,metadata)
-    values(owner_id,op_id,entity_kind,entity_id,expected,current_version+1,next_state,next_revision,metadata);
+    values(owner_id,op_id,v_entity_kind,v_entity_id,v_expected,v_current_version+1,v_next_state,next_revision,v_metadata);
 end $$;
 
 create or replace function api.i3_apply(p_envelope jsonb) returns jsonb
