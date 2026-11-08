@@ -313,8 +313,16 @@ begin
           seen:=seen||jsonb_build_object(key,true);
         end loop;
       end loop;
-      if exists(select 1 from jsonb_array_elements(d->'settlements') s where exists(select 1 from jsonb_array_elements(coalesce(o->'payload'->'events','[]')) e where e->>'id'=s->>'eventId') and not exists(select 1 from jsonb_array_elements(coalesce(o->'payload'->'settlements','[]')) v where v=s))
-        or exists(select 1 from jsonb_array_elements(d->'postings') p where exists(select 1 from jsonb_array_elements(coalesce(o->'payload'->'settlements','[]')) s where s->>'id'=p->>'settlementId') and not exists(select 1 from jsonb_array_elements(coalesce(o->'payload'->'postings','[]')) v where v=p)) then raise exception 'Incomplete covered aggregate' using errcode='22023';end if;
+      if exists(select 1 from jsonb_array_elements(d->'settlements') as snapshot_settlement(value)
+        where exists(select 1 from jsonb_array_elements(coalesce(o->'payload'->'events','[]')) as covered_event(value)
+          where covered_event.value->>'id'=snapshot_settlement.value->>'eventId')
+          and not exists(select 1 from jsonb_array_elements(coalesce(o->'payload'->'settlements','[]')) as covered_settlement(value)
+            where covered_settlement.value=snapshot_settlement.value))
+        or exists(select 1 from jsonb_array_elements(d->'postings') as snapshot_posting(value)
+          where exists(select 1 from jsonb_array_elements(coalesce(o->'payload'->'settlements','[]')) as covered_parent(value)
+            where covered_parent.value->>'id'=snapshot_posting.value->>'settlementId')
+            and not exists(select 1 from jsonb_array_elements(coalesce(o->'payload'->'postings','[]')) as covered_posting(value)
+              where covered_posting.value=snapshot_posting.value)) then raise exception 'Incomplete covered aggregate' using errcode='22023';end if;
       covered:=covered||jsonb_build_array(jsonb_build_object('id',o->>'id','digest',atlas_private.json_digest(o)));
       insert into atlas_private.incorporated_operations values(owner_id,(o->>'id')::uuid,op_id,atlas_private.json_digest(o));
     end loop;
