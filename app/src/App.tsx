@@ -170,7 +170,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
                 <span className="cloud-hub-symbol" aria-hidden="true"><Cloud size={23}/></span>
                 <div><p className="cloud-hub-eyebrow">SEUS DADOS</p><h1 id="cloud-hub-heading">Modo nuvem</h1><p>Sincronização, status da conexão e cópias de segurança em um único lugar.</p></div>
               </section>
-              <section className="cloud-hub-section" aria-labelledby="cloud-hub-sync-heading">
+              <section className="cloud-hub-section" aria-label="Acesso à nuvem">
                 <div className="cloud-hub-section-heading"><Cloud size={19}/><h2 id="cloud-hub-sync-heading">Sincronização</h2></div>
                 {sessionControls ?? <div className="cloud-hub-local"><HardDrive size={20}/><div><strong>Dados armazenados neste dispositivo</strong><p>A sincronização remota não está ativa. Você ainda pode exportar e restaurar cópias locais abaixo.</p></div></div>}
               </section>
