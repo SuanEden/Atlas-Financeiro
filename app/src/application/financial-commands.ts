@@ -168,17 +168,18 @@ export function manageEntityCommand(
   context?:CommandContext,
 ):LocalCommand {
   if(!context)throw new TypeError('Contexto de alteração ausente.');
-  const row=entity==='account'?dataset.accounts.find(item=>item.id===id):dataset.categories.find(item=>item.id===id);
-  if(!row)throw new TypeError('Conta ou categoria não encontrada.');
+  const account=entity==='account'?dataset.accounts.find(item=>item.id===id):undefined;
+  const category=entity==='category'?dataset.categories.find(item=>item.id===id):undefined;
+  if(!account&&!category)throw new TypeError('Conta ou categoria não encontrada.');
   const current=currentLifecycle(dataset.entityLifecycles??[],context.userId,entity,id);
   if(action==='archive'&&current.state==='archived')throw new TypeError('Esta entidade já está arquivada.');
   if(action==='restore'&&current.state==='active')throw new TypeError('Esta entidade já está ativa.');
   if(action==='edit'&&current.state==='archived')throw new TypeError('Reative a entidade antes de editar seus dados.');
-  const metadata=entity==='account'
-    ? {name:changes?.name.trim()??row.name,kind:(changes?.kind??row.kind) as Account['kind'],
-       availability:((changes?.kind??row.kind)==='transport'?'restricted':changes?.availability??row.availability) as Account['availability']}
-    : {name:changes?.name.trim()??row.name,kind:(changes?.kind??row.kind) as Category['kind'],
-       ...((changes?.parentId??(changes?undefined:row.parentId))===undefined?{}:{parentId:changes?.parentId??row.parentId})};
+  const metadata=account
+    ? {name:changes?.name.trim()??account.name,kind:(changes?.kind??account.kind) as Account['kind'],
+       availability:((changes?.kind??account.kind)==='transport'?'restricted':changes?.availability??account.availability) as Account['availability']}
+    : {name:changes?.name.trim()??category!.name,kind:(changes?.kind??category!.kind) as Category['kind'],
+       ...((changes?.parentId??(changes?undefined:category!.parentId))===undefined?{}:{parentId:changes?.parentId??category!.parentId})};
   const change:LifecycleChange={
     operationId:context.nextId(),userId:context.userId,entity,entityId:id,expectedVersion:current.version,
     nextState:action==='archive'?'archived':action==='restore'?'active':current.state,metadata,
@@ -191,7 +192,7 @@ export function manageEntityCommand(
     Object.assign(target,metadata);
   } else {
     const target=candidate.categories.find(item=>item.id===id)!;
-    target.name=metadata.name;target.kind=metadata.kind;
+    target.name=metadata.name;target.kind=metadata.kind as Category['kind'];
     if('parentId' in metadata&&metadata.parentId!==undefined)target.parentId=metadata.parentId;else delete target.parentId;
   }
   assertFinancialDataset(candidate,context.userId);
