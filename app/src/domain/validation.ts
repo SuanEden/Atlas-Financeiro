@@ -51,8 +51,48 @@ function assertOwnedRows<T extends OwnedEntity>(rows: T[], userId: string, label
 export function assertFinancialDataset(dataset: FinancialDataset, expectedUserId: string): void {
   assertEntityId(expectedUserId, 'Proprietário');
   if (!dataset || typeof dataset !== 'object') fail('Conjunto financeiro inválido.');
-  const accounts = assertOwnedRows(dataset.accounts, expectedUserId, 'Contas');
-  const categories = assertOwnedRows(dataset.categories, expectedUserId, 'Categorias');
+  const accounts = new Map([...assertOwnedRows(dataset.accounts, expectedUserId, 'Contas')].map(([id,row])=>[id,{...row}]));
+  const categories = new Map([...assertOwnedRows(dataset.categories, expectedUserId, 'Categorias')].map(([id,row])=>[id,{...row}]));
+  const lifecycleRows=dataset.entityLifecycles??[];
+  if(!Array.isArray(lifecycleRows))fail('Histórico de versões inválido.');
+  const operations=new Set<string>(),versions=new Map<string,number>(),revisions=new Set<number>();
+  let lastRevision=0;
+  for(const row of lifecycleRows) {
+    if(!row||typeof row!=='object')fail('Histórico de versões contém registro inválido.');
+    assertEntityId(row.operationId,'Operação de versão');assertEntityId(row.userId,'Proprietário da versão');assertEntityId(row.entityId,'Entidade versionada');
+    if(row.userId!==expectedUserId)fail('O histórico de versões pertence a outro proprietário.');
+    if(row.entity!=='account'&&row.entity!=='category')fail('Tipo de entidade versionada inválido.');
+    if(row.nextState!=='active'&&row.nextState!=='archived')fail('Estado de entidade inválido.');
+    if(!Number.isSafeInteger(row.expectedVersion)||row.expectedVersion<0||!Number.isSafeInteger(row.version)||row.version<=0||row.version!==row.expectedVersion+1)fail('Sequência de versões inválida.');
+    if(!Number.isSafeInteger(row.revision)||row.revision<0)fail('Revisão de versão inválida.');
+    if(operations.has(row.operationId))fail('Operação de versão duplicada.');
+    operations.add(row.operationId);
+    const key=row.entity+':'+row.entityId,prior=versions.get(key)??0;
+    if(row.expectedVersion!==prior)fail('Histórico de versões fora de sequência.');
+    versions.set(key,row.version);
+    if(row.revision>0) {
+      if(row.revision<=lastRevision||revisions.has(row.revision))fail('Revisões do histórico fora de ordem.');
+      revisions.add(row.revision);lastRevision=row.revision;
+    }
+    assertText(row.metadata?.name,'Nome versionado',120);
+    if(row.entity==='account') {
+      const metadata=row.metadata as import('./models').AccountLifecycleMetadata;
+      assertEnum(metadata.kind,['checking','savings','cash','digital','transport','investment','other'],'Tipo de conta versionado');
+      assertEnum(metadata.availability,['free','reserved','restricted'],'Disponibilidade versionada');
+      if(metadata.kind==='transport'&&metadata.availability!=='restricted')fail('Conta de transporte deve ter uso restrito.');
+      if(Object.keys(metadata).some(k=>!['name','kind','availability'].includes(k)))fail('Metadados de conta inválidos.');
+      const account=accounts.get(row.entityId);if(!account)fail('Versão aponta para conta inexistente.');
+      account.name=metadata.name;account.kind=metadata.kind;account.availability=metadata.availability;
+    } else {
+      const metadata=row.metadata as import('./models').CategoryLifecycleMetadata;
+      assertEnum(metadata.kind,['income','expense','both'],'Tipo de categoria versionado');
+      if(metadata.parentId!==undefined)assertEntityId(metadata.parentId,'Categoria superior versionada');
+      if(Object.keys(metadata).some(k=>!['name','kind','parentId'].includes(k)))fail('Metadados de categoria inválidos.');
+      const category=categories.get(row.entityId);if(!category)fail('Versão aponta para categoria inexistente.');
+      category.name=metadata.name;category.kind=metadata.kind;
+      if(metadata.parentId===undefined)delete category.parentId;else category.parentId=metadata.parentId;
+    }
+  }
   const events = assertOwnedRows(dataset.events, expectedUserId, 'Eventos');
   const settlements = assertOwnedRows(dataset.settlements, expectedUserId, 'Liquidações');
   assertOwnedRows(dataset.postings, expectedUserId, 'Contrapartidas');
