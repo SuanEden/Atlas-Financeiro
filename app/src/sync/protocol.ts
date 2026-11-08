@@ -48,6 +48,19 @@ export function isI3SchemaCompatible(envelope: SyncEnvelope, serverSchemaVersion
     'archivedEntities','tombstones','entityLifecycles','entityVersions',
   ]);
   if (Object.keys(data).some(key => futureLifecycleFields.has(key))) return false;
+  // Bootstraps embed legacy operations; reject hidden archive metadata there too.
+  // Otherwise a v1 device might read a future lifecycle snapshot as active.
+  if(envelope.kind==='bootstrap' && envelope.coveredOperations.some(operation => {
+    const payload=operation.payload;
+    if(!payload||typeof payload!=='object'||Array.isArray(payload)) return true;
+    if(Object.keys(payload).some(key=>futureLifecycleFields.has(key))) return true;
+    return (['accounts','categories'] as const).some(table => {
+      const rows=payload[table];
+      return rows!==undefined && (!Array.isArray(rows)||rows.some(row=>
+        !row||typeof row!=='object'||Array.isArray(row)||
+        Object.keys(row).some(key=>futureLifecycleFields.has(key))));
+    });
+  })) return false;
   for (const table of ['accounts','categories'] as const) {
     const rows=data[table];
     if (rows === undefined) continue;
