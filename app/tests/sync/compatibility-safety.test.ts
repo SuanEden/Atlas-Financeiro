@@ -3,7 +3,7 @@ import Dexie from 'dexie';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { LocalSyncStore } from '../../src/sync/local-sync-store';
 import { SyncEngine, type SyncTransport } from '../../src/sync/engine';
-import { commandEnvelope, isI3SchemaCompatible, prepareBootstrap } from '../../src/sync/protocol';
+import { commandEnvelope, isI3SchemaCompatible, jsonDigest, prepareBootstrap } from '../../src/sync/protocol';
 import { serializeMonthlyRecurrenceRule } from '../../src/domain';
 import { createAccountCommand } from '../../src/application';
 import { legacyRecoveryFixture as recoveryFixture, recoveryFixture as currentRecoveryFixture } from '../recovery-fixture';
@@ -127,6 +127,47 @@ describe('I3 schema v3 migrado e protegido por capability do servidor',()=>{
 });
 
 describe('bloqueio seguro de recursos locais ainda não migrados no servidor', () => {
+  it.each(['recorrencia', 'conciliacao'])('recusa feed remoto incompatível (%s) sem escrever no IndexedDB', async tipo => {
+    const f = await fixture(true);
+    const envelope = structuredClone(f.envelope);
+    if (tipo === 'recorrencia') {
+      const event = (envelope.data.events as Record<string, unknown>[])[0];
+      if (!event) throw new Error('Fixture precisa ter evento sintético.');
+      event.recurrenceJson = '{}';
+      envelope.data.schemaVersion = 2;
+      delete envelope.data.accountReconciliations;
+    }
+    const before = await f.snapshot();
+    const coveredOperations = await Promise.all(envelope.coveredOperations.map(async operation => ({ id: operation.id, digest: await jsonDigest(operation) })));
+    const page = { protocolVersion: 1 as const, userId: f.owner, after: '0', through: '1', cursor: '1', batches: [{
+      revision: '1', envelope,
+      receipt: { protocolVersion: 1 as const, userId: f.owner, operationId: envelope.operationId, revision: '1', digest: await jsonDigest(envelope), coveredOperations },
+    }] };
+    await expect(f.store.applyPage(page)).rejects.toThrow();
+    expect(await f.snapshot()).toEqual(before);
+  });
+
+  it('recusa lote remoto v3 antes de avançar o cursor ou gravar recibos', async () => {
+    const f = await fixture(true);
+    const before = await f.snapshot();
+    const coveredOperations = await Promise.all(f.envelope.coveredOperations.map(async operation => ({
+      id: operation.id, digest: await jsonDigest(operation),
+    })));
+    const page = {
+      protocolVersion: 1 as const, userId: f.owner, after: '0', through: '1', cursor: '1',
+      batches: [{
+        revision: '1', envelope: f.envelope,
+        receipt: {
+          protocolVersion: 1 as const, userId: f.owner,
+          operationId: f.envelope.operationId, revision: '1',
+          digest: await jsonDigest(f.envelope), coveredOperations,
+        },
+      }],
+    };
+    await expect(f.store.applyPage(page)).rejects.toThrow(/versão financeira mais recente/);
+    expect(await f.snapshot()).toEqual(before);
+  });
+
   it('não transmite uma associação com conciliação v3 ao backend v2', async () => {
     const f = await fixture(true);
     const before = await f.snapshot();
