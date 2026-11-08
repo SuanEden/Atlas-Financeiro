@@ -10,7 +10,7 @@ const op2='22222222-2222-4222-8222-222222222222';
 const op3='33333333-3333-4333-8333-333333333333';
 const accountMeta={name:'Conta de teste',kind:'checking' as const,availability:'free' as const};
 const categoryMeta={name:'Categoria de teste',kind:'expense' as const};
-const change=(operationId:string,expectedVersion:number,nextState:'active'|'archived',entity:'account'|'category'='account',entityId=account,metadata=accountMeta):LifecycleChange=>({
+const change=(operationId:string,expectedVersion:number,nextState:'active'|'archived',entity:'account'|'category'='account',entityId=account,metadata:import('./models').LifecycleMetadata=accountMeta):LifecycleChange=>({
   operationId,userId:user,entity,entityId,expectedVersion,nextState,metadata,
 });
 
