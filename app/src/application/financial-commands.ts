@@ -12,6 +12,8 @@ import {
   type Settlement,
   parseMonthlyRecurrenceRule,
   getAccountReconciliation,
+  currentLifecycle,
+  type LifecycleChange,
 } from '../domain';
 import type { FinancialAggregate } from '../persistence';
 import { serializeOperationPayload } from '../serialization';
@@ -153,6 +155,40 @@ export function createCategoryCommand(input: CreateCategoryInput, context: Comma
     ...(input.parentId === undefined ? {} : { parentId: input.parentId }),
   };
   return command('create_category', { categories: [category] }, context);
+}
+
+/** Versioned metadata edit/archive/reactivate. The server assigns the final entity version and feed revision. */
+export function manageEntityCommand(
+  dataset:FinancialDataset,
+  entity:'account'|'category',
+  id:string,
+  action:'edit'|'archive'|'restore',
+  changes?:{name:string;kind:string;availability?:string;parentId?:string},
+  context?:CommandContext,
+):LocalCommand {
+  if(!context)throw new TypeError('Contexto de alteração ausente.');
+  const row=entity==='account'?dataset.accounts.find(item=>item.id===id):dataset.categories.find(item=>item.id===id);
+  if(!row)throw new TypeError('Conta ou categoria não encontrada.');
+  const current=currentLifecycle(dataset.entityLifecycles??[],context.userId,entity,id);
+  if(action==='archive'&&current.state==='archived')throw new TypeError('Esta entidade já está arquivada.');
+  if(action==='restore'&&current.state==='active')throw new TypeError('Esta entidade já está ativa.');
+  if(action==='edit'&&current.state==='archived')throw new TypeError('Reative a entidade antes de editar seus dados.');
+  const metadata=entity==='account'
+    ? {name:changes?.name.trim()??row.name,kind:(changes?.kind??row.kind) as Account['kind'],
+       availability:((changes?.kind??row.kind)==='transport'?'restricted':changes?.availability??row.availability) as Account['availability']}
+    : {name:changes?.name.trim()??row.name,kind:(changes?.kind??row.kind) as Category['kind'],
+       ...((changes?.parentId??(changes?undefined:row.parentId))===undefined?{}:{parentId:changes?.parentId??row.parentId})};
+  const change:LifecycleChange={
+    operationId:context.nextId(),userId:context.userId,entity,entityId:id,expectedVersion:current.version,
+    nextState:action==='archive'?'archived':action==='restore'?'active':current.state,metadata,
+  } as LifecycleChange;
+  const payload={schemaVersion:1,userId:context.userId,lifecycleChange:{
+    entity:change.entity,entityId:change.entityId,expectedVersion:change.expectedVersion,
+    nextState:change.nextState,metadata:change.metadata,
+  }};
+  const operation:PendingOperation={id:change.operationId,userId:context.userId,kind:'manage_entity',
+    createdAt:context.now(),payloadJson:JSON.stringify(payload)};
+  return {aggregate:{},operation};
 }
 
 export function createTransactionCommand(input: TransactionInput, context: CommandContext): LocalCommand {
