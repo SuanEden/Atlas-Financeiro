@@ -41,7 +41,7 @@ export class SyncEngine {
           const page=await this.transport.pull(state.meta.cursor,through);
           if(!current()) return 'login_required';
           if(through!==null&&page.through!==through) throw new TypeError('O limite da leitura mudou durante a paginação.');
-          await this.store.applyPage(page,grant.serverSchemaVersion??3);
+          await this.store.applyPage(page,grant.serverSchemaVersion??2);
           through=page.through; state=await this.store.read();
           if(page.cursor===through) break;
           if(pageCount===99) return 'retry_later';
@@ -73,7 +73,7 @@ export class SyncEngine {
           const page=await this.transport.pull(state.meta.cursor,through);
           if(!current()) return 'login_required';
           if(through!==null&&page.through!==through) throw new TypeError('O limite da leitura mudou durante a paginação.');
-          await this.store.applyPage(page,grant.serverSchemaVersion??3); through=page.through; state=await this.store.read();
+          await this.store.applyPage(page,grant.serverSchemaVersion??2); through=page.through; state=await this.store.read();
           if(page.cursor===through) break;
           if(pageCount===99) return 'retry_later';
         }
