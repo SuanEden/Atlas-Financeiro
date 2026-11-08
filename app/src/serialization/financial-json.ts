@@ -91,6 +91,7 @@ export function deserializeFinancialDataset(json: string, expectedUserId: string
   const root = readObject(JSON.parse(json) as unknown, [
     'schemaVersion', 'userId', 'accounts', 'categories', 'events', 'settlements', 'postings', 'accountReconciliations', 'entityLifecycles',
   ]);
+  if(root.schemaVersion===4&&!Array.isArray(root.entityLifecycles))throw new TypeError('O histórico de versões é obrigatório no schema financeiro v4.');
   if (root.schemaVersion !== 1 && root.schemaVersion !== 2 && root.schemaVersion !== 3 && root.schemaVersion !== FINANCIAL_JSON_SCHEMA_VERSION) {
     throw new TypeError('Versão da representação financeira não suportada.');
   }
