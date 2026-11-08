@@ -170,12 +170,12 @@ begin
       and l.entity_version=(select max(x.entity_version) from atlas_private.entity_lifecycle x where x.user_id=owner_id and x.entity_kind='account' and x.entity_id=l.entity_id) and l.new_state='archived')
   ) then raise exception 'Archived account cannot be reconciled' using errcode='23514'; end if;
   if kind in ('record_event','reconcile_account') and exists(
-    select 1 from jsonb_array_elements(coalesce(p->'events','[]')) e
-    where exists(select 1 from atlas_private.entity_lifecycle l where l.user_id=owner_id and l.entity_kind='account' and l.entity_id=(e->>'accountId')::uuid
+    select 1 from jsonb_array_elements(coalesce(p->'events','[]')) as event_row(value)
+    where exists(select 1 from atlas_private.entity_lifecycle l where l.user_id=owner_id and l.entity_kind='account' and l.entity_id=(event_row.value->>'accountId')::uuid
       and l.entity_version=(select max(x.entity_version) from atlas_private.entity_lifecycle x where x.user_id=owner_id and x.entity_kind='account' and x.entity_id=l.entity_id) and l.new_state='archived')
-      or (e ? 'transferAccountId' and exists(select 1 from atlas_private.entity_lifecycle l where l.user_id=owner_id and l.entity_kind='account' and l.entity_id=(e->>'transferAccountId')::uuid
+      or (event_row.value ? 'transferAccountId' and exists(select 1 from atlas_private.entity_lifecycle l where l.user_id=owner_id and l.entity_kind='account' and l.entity_id=(event_row.value->>'transferAccountId')::uuid
         and l.entity_version=(select max(x.entity_version) from atlas_private.entity_lifecycle x where x.user_id=owner_id and x.entity_kind='account' and x.entity_id=l.entity_id) and l.new_state='archived'))
-      or (e ? 'categoryId' and exists(select 1 from atlas_private.entity_lifecycle l where l.user_id=owner_id and l.entity_kind='category' and l.entity_id=(e->>'categoryId')::uuid
+      or (event_row.value ? 'categoryId' and exists(select 1 from atlas_private.entity_lifecycle l where l.user_id=owner_id and l.entity_kind='category' and l.entity_id=(event_row.value->>'categoryId')::uuid
         and l.entity_version=(select max(x.entity_version) from atlas_private.entity_lifecycle x where x.user_id=owner_id and x.entity_kind='category' and x.entity_id=l.entity_id) and l.new_state='archived'))
   ) then raise exception 'Archived entities cannot receive new financial records' using errcode='23514'; end if;
 end $$;
