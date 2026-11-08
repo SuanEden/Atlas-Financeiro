@@ -41,7 +41,7 @@ export class SessionPolicy {
     };
   }
   verify(userId:string,expiresAt:number,writesEnabled:boolean,interactive=false,serverSchemaVersion=2) {
-    if(serverSchemaVersion!==2&&serverSchemaVersion!==3)throw new Error('Esquema remoto desconhecido.');
+    if(serverSchemaVersion!==2&&serverSchemaVersion!==3&&serverSchemaVersion!==4)throw new Error('Esquema remoto desconhecido.');
     assertEntityId(userId);
     if(this.#saved?.blocked&&!interactive) throw new Error('A saída explícita exige um novo login Google.');
     if(!Number.isSafeInteger(expiresAt)||expiresAt<=this.now()) throw new Error('A sessão já expirou.');

@@ -1,83 +1,75 @@
 import {describe,expect,it} from 'vitest';
-import {
-  LifecycleConflict, currentLifecycle, decideLifecycleChange,
-  incorporateLifecyclePage, isEntitySelectable, type LifecycleChange, type LifecycleRecord,
-} from './lifecycle';
+import {LifecycleConflict,currentLifecycle,decideLifecycleChange,incorporateLifecyclePage,isEntitySelectable,type LifecycleChange,type LifecycleRecord} from './lifecycle';
 
-const owner='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const user='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const other='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const account='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const category='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
-const operation=(operationId:string,expectedVersion:number,nextState:'active'|'archived',
-  entity:'account'|'category'='account',entityId=account):LifecycleChange=>({
-  operationId,ownerId:owner,entity,entityId,expectedVersion,nextState,
-});
 const op1='11111111-1111-4111-8111-111111111111';
 const op2='22222222-2222-4222-8222-222222222222';
 const op3='33333333-3333-4333-8333-333333333333';
+const accountMeta={name:'Conta de teste',kind:'checking' as const,availability:'free' as const};
+const categoryMeta={name:'Categoria de teste',kind:'expense' as const};
+const change=(operationId:string,expectedVersion:number,nextState:'active'|'archived',entity:'account'|'category'='account',entityId=account,metadata:import('./models').LifecycleMetadata=accountMeta):LifecycleChange=>({
+  operationId,userId:user,entity,entityId,expectedVersion,nextState,metadata,
+});
 
-describe('P03 archive lifecycle independent of financial records',()=>{
-  it('archives without deleting ledgers and remains archived across client reconnect',()=>{
-    const source:LifecycleRecord[]=[];
-    const archived=decideLifecycleChange(source,operation(op1,0,'archived'),1,true);
-    expect(archived.created).toBe(true);
-    expect(archived.record.version).toBe(1);
-    const deviceA=incorporateLifecyclePage(source,[archived.record],owner);
-    expect(isEntitySelectable(deviceA,owner,'account',account)).toBe(false);
-    const deviceB=incorporateLifecyclePage([],deviceA,owner);
-    expect(isEntitySelectable(deviceB,owner,'account',account)).toBe(false);
-    expect(currentLifecycle(deviceB,owner,'account',account)).toEqual({version:1,state:'archived'});
+describe('P03 versioned entity metadata and lifecycle',()=>{
+  it('archives and reactivates without deleting financial history',()=>{
+    const archived=decideLifecycleChange([],change(op1,0,'archived'),1,true).record;
+    expect(archived.version).toBe(1);
+    expect(isEntitySelectable([archived],user,'account',account)).toBe(false);
+    const reactivated=decideLifecycleChange([archived],change(op2,1,'active'),2,true).record;
+    const synced=incorporateLifecyclePage([archived],[reactivated],user);
+    expect(isEntitySelectable(synced,user,'account',account)).toBe(true);
+    expect(currentLifecycle(synced,user,'account',account)).toMatchObject({version:2,state:'active'});
   });
 
-  it('prevents an offline device with version zero from undoing the archive',()=>{
-    const archive=decideLifecycleChange([],operation(op1,0,'archived'),1,true).record;
-    const oldDevice=operation(op2,0,'active');
-    expect(()=>decideLifecycleChange([archive],oldDevice,2,true)).toThrow(LifecycleConflict);
-    const staleEvent={...oldDevice,version:1,revision:2};
-    expect(()=>incorporateLifecyclePage([archive],[staleEvent],owner)).toThrow(LifecycleConflict);
-    expect(isEntitySelectable([archive],owner,'account',account)).toBe(false);
+  it('allows metadata edits as a new version without changing state',()=>{
+    const first=decideLifecycleChange([],change(op1,0,'active'),1,true).record;
+    const renamed=decideLifecycleChange([first],change(op2,1,'active','account',account,{...accountMeta,name:'Conta renomeada'}),2,true).record;
+    expect(renamed.version).toBe(2);
+    expect(renamed.nextState).toBe('active');
+    expect(currentLifecycle([first,renamed],user,'account',account).metadata?.name).toBe('Conta renomeada');
   });
 
-  it('retries exact operation idempotently but rejects same ID with different data',()=>{
-    const item=decideLifecycleChange([],operation(op1,0,'archived'),1,true).record;
-    expect(decideLifecycleChange([item],operation(op1,0,'archived'),2,true))
-      .toEqual({record:item,created:false});
-    expect(incorporateLifecyclePage([item],[item],owner)).toEqual([item]);
-    expect(()=>decideLifecycleChange([item],operation(op1,0,'active'),2,true)).toThrow(/reutilizado/);
-    expect(()=>incorporateLifecyclePage([item],[{...item,nextState:'active'}],owner)).toThrow(/divergente/);
+  it('rejects an offline device with an obsolete expected version',()=>{
+    const archived=decideLifecycleChange([],change(op1,0,'archived'),1,true).record;
+    expect(()=>decideLifecycleChange([archived],change(op2,0,'active'),2,true)).toThrow(LifecycleConflict);
+    expect(()=>incorporateLifecyclePage([archived],[{...change(op2,0,'active'),version:1,revision:2}],user)).toThrow(LifecycleConflict);
+    expect(isEntitySelectable([archived],user,'account',account)).toBe(false);
   });
 
-  it('restores archived entity only with a new expectedVersion and explicit reactivation',()=>{
-    const archive=decideLifecycleChange([],operation(op1,0,'archived'),1,true).record;
-    const reactivate=decideLifecycleChange([archive],operation(op2,1,'active'),2,true).record;
-    const state=incorporateLifecyclePage([archive],[reactivate],owner);
-    expect(isEntitySelectable(state,owner,'account',account)).toBe(true);
-    expect(currentLifecycle(state,owner,'account',account).version).toBe(2);
-    expect(()=>decideLifecycleChange(state,operation(op3,1,'archived'),3,true)).toThrow(LifecycleConflict);
+  it('retries an identical operation idempotently and rejects changed content',()=>{
+    const first=decideLifecycleChange([],change(op1,0,'archived'),1,true).record;
+    expect(decideLifecycleChange([first],change(op1,0,'archived'),2,true)).toEqual({record:first,created:false});
+    expect(()=>decideLifecycleChange([first],change(op1,0,'active'),2,true)).toThrow(/divergente/);
+    expect(()=>incorporateLifecyclePage([first],[{...first,nextState:'active'}],user)).toThrow(/divergente/);
   });
 
-  it('isolates categories, accounts, and owners, with sequential entity revisions',()=>{
-    const accountArchive=decideLifecycleChange([],operation(op1,0,'archived'),1,true).record;
-    const categoryArchive=decideLifecycleChange([accountArchive],
-      operation(op2,0,'archived','category',category),2,true).record;
-    const state=incorporateLifecyclePage([],[accountArchive,categoryArchive],owner);
-    expect(isEntitySelectable(state,owner,'category',category)).toBe(false);
-    expect(isEntitySelectable(state,owner,'account',category)).toBe(true);
-    expect(isEntitySelectable(state,other,'account',account)).toBe(true);
-    expect(()=>incorporateLifecyclePage(state,[{...categoryArchive,ownerId:other,operationId:op3}],owner))
-      .toThrow(/outro proprietário/);
+  it('rejects duplicate or non-monotonic feed revisions and no-op changes',()=>{
+    const first=decideLifecycleChange([],change(op1,0,'active'),1,true).record;
+    expect(()=>decideLifecycleChange([first],change(op2,1,'active'),2,true)).toThrow(/solicitados/);
+    expect(()=>incorporateLifecyclePage([first],[{...change(op2,1,'active','account',account,{...accountMeta,name:'Nova'}),version:2,revision:1}],user)).toThrow(/fora de ordem/);
+    expect(()=>incorporateLifecyclePage([first],[{...change(op2,1,'active','account',account,{...accountMeta,name:'Nova'}),version:2,revision:0}],user)).toThrow(/Registro de versão/);
   });
 
-  it('rejects gaps, duplicate global revision, nonexistent entity and invalid values without changes',()=>{
-    const archive=decideLifecycleChange([],operation(op1,0,'archived'),1,true).record;
-    const baseline=[archive];
-    expect(()=>decideLifecycleChange(baseline,operation(op2,1,'active'),2,false)).toThrow(/não encontrada/);
-    expect(()=>decideLifecycleChange(baseline,operation(op2,0,'archived','category',category),1,true))
-      .toThrow(/Revisão global/);
-    expect(()=>decideLifecycleChange(baseline,{...operation(op2,1,'active'),expectedVersion:-1},2,true))
-      .toThrow(/Versão esperada/);
-    expect(()=>incorporateLifecyclePage(baseline,[{...operation(op2,1,'active'),version:4,revision:2}],owner))
-      .toThrow(LifecycleConflict);
-    expect(baseline).toEqual([archive]);
+  it('isolates owners and entity kinds and validates metadata',()=>{
+    const accountRow=decideLifecycleChange([],change(op1,0,'archived'),1,true).record;
+    const categoryChange=change(op2,0,'archived','category',category,categoryMeta);
+    const categoryRow=decideLifecycleChange([accountRow],categoryChange,2,true).record;
+    const history=incorporateLifecyclePage([accountRow],[categoryRow],user);
+    expect(isEntitySelectable(history,user,'category',category)).toBe(false);
+    expect(isEntitySelectable(history,user,'account',category)).toBe(true);
+    expect(isEntitySelectable(history,other,'account',account)).toBe(true);
+    expect(()=>decideLifecycleChange([], {...change(op3,0,'archived'),metadata:{...accountMeta,kind:'invalid' as never}},1,true)).toThrow(/Tipo de conta/);
+    expect(()=>incorporateLifecyclePage(history,[{...categoryRow,userId:other,operationId:op3}],user)).toThrow(/outro proprietário/);
+  });
+
+  it('does not mutate source history when a transition fails',()=>{
+    const first=decideLifecycleChange([],change(op1,0,'archived'),1,true).record;
+    const source:LifecycleRecord[]=[first];
+    expect(()=>decideLifecycleChange(source,change(op2,0,'active'),2,true)).toThrow(LifecycleConflict);
+    expect(source).toEqual([first]);
   });
 });

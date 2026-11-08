@@ -111,7 +111,7 @@ function RemoteWorkspace({controller}:{controller:RemoteController}) {
     </div>
     <Conflicts controller={controller} />
   </section>;
-  return <FinancialWorkspace finance={finance} integration serverId={controller.serverId} exportJson={exportJson} importJson={json=>controller.importBackupOperations(json)} bankPanel={<PluggyReadPanel controller={controller} importTarget={{accounts:finance.state.accounts,readState:finance.readState,execute:finance.execute,context:finance.context,canWrite:snapshot.session.canWriteLocal && snapshot.session.canTransmit}}/>} sessionControls={cloudControls} />;
+  return <FinancialWorkspace finance={finance} integration entityManagementEnabled={snapshot.session.onlineVerified&&snapshot.session.canTransmit&&snapshot.session.serverSchemaVersion===4} serverId={controller.serverId} exportJson={exportJson} importJson={json=>controller.importBackupOperations(json)} bankPanel={<PluggyReadPanel controller={controller} importTarget={{accounts:finance.state.accounts,readState:finance.readState,execute:finance.execute,context:finance.context,canWrite:snapshot.session.canWriteLocal && snapshot.session.canTransmit}}/>} sessionControls={cloudControls} />;
 }
 
 function Conflicts({controller}:{controller:RemoteController}) {

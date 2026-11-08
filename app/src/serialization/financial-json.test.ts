@@ -14,6 +14,25 @@ function firstEvent(root: Record<string, unknown>): Record<string, unknown> {
 }
 
 describe('versioned explicit financial JSON', () => {
+  it('round-trips versioned P03 archive history as schema v4 while preserving old finance and owner', () => {
+    const dataset=syntheticDataset(USER_ID);
+    const account=dataset.accounts[0]!;
+    dataset.entityLifecycles=[{
+      operationId:'f0000000-0000-4000-8000-000000000001',userId:USER_ID,entity:'account',
+      entityId:account.id,expectedVersion:0,version:1,nextState:'archived',revision:2,
+      metadata:{name:account.name,kind:account.kind,availability:account.availability},
+    }];
+    const json=serializeFinancialDataset(dataset,USER_ID);
+    expect(JSON.parse(json).schemaVersion).toBe(4);
+    expect(deserializeFinancialDataset(json,USER_ID)).toEqual(dataset);
+    const foreign=JSON.parse(json);
+    foreign.entityLifecycles[0].userId='11111111-1111-4111-8111-111111111111';
+    expect(()=>deserializeFinancialDataset(JSON.stringify(foreign),USER_ID)).toThrow();
+    const unknown=JSON.parse(json);
+    unknown.entityLifecycles[0].metadata.secret='unrecognized';
+    expect(()=>deserializeFinancialDataset(JSON.stringify(unknown),USER_ID)).toThrow();
+  });
+
   it('round-trips positive and negative bigint using decimal strings in schema version 1', () => {
     const dataset = syntheticDataset(USER_ID);
     const json = serializeFinancialDataset(dataset, USER_ID);

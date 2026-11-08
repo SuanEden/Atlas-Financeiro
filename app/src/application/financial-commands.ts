@@ -1,5 +1,6 @@
 import {
   assertEntryAmount,
+  assertFinancialDataset,
   assertIsoDate,
   type Account,
   type AccountReconciliation,
@@ -12,6 +13,8 @@ import {
   type Settlement,
   parseMonthlyRecurrenceRule,
   getAccountReconciliation,
+  currentLifecycle,
+  type LifecycleChange,
 } from '../domain';
 import type { FinancialAggregate } from '../persistence';
 import { serializeOperationPayload } from '../serialization';
@@ -153,6 +156,53 @@ export function createCategoryCommand(input: CreateCategoryInput, context: Comma
     ...(input.parentId === undefined ? {} : { parentId: input.parentId }),
   };
   return command('create_category', { categories: [category] }, context);
+}
+
+/** Versioned metadata edit/archive/reactivate. The server assigns the final entity version and feed revision. */
+export function manageEntityCommand(
+  dataset:FinancialDataset,
+  entity:'account'|'category',
+  id:string,
+  action:'edit'|'archive'|'restore',
+  changes?:{name:string;kind:string;availability?:string;parentId?:string},
+  context?:CommandContext,
+):LocalCommand {
+  if(!context)throw new TypeError('Contexto de alteração ausente.');
+  const account=entity==='account'?dataset.accounts.find(item=>item.id===id):undefined;
+  const category=entity==='category'?dataset.categories.find(item=>item.id===id):undefined;
+  if(!account&&!category)throw new TypeError('Conta ou categoria não encontrada.');
+  const current=currentLifecycle(dataset.entityLifecycles??[],context.userId,entity,id);
+  if(action==='archive'&&current.state==='archived')throw new TypeError('Esta entidade já está arquivada.');
+  if(action==='restore'&&current.state==='active')throw new TypeError('Esta entidade já está ativa.');
+  if(action==='edit'&&current.state==='archived')throw new TypeError('Reative a entidade antes de editar seus dados.');
+  const metadata=account
+    ? {name:changes?.name.trim()??account.name,kind:(changes?.kind??account.kind) as Account['kind'],
+       availability:((changes?.kind??account.kind)==='transport'?'restricted':changes?.availability??account.availability) as Account['availability']}
+    : {name:changes?.name.trim()??category!.name,kind:(changes?.kind??category!.kind) as Category['kind'],
+       ...((changes?.parentId??(changes?undefined:category!.parentId))===undefined?{}:{parentId:changes?.parentId??category!.parentId})};
+  const change:LifecycleChange={
+    operationId:context.nextId(),userId:context.userId,entity,entityId:id,expectedVersion:current.version,
+    nextState:action==='archive'?'archived':action==='restore'?'active':current.state,metadata,
+  } as LifecycleChange;
+  const provisional={...change,version:current.version+1,revision:0};
+  const candidate=structuredClone(dataset);
+  candidate.entityLifecycles=[...(candidate.entityLifecycles??[]),provisional];
+  if(entity==='account') {
+    const target=candidate.accounts.find(item=>item.id===id)!;
+    Object.assign(target,metadata);
+  } else {
+    const target=candidate.categories.find(item=>item.id===id)!;
+    target.name=metadata.name;target.kind=metadata.kind as Category['kind'];
+    if('parentId' in metadata&&metadata.parentId!==undefined)target.parentId=metadata.parentId;else delete target.parentId;
+  }
+  assertFinancialDataset(candidate,context.userId);
+  const payload={schemaVersion:1,userId:context.userId,lifecycleChange:{
+    entity:change.entity,entityId:change.entityId,expectedVersion:change.expectedVersion,
+    nextState:change.nextState,metadata:change.metadata,
+  }};
+  const operation:PendingOperation={id:change.operationId,userId:context.userId,kind:'manage_entity',
+    createdAt:context.now(),payloadJson:JSON.stringify(payload)};
+  return {aggregate:{},operation};
 }
 
 export function createTransactionCommand(input: TransactionInput, context: CommandContext): LocalCommand {

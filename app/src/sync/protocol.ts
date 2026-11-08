@@ -5,6 +5,7 @@ import { assertPendingOperation } from '../serialization/pending-operation';
 import { canonicalLocalState, validateI2Backup } from '../backup/validate-i2-backup';
 import { serializeLocalBackup } from '../backup/local-backup';
 import { deserializeFinancialAggregate } from '../serialization/financial-json';
+import { incorporateLifecyclePage } from '../domain/lifecycle';
 
 export const SYNC_PROTOCOL_VERSION = 1 as const;
 export const MAX_COMMAND_BYTES = 128 * 1024;
@@ -39,49 +40,38 @@ export async function jsonDigest(value: unknown): Promise<string> {
  * the v3 migration. Older I3 installations are conservatively treated as v2.
  */
 export function isI3SchemaCompatible(envelope: SyncEnvelope, serverSchemaVersion = 2): boolean {
-  if (serverSchemaVersion !== 2 && serverSchemaVersion !== 3) return false;
-  const data = envelope.kind === 'bootstrap' ? envelope.data : envelope.operation.payload;
-  // P03 is not yet part of protocol v1. Reject future lifecycle/tombstone
-  // metadata rather than silently treating archived entities as active again.
-  const futureLifecycleFields = new Set([
-    'archivedAt','deletedAt','isArchived','lifecycleVersion','entityVersion',
-    'archivedEntities','tombstones','entityLifecycles','entityVersions',
-  ]);
-  if (Object.keys(data).some(key => futureLifecycleFields.has(key))) return false;
-  // Bootstraps embed legacy operations; reject hidden archive metadata there too.
-  // Otherwise a v1 device might read a future lifecycle snapshot as active.
-  if(envelope.kind==='bootstrap' && envelope.coveredOperations.some(operation => {
+  if (![2,3,4].includes(serverSchemaVersion)) return false;
+  const data=envelope.kind==='bootstrap'?envelope.data:envelope.operation.payload;
+  const unsupportedLifecycleFields=new Set(['archivedAt','deletedAt','isArchived','lifecycleVersion','entityVersion','archivedEntities','tombstones','entityVersions']);
+  if(Object.keys(data).some(key=>unsupportedLifecycleFields.has(key)))return false;
+  if(serverSchemaVersion<4&&(envelope.kind==='manage_entity'||data.entityLifecycles!==undefined||data.lifecycleChange!==undefined))return false;
+  if(envelope.kind==='bootstrap'&&envelope.coveredOperations.some(operation=>{
     const payload=operation.payload;
-    if(!payload||typeof payload!=='object'||Array.isArray(payload)) return true;
-    if(Object.keys(payload).some(key=>futureLifecycleFields.has(key))) return true;
-    return (['accounts','categories'] as const).some(table => {
+    if(!payload||typeof payload!=='object'||Array.isArray(payload))return true;
+    if(Object.keys(payload).some(key=>unsupportedLifecycleFields.has(key)))return true;
+    return (['accounts','categories'] as const).some(table=>{
       const rows=payload[table];
-      return rows!==undefined && (!Array.isArray(rows)||rows.some(row=>
-        !row||typeof row!=='object'||Array.isArray(row)||
-        Object.keys(row).some(key=>futureLifecycleFields.has(key))));
+      return rows!==undefined&&(!Array.isArray(rows)||rows.some(row=>!row||typeof row!=='object'||Array.isArray(row)
+        ||Object.keys(row).some(key=>unsupportedLifecycleFields.has(key))));
     });
-  })) return false;
-  for (const table of ['accounts','categories'] as const) {
+  }))return false;
+  for(const table of ['accounts','categories'] as const) {
     const rows=data[table];
-    if (rows === undefined) continue;
-    if (!Array.isArray(rows) || rows.some(value =>
-      !value || typeof value !== 'object' || Array.isArray(value) ||
-      Object.keys(value).some(key => futureLifecycleFields.has(key)))) return false;
+    if(rows!==undefined&&(!Array.isArray(rows)||rows.some(value=>!value||typeof value!=='object'||Array.isArray(value)
+      ||Object.keys(value).some(key=>unsupportedLifecycleFields.has(key)))))return false;
   }
-  if (envelope.kind === 'bootstrap' && data.schemaVersion !== 2 &&
-      !(serverSchemaVersion >= 3 && data.schemaVersion === 3)) return false;
-  const hasReconciliations = Array.isArray(data.accountReconciliations) && data.accountReconciliations.length > 0;
-  if (serverSchemaVersion < 3 && (envelope.kind === 'reconcile_account' || hasReconciliations)) return false;
-  const events = Array.isArray(data.events) ? data.events : [];
-  return !events.some((value) => {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) return true;
-    const event = value as Record<string, unknown>;
-    if (serverSchemaVersion < 3 &&
-        (event.recurrenceJson !== undefined || event.recurrenceRuleId !== undefined ||
-         event.recurrenceMonth !== undefined)) return true;
-    // Recording an opening balance outside the account-creation/reconciliation
-    // contract remains forbidden even on v3.
-    if (envelope.kind === 'record_event' && event.source === 'opening_balance') return true;
+  if(envelope.kind==='bootstrap') {
+    if(data.schemaVersion!==2&&data.schemaVersion!==3&&!(serverSchemaVersion>=4&&data.schemaVersion===4))return false;
+    if(data.schemaVersion===4&&!Array.isArray(data.entityLifecycles))return false;
+  }
+  const hasReconciliations=Array.isArray(data.accountReconciliations)&&data.accountReconciliations.length>0;
+  if(serverSchemaVersion<3&&(envelope.kind==='reconcile_account'||hasReconciliations))return false;
+  const events=Array.isArray(data.events)?data.events:[];
+  return !events.some(value=>{
+    if(typeof value!=='object'||value===null||Array.isArray(value))return true;
+    const event=value as Record<string,unknown>;
+    if(serverSchemaVersion<3&&(event.recurrenceJson!==undefined||event.recurrenceRuleId!==undefined||event.recurrenceMonth!==undefined))return true;
+    if(envelope.kind==='record_event'&&event.source==='opening_balance')return true;
     return false;
   });
 }
@@ -104,14 +94,20 @@ export async function prepareBootstrap(state: LocalFinancialState, sourceOwner: 
   // Reuse the strict I2 boundary before changing ownership, including payload-to-snapshot coverage.
   validateI2Backup(serializeLocalBackup(state, sourceOwner));
   const data = JSON.parse(serializeFinancialDataset(state, sourceOwner)) as JsonRecord;
-  // Preserve wire compatibility for genuine legacy I2 data only. New v3
-  // reconciliations/recurrences are never dropped or silently downgraded.
-  const hasReconciliations = Array.isArray(data.accountReconciliations) && data.accountReconciliations.length > 0;
-  const hasRecurrences = Array.isArray(data.events) && data.events.some((row: JsonRecord) =>
-    row.recurrenceJson !== undefined || row.recurrenceRuleId !== undefined || row.recurrenceMonth !== undefined);
-  if (!hasReconciliations && !hasRecurrences) {
+  const hasLifecycles=Array.isArray(data.entityLifecycles)&&(data.entityLifecycles as unknown[]).length>0;
+  const hasReconciliations=Array.isArray(data.accountReconciliations)&&(data.accountReconciliations as unknown[]).length>0;
+  const hasRecurrences=Array.isArray(data.events)&&(data.events as JsonRecord[]).some(row=>
+    row.recurrenceJson!==undefined||row.recurrenceRuleId!==undefined||row.recurrenceMonth!==undefined);
+  if(hasLifecycles) {
+    data.schemaVersion=4;
+    for(const row of data.entityLifecycles as JsonRecord[]){row.revision=0;row.userId=authenticatedOwner;}
+  } else if(hasReconciliations||hasRecurrences) {
+    data.schemaVersion=3;
+    delete data.entityLifecycles;
+  } else {
+    data.schemaVersion=2;
     delete data.accountReconciliations;
-    data.schemaVersion = 2;
+    delete data.entityLifecycles;
   }
   data.userId = authenticatedOwner;
   for (const table of DATA_TABLES) for (const row of (data[table] ?? []) as JsonRecord[]) row.userId = authenticatedOwner;
@@ -131,10 +127,17 @@ export async function prepareBootstrap(state: LocalFinancialState, sourceOwner: 
   return envelope;
 }
 
-export function envelopeData(envelope: SyncEnvelope): FinancialDataset {
-  if (envelope.kind === 'bootstrap') return deserializeFinancialDataset(JSON.stringify(envelope.data), envelope.userId);
-  // References may point into the confirmed dataset; full validation occurs after merge.
-  return deserializeFinancialAggregate(JSON.stringify(envelope.operation.payload), envelope.userId);
+export function envelopeData(envelope: SyncEnvelope,feedRevision?:string): FinancialDataset {
+  if(envelope.kind==='bootstrap')return deserializeFinancialDataset(JSON.stringify(envelope.data),envelope.userId);
+  if(envelope.kind==='manage_entity') {
+    const change=envelope.operation.payload.lifecycleChange as JsonRecord;
+    const revision=feedRevision===undefined?0:Number(feedRevision);
+    if(!Number.isSafeInteger(revision)||revision<0)throw new TypeError('Revisão de arquivamento inválida.');
+    const row={operationId:envelope.operation.id,userId:envelope.userId,entity:change.entity,entityId:change.entityId,
+      expectedVersion:change.expectedVersion,version:Number(change.expectedVersion)+1,nextState:change.nextState,revision,metadata:change.metadata};
+    return {accounts:[],categories:[],events:[],settlements:[],postings:[],entityLifecycles:[row as import('../domain').EntityLifecycleRecord]};
+  }
+  return deserializeFinancialAggregate(JSON.stringify(envelope.operation.payload),envelope.userId);
 }
 
 export function mergeAppendOnly(base: FinancialDataset, incoming: FinancialDataset, owner: string): FinancialDataset {
@@ -149,6 +152,8 @@ export function mergeAppendOnly(base: FinancialDataset, incoming: FinancialDatas
       } else { if (merged[table] === undefined) (merged as unknown as Record<string, unknown>)[table] = rows; rows.push(structuredClone(row)); existing.set(row.id, row); }
     }
   }
+  if((merged.entityLifecycles?.length??0)>0||(incoming.entityLifecycles?.length??0)>0)
+    merged.entityLifecycles=incorporateLifecyclePage(merged.entityLifecycles??[],incoming.entityLifecycles??[],owner,true);
   assertFinancialDataset(merged, owner);
   return merged;
 }
