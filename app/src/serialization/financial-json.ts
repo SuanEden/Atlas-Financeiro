@@ -11,7 +11,8 @@ import {
   type Settlement,
 } from '../domain';
 
-export const FINANCIAL_JSON_SCHEMA_VERSION = 4 as const;
+export const FINANCIAL_JSON_SCHEMA_VERSION = 3 as const;
+export const LIFECYCLE_JSON_SCHEMA_VERSION = 4 as const;
 
 /**
  * A versioned data representation for the local foundation and its tests.
@@ -21,7 +22,7 @@ export const FINANCIAL_JSON_SCHEMA_VERSION = 4 as const;
 export function serializeFinancialDataset(dataset: FinancialDataset, userId: string): string {
   assertFinancialDataset(dataset, userId);
   return JSON.stringify({
-    schemaVersion: FINANCIAL_JSON_SCHEMA_VERSION,
+    schemaVersion: (dataset.entityLifecycles?.length ?? 0)>0 ? LIFECYCLE_JSON_SCHEMA_VERSION : FINANCIAL_JSON_SCHEMA_VERSION,
     userId,
     accounts: dataset.accounts.map((account) => ({
       id: account.id,
@@ -78,11 +79,11 @@ export function serializeFinancialDataset(dataset: FinancialDataset, userId: str
       accountId: posting.accountId,
       amountCents: encodeCents(posting.amountCents),
     })),
-    entityLifecycles: (dataset.entityLifecycles ?? []).map((row) => ({
+    ...((dataset.entityLifecycles?.length ?? 0)===0 ? {} : { entityLifecycles: dataset.entityLifecycles!.map((row) => ({
       operationId: row.operationId, userId: row.userId, entity: row.entity, entityId: row.entityId,
       expectedVersion: row.expectedVersion, version: row.version, nextState: row.nextState,
       revision: row.revision, metadata: row.metadata,
-    })),
+    })) }),
   });
 }
 
@@ -92,7 +93,7 @@ export function deserializeFinancialDataset(json: string, expectedUserId: string
     'schemaVersion', 'userId', 'accounts', 'categories', 'events', 'settlements', 'postings', 'accountReconciliations', 'entityLifecycles',
   ]);
   if(root.schemaVersion===4&&!Array.isArray(root.entityLifecycles))throw new TypeError('O histórico de versões é obrigatório no schema financeiro v4.');
-  if (root.schemaVersion !== 1 && root.schemaVersion !== 2 && root.schemaVersion !== 3 && root.schemaVersion !== FINANCIAL_JSON_SCHEMA_VERSION) {
+  if (root.schemaVersion !== 1 && root.schemaVersion !== 2 && root.schemaVersion !== FINANCIAL_JSON_SCHEMA_VERSION && root.schemaVersion !== LIFECYCLE_JSON_SCHEMA_VERSION) {
     throw new TypeError('Versão da representação financeira não suportada.');
   }
   if (readString(root, 'userId') !== expectedUserId) {
