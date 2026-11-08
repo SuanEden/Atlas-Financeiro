@@ -132,7 +132,34 @@ export function adapterFromClient(client:ApiClient,origin:string,clearLocalSessi
     async logout() {try {const {error}=await client.auth.signOut({scope:'local'});if(error) throw mapRemoteError(error);}finally {clearLocalSession();}},
     onChange(callback) {const {data}=client.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>callback(session?.user.id),0);});return ()=>data.subscription.unsubscribe();},
   };
-  return {auth,transport:{apply:async(envelope:SyncEnvelope)=>{assertEnvelope(envelope);return rpc<Receipt>('i3_apply',{p_envelope:envelope});},pull:(after:string,through:string|null)=>rpc<ChangePage>('i3_pull',{p_after:after,p_through:through,p_limit:10})}};
+  const watchRevisions: NonNullable<SyncTransport['watchRevisions']> = (userId,onRevision)=>{
+    // The topic is user-scoped by realtime.messages RLS. No financial fields
+    // are ever broadcast; the ledger is fetched and validated through i3_pull.
+    let closed=false;
+    let channel: ReturnType<typeof client.channel> | undefined;
+    void (async()=>{
+      const {data,error}=await client.auth.getSession();
+      if(closed||error||data.session?.user.id!==userId||!data.session.access_token)return;
+      await client.realtime.setAuth(data.session.access_token);
+      if(closed)return;
+      channel=client.channel('atlas:revision:'+userId,{config:{private:true}})
+        .on('broadcast',{event:'revision_changed'},({payload})=>{
+          if(!closed&&typeof payload?.revision==='string'&&/^(0|[1-9]\\d{0,18})$/.test(payload.revision))
+            onRevision(payload.revision);
+        })
+        .subscribe(status=>{
+          // Always reconcile on subscribe/re-subscribe; notifications may be
+          // lost while offline or during a socket reconnect.
+          if(!closed&&status==='SUBSCRIBED')onRevision();
+        });
+    })().catch(()=>{ /* Poll/focus fallback remains available. */ });
+    return ()=>{closed=true;if(channel)void client.removeChannel(channel);};
+  };
+  return {auth,transport:{
+    apply:async(envelope:SyncEnvelope)=>{assertEnvelope(envelope);return rpc<Receipt>('i3_apply',{p_envelope:envelope});},
+    pull:(after:string,through:string|null)=>rpc<ChangePage>('i3_pull',{p_after:after,p_through,p_limit:10}),
+    watchRevisions,
+  }};
 }
 
 /** Never expose raw PostgreSQL/Auth messages (which can contain submitted data or URLs). */
