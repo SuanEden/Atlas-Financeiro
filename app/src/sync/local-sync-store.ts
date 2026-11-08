@@ -169,7 +169,7 @@ export class LocalSyncStore {
     });
   }
 
-  async applyPage(page: ChangePage, serverSchemaVersion=3): Promise<void> {
+  async applyPage(page: ChangePage, serverSchemaVersion=2): Promise<void> {
     const acknowledgements=await validatePage(page,this.userId,serverSchemaVersion);
     await this.#db.transaction('rw',ALL,async()=>{
       const meta=await this.meta();
