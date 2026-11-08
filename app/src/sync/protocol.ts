@@ -152,13 +152,14 @@ export function mergeAppendOnly(base: FinancialDataset, incoming: FinancialDatas
       } else { if (merged[table] === undefined) (merged as unknown as Record<string, unknown>)[table] = rows; rows.push(structuredClone(row)); existing.set(row.id, row); }
     }
   }
-  merged.entityLifecycles=incorporateLifecyclePage(merged.entityLifecycles??[],incoming.entityLifecycles??[],owner,true);
+  if((merged.entityLifecycles?.length??0)>0||(incoming.entityLifecycles?.length??0)>0)
+    merged.entityLifecycles=incorporateLifecyclePage(merged.entityLifecycles??[],incoming.entityLifecycles??[],owner,true);
   assertFinancialDataset(merged, owner);
   return merged;
 }
 
 function centsReplacer(_key: string, value: unknown) { return typeof value === 'bigint' ? value.toString() : value; }
-export function emptyDataset(): FinancialDataset { return { accounts: [], categories: [], events: [], settlements: [], postings: [], entityLifecycles: [] }; }
+export function emptyDataset(): FinancialDataset { return { accounts: [], categories: [], events: [], settlements: [], postings: [] }; }
 export function assertSize(envelope: SyncEnvelope, maximum = envelope.kind === 'bootstrap' ? MAX_BOOTSTRAP_BYTES : MAX_COMMAND_BYTES): void {
   if (new TextEncoder().encode(canonicalJson(envelope)).byteLength > maximum) throw new RangeError('Operação acima do limite de envio; os dados locais foram preservados.');
 }
