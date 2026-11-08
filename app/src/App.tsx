@@ -25,7 +25,7 @@ import {
   type CreateCategoryInput,
   type TransactionInput,
 } from './application';
-import type { Account, Category, FinancialEvent } from './domain';
+import { isEntitySelectable, type Account, type Category, type FinancialEvent } from './domain';
 import { AccountForm, AccountReconciliationForm, CategoryForm, DialogFrame, MetadataEditForm, TransactionForm } from './ui/Forms';
 import { AccountsView, BackupView, CategoriesView, Dashboard, MovementsView, type Page } from './ui/Views';
 import { useLocalFinance } from './ui/use-local-finance';
@@ -76,6 +76,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
   }
 
   async function saveReconciliation(input: AccountReconciliationInput) {
+    if(!isEntitySelectable(state.entityLifecycles??[],userId,'account',input.accountId))throw new Error('Reative a conta antes de conciliar.');
     await execute(reconcileAccountCommand(state, input, context));
     setNotice('Saldo inicial registrado. Confira a condição e a data de referência na conta.');
     setModal(undefined);
@@ -96,6 +97,11 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
     setModal(undefined);
   }
 
+  async function restoreEntity(kind:'account'|'category',id:string) {
+    await finance.restoreEntity(kind,id);
+    setNotice(kind==='account'?'Conta reativada.':'Categoria reativada.');
+  }
+
   async function deleteEntity() {
     if(modal?.type!=='delete_entity')return;
     const {entity,kind}=modal;
@@ -107,7 +113,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
           throw new Error('Desative primeiro a importação bancária vinculada a esta conta.');
       }
       await modifyEntity('delete',kind,entity.id);
-      setNotice(kind==='account'?'Conta sem movimentações excluída.':'Categoria não utilizada excluída.');
+      setNotice(integration?(kind==='account'?'Conta arquivada.':'Categoria arquivada.'):(kind==='account'?'Conta sem movimentações excluída.':'Categoria não utilizada excluída.'));
       setModal(undefined);
     } catch (reason) {
       setDeleteFailure(reason instanceof Error ? reason.message : 'Não foi possível excluir.');
@@ -115,6 +121,9 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
   }
 
   async function saveTransaction(input: TransactionInput) {
+    if(!isEntitySelectable(state.entityLifecycles??[],userId,'account',input.accountId))throw new Error('Escolha uma conta ativa para o novo lançamento.');
+    if(input.transferAccountId&&!isEntitySelectable(state.entityLifecycles??[],userId,'account',input.transferAccountId))throw new Error('A conta de destino está arquivada.');
+    if(input.categoryId&&!isEntitySelectable(state.entityLifecycles??[],userId,'category',input.categoryId))throw new Error('Escolha uma categoria ativa.');
     if (modal?.type === 'transaction' && modal.initial !== undefined) {
       await execute(replaceEventCommand(state, modal.initial.id, input, context));
     } else {
@@ -165,9 +174,9 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
             </div></section> : null}
             {page === 'dashboard' ? <Dashboard integration={integration} state={state} today={today} userId={userId} onAddAccount={() => setModal({ type: 'account' })} onAddTransaction={openTransaction} onNavigate={(next)=>setPage(next)} /> : null}
             {page === 'movements' ? <MovementsView integration={integration} state={state} onAdd={openTransaction} onEdit={(event) => setModal({ type: 'transaction', initial: event })} onReverse={(event) => setModal({ type: 'reverse', event })} /> : null}
-            {page === 'accounts' ? <AccountsView state={state} canManage={!integration} onAdd={() => setModal({ type: 'account' })} onEdit={(account)=>setModal({type:'edit_account',account})} onDelete={(account)=>{setDeleteFailure('');setModal({type:'delete_entity',entity:account,kind:'account'});}} onReconcile={(account) => setModal({ type: 'reconcile', account })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
+            {page === 'accounts' ? <AccountsView state={state} integration={integration} onAdd={() => setModal({ type: 'account' })} onEdit={(account)=>setModal({type:'edit_account',account})} onDelete={(account)=>{setDeleteFailure('');setModal({type:'delete_entity',entity:account,kind:'account'});}} onRestore={(account)=>void restoreEntity('account',account.id).catch(()=>setDeleteFailure('Não foi possível reativar a conta.'))} onReconcile={(account) => setModal({ type: 'reconcile', account })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
             {page === 'categories' || page === 'backup' ? <div className="mobile-settings-tabs"><button className={page === 'categories' ? 'is-active' : ''} onClick={() => setPage('categories')}>Categorias</button><button className={page === 'backup' ? 'is-active' : ''} onClick={() => setPage('backup')}>Modo nuvem</button></div> : null}
-            {page === 'categories' ? <CategoriesView state={state} canManage={!integration} onAdd={() => setModal({ type: 'category' })} onEdit={(category)=>setModal({type:'edit_category',category})} onDelete={(category)=>{setDeleteFailure('');setModal({type:'delete_entity',entity:category,kind:'category'});}} /> : null}
+            {page === 'categories' ? <CategoriesView state={state} integration={integration} onAdd={() => setModal({ type: 'category' })} onEdit={(category)=>setModal({type:'edit_category',category})} onDelete={(category)=>{setDeleteFailure('');setModal({type:'delete_entity',entity:category,kind:'category'});}} onRestore={(category)=>void restoreEntity('category',category.id).catch(()=>setDeleteFailure('Não foi possível reativar a categoria.'))} /> : null}
             {page === 'backup' ? <div className="cloud-hub" aria-label="Modo nuvem">
               <section className="cloud-hub-header" aria-labelledby="cloud-hub-heading">
                 <span className="cloud-hub-symbol" aria-hidden="true"><Cloud size={23}/></span>
@@ -198,8 +207,8 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
       {modal?.type === 'category' ? <DialogFrame title="Nova categoria" onClose={() => setModal(undefined)}><CategoryForm categories={state.categories} busy={busy} onCancel={() => setModal(undefined)} onSave={saveCategory} /></DialogFrame> : null}
       {modal?.type === 'edit_account' ? <DialogFrame title="Editar conta" onClose={()=>setModal(undefined)}><MetadataEditForm entity={modal.account} accounts={state.accounts} busy={busy} onCancel={()=>setModal(undefined)} onSave={saveMetadata}/></DialogFrame> : null}
       {modal?.type === 'edit_category' ? <DialogFrame title="Editar categoria" onClose={()=>setModal(undefined)}><MetadataEditForm entity={modal.category} categories={state.categories} busy={busy} onCancel={()=>setModal(undefined)} onSave={saveMetadata}/></DialogFrame> : null}
-      {modal?.type === 'delete_entity' ? <DialogFrame title={modal.kind==='account'?'Excluir conta':'Excluir categoria'} onClose={()=>setModal(undefined)}><div className="confirm-dialog"><p>Deseja excluir <strong>{modal.entity.name}</strong>?</p><p className="form-note">A exclusão é permitida apenas para registros sem lançamentos, conciliações, importações vinculadas ou dependências. Caso contrário, será bloqueada para preservar o histórico financeiro.</p>{deleteFailure?<p className="form-error" role="alert">{deleteFailure}</p>:null}<footer className="dialog-actions"><button type="button" className="button button--ghost" onClick={()=>setModal(undefined)}>Cancelar</button><button type="button" className="button button--danger" disabled={busy} onClick={()=>void deleteEntity()}>{busy?'Excluindo…':'Confirmar exclusão'}</button></footer></div></DialogFrame> : null}
-      {modal?.type === 'transaction' ? <DialogFrame title={modal.initial === undefined ? 'Novo lançamento' : 'Corrigir lançamento'} onClose={() => setModal(undefined)} wide><TransactionForm defaultKind={modal.kind ?? 'expense'} accounts={state.accounts} categories={state.categories} recurrenceRules={state.events.filter((event) => event.recurrenceJson !== undefined && event.status === 'planned')} {...(modal.initial === undefined ? {} : { initial: modal.initial })} today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveTransaction} /></DialogFrame> : null}
+      {modal?.type === 'delete_entity' ? <DialogFrame title={integration?(modal.kind==='account'?'Arquivar conta':'Arquivar categoria'):(modal.kind==='account'?'Excluir conta':'Excluir categoria')} onClose={()=>setModal(undefined)}><div className="confirm-dialog"><p>Deseja {integration?'arquivar':'excluir'} <strong>{modal.entity.name}</strong>?</p><p className="form-note">{integration?'O registro e todo o histórico financeiro serão preservados. Ele deixará de aparecer nas opções de novos lançamentos e poderá ser reativado.':'A exclusão é permitida apenas para registros sem lançamentos, conciliações, importações vinculadas ou dependências. Caso contrário, será bloqueada para preservar o histórico financeiro.'}</p>{deleteFailure?<p className="form-error" role="alert">{deleteFailure}</p>:null}<footer className="dialog-actions"><button type="button" className="button button--ghost" onClick={()=>setModal(undefined)}>Cancelar</button><button type="button" className="button button--danger" disabled={busy} onClick={()=>void deleteEntity()}>{busy?'Excluindo…':'Confirmar exclusão'}</button></footer></div></DialogFrame> : null}
+      {modal?.type === 'transaction' ? <DialogFrame title={modal.initial === undefined ? 'Novo lançamento' : 'Corrigir lançamento'} onClose={() => setModal(undefined)} wide><TransactionForm defaultKind={modal.kind ?? 'expense'} accounts={state.accounts.filter(row=>isEntitySelectable(state.entityLifecycles??[],userId,'account',row.id))} categories={state.categories.filter(row=>isEntitySelectable(state.entityLifecycles??[],userId,'category',row.id))} recurrenceRules={state.events.filter((event) => event.recurrenceJson !== undefined && event.status === 'planned')} {...(modal.initial === undefined ? {} : { initial: modal.initial })} today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveTransaction} /></DialogFrame> : null}
       {modal?.type === 'reverse' ? <DialogFrame title="Confirmar estorno" onClose={() => setModal(undefined)}><div className="confirm-dialog"><p>O lançamento <strong>{modal.event.description}</strong> não será apagado. Uma contrapartida inversa será adicionada para preservar o histórico.</p><div className="dialog-actions"><button className="button button--ghost" onClick={() => setModal(undefined)}>Cancelar</button><button className="button button--danger" disabled={busy} onClick={() => void confirmReverse()}>{busy ? 'Estornando…' : 'Estornar lançamento'}</button></div></div></DialogFrame> : null}
     </main>
   );
