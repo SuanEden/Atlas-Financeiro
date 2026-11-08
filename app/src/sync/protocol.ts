@@ -41,6 +41,20 @@ export async function jsonDigest(value: unknown): Promise<string> {
 export function isI3SchemaCompatible(envelope: SyncEnvelope, serverSchemaVersion = 2): boolean {
   if (serverSchemaVersion !== 2 && serverSchemaVersion !== 3) return false;
   const data = envelope.kind === 'bootstrap' ? envelope.data : envelope.operation.payload;
+  // P03 is not yet part of protocol v1. Reject future lifecycle/tombstone
+  // metadata rather than silently treating archived entities as active again.
+  const futureLifecycleFields = new Set([
+    'archivedAt','deletedAt','isArchived','lifecycleVersion','entityVersion',
+    'archivedEntities','tombstones','entityLifecycles','entityVersions',
+  ]);
+  if (Object.keys(data).some(key => futureLifecycleFields.has(key))) return false;
+  for (const table of ['accounts','categories'] as const) {
+    const rows=data[table];
+    if (rows === undefined) continue;
+    if (!Array.isArray(rows) || rows.some(value =>
+      !value || typeof value !== 'object' || Array.isArray(value) ||
+      Object.keys(value).some(key => futureLifecycleFields.has(key)))) return false;
+  }
   if (envelope.kind === 'bootstrap' && data.schemaVersion !== 2 &&
       !(serverSchemaVersion >= 3 && data.schemaVersion === 3)) return false;
   const hasReconciliations = Array.isArray(data.accountReconciliations) && data.accountReconciliations.length > 0;
