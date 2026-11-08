@@ -106,6 +106,32 @@ describe('compatibilidade local preserva bytes/IDs e falha antes do envio',()=>{
 
 
 describe('I3 schema v3 migrado e protegido por capability do servidor',()=>{
+  it('bloqueia feed v3 ao receber capability v2, sem gravar cursor, recibos ou saldos',async()=>{
+    const f=await fixture(true);
+    await server.apply(f.owner,f.envelope);
+    const page=await server.pull(f.owner);
+    const before=await f.snapshot();
+    await expect(f.store.applyPage(page,2)).rejects.toThrow(/versão financeira anunciada/);
+    expect(await f.snapshot()).toEqual(before);
+    await f.store.applyPage(page,3);
+    const after=await f.store.read();
+    expect(after.meta.cursor).toBe('1');
+    expect(after.confirmed.accountReconciliations).toHaveLength(1);
+    expect(after.pending).toHaveLength(0);
+  });
+
+  it('motor recusa feed v3 se servidor autenticado anuncia v2 e não tenta transmitir',async()=>{
+    const f=await fixture(true);
+    await server.apply(f.owner,f.envelope);
+    const before=await f.snapshot();
+    const engine=new SyncEngine(f.store,f.transport,()=>({
+      userId:f.owner,epoch:1,canTransmit:true,serverSchemaVersion:2,
+    }));
+    expect(await engine.run()).toBe('retry_later');
+    expect(f.transport.apply).not.toHaveBeenCalled();
+    expect(await f.snapshot()).toEqual(before);
+  });
+
   it('importa conciliações v3 somente após confirmação explícita de suporte remoto',async()=>{
     const f=await fixture(true);
     expect(f.envelope.data.schemaVersion).toBe(3);

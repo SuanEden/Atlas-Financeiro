@@ -2,7 +2,7 @@ import Dexie, { type EntityTable } from 'dexie';
 import { assertEntityId, type FinancialDataset } from '../domain';
 import { deserializeFinancialDataset, serializeFinancialDataset } from '../serialization';
 import { canonicalJson } from '../serialization/canonical-json';
-import { assertEnvelope, assertFields, assertRevision, assertSize, DATA_TABLES, emptyDataset, envelopeData, jsonDigest, mergeAppendOnly, receiptAcknowledges, type BootstrapEnvelope, type ChangePage, type Receipt, type SyncEnvelope } from './protocol';
+import { assertEnvelope, assertFields, assertRevision, assertSize, DATA_TABLES, emptyDataset, envelopeData, isI3SchemaCompatible, jsonDigest, mergeAppendOnly, receiptAcknowledges, type BootstrapEnvelope, type ChangePage, type Receipt, type SyncEnvelope } from './protocol';
 
 export interface PendingDelivery {
   id: string; envelope: SyncEnvelope; digest: string; operationDigest?: string; ordinal: number;
@@ -169,8 +169,8 @@ export class LocalSyncStore {
     });
   }
 
-  async applyPage(page: ChangePage): Promise<void> {
-    const acknowledgements=await validatePage(page,this.userId);
+  async applyPage(page: ChangePage, serverSchemaVersion=3): Promise<void> {
+    const acknowledgements=await validatePage(page,this.userId,serverSchemaVersion);
     await this.#db.transaction('rw',ALL,async()=>{
       const meta=await this.meta();
       if(meta.cursor!==page.after) throw new Error('O cursor mudou em outra aba. Repetir a leitura a partir da revisão atual.');
@@ -296,7 +296,7 @@ function referencesPresent(base: FinancialDataset,incoming: FinancialDataset): b
     &&incoming.settlements.every((row)=>ids.events.has(row.eventId))&&incoming.postings.every((row)=>ids.accounts.has(row.accountId)&&ids.settlements.has(row.settlementId));
 }
 
-async function validatePage(page: ChangePage,owner: string) {
+async function validatePage(page: ChangePage,owner: string,serverSchemaVersion: number) {
   assertFields(page,['protocolVersion','userId','after','through','cursor','batches']);
   if(page.protocolVersion!==1||page.userId!==owner||!Array.isArray(page.batches)||page.batches.length>20) throw new TypeError('Página incompatível ou de outro usuário.');
   for(const revision of [page.after,page.through,page.cursor]) assertRevision(revision);
@@ -305,6 +305,10 @@ async function validatePage(page: ChangePage,owner: string) {
   const acks=new Map<string,{envelopeDigest?:string;operationDigest?:string}>();
   for(const batch of page.batches) {
     assertFields(batch,['revision','envelope','receipt']); assertEnvelope(batch.envelope);
+    // Fail before the IndexedDB transaction and before recording a receipt/cursor.
+    // A read-only server advertising v2 must not silently import v3 financial fields.
+    if(!isI3SchemaCompatible(batch.envelope,serverSchemaVersion))
+      throw new TypeError('Lote remoto incompatível com a versão financeira anunciada. Preserve a base local.');
     assertRevision(batch.revision);
     if(BigInt(batch.revision)!==expected++||batch.envelope.userId!==owner||batch.receipt.revision!==batch.revision||!await receiptAcknowledges(batch.envelope,batch.receipt)) throw new TypeError('Lote/recibo inválido ou lacuna no feed.');
     assertSize(batch.envelope);
