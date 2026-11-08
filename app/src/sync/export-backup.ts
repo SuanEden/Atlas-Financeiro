@@ -1,6 +1,6 @@
 import { jsonDigest } from './protocol';
 import { serializeFinancialDataset } from '../serialization';
-import type { LocalSyncStore } from './local-sync-store';
+import { validateSyncBackup, MAX_SYNC_BACKUP_BYTES, type LocalSyncStore } from './local-sync-store';
 
 /** Consistent I3 copy, distinct from the I2 recovery format. Never reads Auth storage. */
 export async function exportSyncBackup(store:LocalSyncStore,serverId:string):Promise<string> {
@@ -14,5 +14,12 @@ export async function exportSyncBackup(store:LocalSyncStore,serverId:string):Pro
     pending:state.pending,receipts:state.receipts,meta:state.meta,
   };
   const {exportedAt: _date, ...contents} = copy;
-  return JSON.stringify({...copy, integritySha256: await jsonDigest(contents)}, null, 2);
+  const json = JSON.stringify({...copy, integritySha256: await jsonDigest(contents)}, null, 2);
+  // Validate the very bytes presented for download. A tampered pending envelope,
+  // missing receipt, inconsistent projection, or oversized copy must fail closed
+  // rather than giving the user a backup that cannot be restored.
+  if(new TextEncoder().encode(json).byteLength>MAX_SYNC_BACKUP_BYTES)
+    throw new RangeError('A cópia ultrapassa o limite seguro de 10 MiB; os dados originais foram preservados.');
+  await validateSyncBackup(json,store.userId,serverId);
+  return json;
 }
