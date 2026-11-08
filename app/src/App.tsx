@@ -141,7 +141,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
         <Brand />
         <div className="sidebar-section-label">ESPAÇO FINANCEIRO</div>
         <nav aria-label="Navegação principal">{[...desktopNavigation, ...(integration || bankPanel !== undefined ? [{page:'banks' as const,label:'Bancos',Icon:Landmark}] : [])].map(({ page: target, label, Icon }) => <button className={page === target ? 'is-active' : ''} key={target} onClick={() => setPage(target)}><Icon size={19} /><span>{label}</span></button>)}</nav>
-        <button type="button" className={'sidebar-cloud-hint sidebar-cloud-link'+(page==='backup'?' is-active':'')} onClick={()=>setPage('backup')} aria-current={page==='backup'?'page':undefined}>
+        <button type="button" aria-label="Modo nuvem" className={'sidebar-cloud-hint sidebar-cloud-link'+(page==='backup'?' is-active':'')} onClick={()=>setPage('backup')} aria-current={page==='backup'?'page':undefined}>
           <span className="sidebar-cloud-link-icon"><Cloud size={19}/></span>
           <span className="sidebar-cloud-link-copy"><strong>Modo nuvem</strong><small>{integration?'Cópia local ativa':'Dados neste dispositivo'} · {state.outbox.length} pendente{state.outbox.length===1?'':'s'}</small></span>
           <ChevronRight size={17} className="sidebar-cloud-link-chevron"/>
