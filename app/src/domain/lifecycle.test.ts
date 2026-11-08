@@ -51,7 +51,7 @@ describe('P03 versioned entity metadata and lifecycle',()=>{
     const first=decideLifecycleChange([],change(op1,0,'active'),1,true).record;
     expect(()=>decideLifecycleChange([first],change(op2,1,'active'),2,true)).toThrow(/solicitados/);
     expect(()=>incorporateLifecyclePage([first],[{...change(op2,1,'active','account',account,{...accountMeta,name:'Nova'}),version:2,revision:1}],user)).toThrow(/fora de ordem/);
-    expect(()=>incorporateLifecyclePage([first],[{...change(op2,1,'active','account',account,{...accountMeta,name:'Nova'}),version:2,revision:0}],user)).toThrow(/Revisão local/);
+    expect(()=>incorporateLifecyclePage([first],[{...change(op2,1,'active','account',account,{...accountMeta,name:'Nova'}),version:2,revision:0}],user)).toThrow(/Registro de versão/);
   });
 
   it('isolates owners and entity kinds and validates metadata',()=>{
