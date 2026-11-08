@@ -24,6 +24,28 @@ describe('P03 migration staging: immutable and inaccessible for writes',()=>{
     expect(calls.rows[0]?.count).toBe('0');
   });
 
+  it('prevents cross-owner reads and modifications to historical rows',async()=>{
+    const first=await server.user(),second=await server.user(),operationId=crypto.randomUUID();
+    await server.db.query(`
+      insert into atlas_private.entity_lifecycle
+      (user_id,operation_id,entity_kind,entity_id,expected_version,entity_version,new_state,feed_revision)
+      values ($1,$2,'category',$3,0,1,'archived',1)
+    `,[first,operationId,crypto.randomUUID()]);
+    const own=await server.asUser(first,()=>server.db.query<{count:string}>(
+      'select count(*)::text as count from atlas_private.entity_lifecycle'));
+    const hidden=await server.asUser(second,()=>server.db.query<{count:string}>(
+      'select count(*)::text as count from atlas_private.entity_lifecycle'));
+    expect(own.rows[0]?.count).toBe('1');
+    expect(hidden.rows[0]?.count).toBe('0');
+    await expect(server.db.query(
+      'update atlas_private.entity_lifecycle set new_state=\'active\' where operation_id=$1',
+      [operationId],
+    )).rejects.toThrow();
+    await expect(server.db.query(
+      'delete from atlas_private.entity_lifecycle where operation_id=$1',[operationId],
+    )).rejects.toThrow();
+  });
+
   it('does not allow an authenticated owner to insert an archive without a versioned RPC',async()=>{
     const owner=await server.user();
     await expect(server.asUser(owner,()=>server.db.query(`
