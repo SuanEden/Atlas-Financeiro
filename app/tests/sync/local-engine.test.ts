@@ -44,6 +44,48 @@ describe('sync local + PostgreSQL embarcado, dois clientes simulados',()=>{
     await expect(store.activateAssociation(envelope.source.digest)).rejects.toThrow();
   });
 
+  it('dois dispositivos trocam lançamentos nos dois sentidos após reconexão sem duplicar',async()=>{
+    const {owner,store:first,engine:firstEngine}=await associated();
+    const second=open(owner,'roundtrip-b');await second.prepareJoin();
+    const secondEngine=new SyncEngine(second,port(owner),()=>grant(owner));
+    expect(await secondEngine.run()).toBe('synced');
+    const original=calculateAvailabilityBalances((await first.read()).projection).totalCents;
+    const accountId=(await first.read()).projection.accounts[0]!.id;
+    const firstBefore=await first.read();
+    const received=createTransactionCommand({
+      accountId,kind:'income',amountCents:501n,date:ctx(owner).today(),
+      description:'Receita sintética no computador',realized:true,
+    },ctx(owner));
+    await first.enqueue(commandEnvelope(received.operation,firstBefore.meta.cursor));
+    const offlineFirst=new SyncEngine(first,port(owner),()=>grant(owner),()=>false);
+    expect(await offlineFirst.run()).toBe('offline');
+    expect((await first.read()).pending).toHaveLength(1);
+    expect(await firstEngine.run()).toBe('synced');
+    expect(await secondEngine.run()).toBe('synced');
+    expect(calculateAvailabilityBalances((await second.read()).projection).totalCents).toBe(original+501n);
+    const secondBefore=await second.read();
+    const spent=createTransactionCommand({
+      accountId,kind:'expense',amountCents:200n,date:ctx(owner).today(),
+      description:'Despesa sintética no celular',realized:true,
+    },ctx(owner));
+    await second.enqueue(commandEnvelope(spent.operation,secondBefore.meta.cursor));
+    const offlineSecond=new SyncEngine(second,port(owner),()=>grant(owner),()=>false);
+    expect(await offlineSecond.run()).toBe('offline');
+    expect((await second.read()).pending).toHaveLength(1);
+    expect(await secondEngine.run()).toBe('synced');
+    expect(await firstEngine.run()).toBe('synced');
+    const resultFirst=await first.read(),resultSecond=await second.read();
+    expect(resultFirst.confirmed).toEqual(resultSecond.confirmed);
+    expect(resultFirst.projection).toEqual(resultSecond.projection);
+    expect(resultFirst.pending).toEqual([]);
+    expect(resultSecond.pending).toEqual([]);
+    expect(calculateAvailabilityBalances(resultFirst.confirmed).totalCents).toBe(original+301n);
+    expect(await server.counts(owner)).toMatchObject({sync_batches:'3',operation_receipts:'3'});
+    expect(await firstEngine.run()).toBe('synced');
+    expect(await secondEngine.run()).toBe('synced');
+    expect(await server.counts(owner)).toMatchObject({sync_batches:'3',operation_receipts:'3'});
+  });
+
   it('fonte alterada após preparo bloqueia ativação e mantém recibo/dados para conferência',async()=>{
     const owner=await server.user();const source=crypto.randomUUID();const envelope=await prepareBootstrap(recoveryFixture(source),source,owner,crypto.randomUUID());
     const store=open(owner,'changed-source');await store.prepareAssociation(envelope);
