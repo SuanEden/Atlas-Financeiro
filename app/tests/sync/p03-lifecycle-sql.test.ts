@@ -74,6 +74,32 @@ describe('P03 schema v4 versioned entity management',()=>{
     expect(events.rows[0]?.count).toBe('0');
   });
 
+  it('archives, reactivates and renames with sequential server versions and repeat-safe receipts',async()=>{
+    const owner=await server.user(),account=await createAccount(owner);
+    const first=manage(owner,account,0,'archived');
+    const archived=await server.apply(owner,first);
+    expect((await server.apply(owner,first)).revision).toBe(archived.revision);
+    const active=manage(owner,account,1,'active');
+    const restored=await server.apply(owner,{...active,baseRevision:'2'});
+    expect(restored.revision).toBe('3');
+    const renamed=manage(owner,account,2,'active');
+    renamed.baseRevision='3';
+    renamed.operation.payload.lifecycleChange.metadata.name='Conta renomeada';
+    const saved=await server.apply(owner,renamed);
+    expect(saved.revision).toBe('4');
+    const rows=await server.db.query<{entity_version:number;new_state:string;name:string}>(
+      "select entity_version,new_state,metadata->>'name' as name from atlas_private.entity_lifecycle where user_id=$1 order by entity_version",[owner]);
+    expect(rows.rows).toEqual([
+      {entity_version:1,new_state:'archived',name:'Conta de teste'},
+      {entity_version:2,new_state:'active',name:'Conta de teste'},
+      {entity_version:3,new_state:'active',name:'Conta renomeada'},
+    ]);
+    const feed=await server.pull(owner,'0',null,10);
+    expect(feed.batches.map(row=>row.revision)).toEqual(['1','2','3','4']);
+    const accountRows=await server.db.query<{count:string}>('select count(*)::text as count from atlas_private.accounts where user_id=$1',[owner]);
+    expect(accountRows.rows[0]?.count).toBe('1');
+  });
+
   it('rejects direct lifecycle inserts that have no committed sync batch',async()=>{
     const owner=await server.user();
     await expect(server.asUser(owner,()=>server.db.query(`
