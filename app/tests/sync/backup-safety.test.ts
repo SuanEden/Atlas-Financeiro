@@ -216,6 +216,33 @@ describe('proteção operacional da cópia I3 — sem importador I3/I4',()=>{
 });
 
 describe('recuperação I3 em outro namespace vazio', () => {
+  it('recupera após perda total do dispositivo, entrega pendências e replica ao segundo aparelho',async()=>{
+    const {owner,store}=await associated();
+    const offline=await income(store,2487n);
+    await store.enqueue(offline);
+    const before=await stableCopy(store);
+    const archive=await copy(store);
+    const originalName=store.name;
+    store.close();
+    // Only synthetic IndexedDB is erased: simulate loss of the original device.
+    await Dexie.delete(originalName);
+    const recovered=open(owner,'replacement-device');
+    await recovered.recoverBackup(archive,()=>true);
+    expect(await stableCopy(recovered)).toEqual(before);
+    expect((await recovered.read()).pending).toHaveLength(1);
+    expect(await engine(recovered).run()).toBe('synced');
+    const after=await recovered.read();
+    expect(after.pending).toHaveLength(0);
+    expect(after.confirmed.events.some(e=>e.description==='Receita offline sintética')).toBe(true);
+    const another=open(owner,'fresh-phone');
+    await another.prepareJoin();
+    expect(await engine(another).run()).toBe('synced');
+    expect((await another.read()).confirmed).toEqual(after.confirmed);
+    expect((await another.read()).pending).toEqual([]);
+    expect((await server.counts(owner)).sync_batches).toBe('2');
+    expect(await engine(recovered).run()).toBe('synced');
+    expect((await server.counts(owner)).sync_batches).toBe('2');
+  });
   it('recupera histórico e pendência; resposta perdida não causa reenvio', async () => {
     const {owner,store} = await associated(); const packet = await income(store,12345n); await store.enqueue(packet);
     await port(owner).apply(packet);
