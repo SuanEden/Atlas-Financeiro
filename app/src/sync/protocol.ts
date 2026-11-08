@@ -94,10 +94,21 @@ export async function prepareBootstrap(state: LocalFinancialState, sourceOwner: 
   // Reuse the strict I2 boundary before changing ownership, including payload-to-snapshot coverage.
   validateI2Backup(serializeLocalBackup(state, sourceOwner));
   const data = JSON.parse(serializeFinancialDataset(state, sourceOwner)) as JsonRecord;
-  // P03 snapshots always use schema v4 and carry an explicit lifecycle collection.
-  data.schemaVersion=4;
-  if(!Array.isArray(data.entityLifecycles))data.entityLifecycles=[];
-  for(const row of data.entityLifecycles as JsonRecord[])row.revision=0;
+  const hasLifecycles=Array.isArray(data.entityLifecycles)&&(data.entityLifecycles as unknown[]).length>0;
+  const hasReconciliations=Array.isArray(data.accountReconciliations)&&(data.accountReconciliations as unknown[]).length>0;
+  const hasRecurrences=Array.isArray(data.events)&&(data.events as JsonRecord[]).some(row=>
+    row.recurrenceJson!==undefined||row.recurrenceRuleId!==undefined||row.recurrenceMonth!==undefined);
+  if(hasLifecycles) {
+    data.schemaVersion=4;
+    for(const row of data.entityLifecycles as JsonRecord[])row.revision=0;
+  } else if(hasReconciliations||hasRecurrences) {
+    data.schemaVersion=3;
+    delete data.entityLifecycles;
+  } else {
+    data.schemaVersion=2;
+    delete data.accountReconciliations;
+    delete data.entityLifecycles;
+  }
   data.userId = authenticatedOwner;
   for (const table of DATA_TABLES) for (const row of (data[table] ?? []) as JsonRecord[]) row.userId = authenticatedOwner;
   const coveredOperations = state.outbox.map((row) => {
