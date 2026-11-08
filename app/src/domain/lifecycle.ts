@@ -5,9 +5,7 @@ import type {
 } from './models';
 
 export type { EntityLifecycleRecord, LifecycleEntity, LifecycleState } from './models';
-export type LifecycleChange =
-  | { operationId:string; userId:string; entity:'account'; entityId:string; expectedVersion:number; nextState:LifecycleState; metadata:AccountLifecycleMetadata }
-  | { operationId:string; userId:string; entity:'category'; entityId:string; expectedVersion:number; nextState:LifecycleState; metadata:CategoryLifecycleMetadata };
+export type LifecycleChange = Omit<EntityLifecycleRecord,'version'|'revision'>;
 export type LifecycleRecord = EntityLifecycleRecord;
 
 export class LifecycleConflict extends Error {
