@@ -68,11 +68,14 @@ function RemoteWorkspace({controller}:{controller:RemoteController}) {
     if(!canView||!canTransmit)return;
     const sync=()=>{if(document.visibilityState==='visible'&&navigator.onLine!==false)void controller.sync();};
     sync();
-    const timer=window.setInterval(sync,60_000);
+    // Keep remote updates visible without a hard reload. Only poll in the
+    // foreground; the controller coalesces overlapping sync attempts.
+    const timer=window.setInterval(sync,10_000);
     const focus=()=>sync();
     window.addEventListener('online',focus);
+    window.addEventListener('focus',focus);
     document.addEventListener('visibilitychange',focus);
-    return()=>{window.clearInterval(timer);window.removeEventListener('online',focus);document.removeEventListener('visibilitychange',focus);};
+    return()=>{window.clearInterval(timer);window.removeEventListener('online',focus);window.removeEventListener('focus',focus);document.removeEventListener('visibilitychange',focus);};
   },[controller,canView,canTransmit]);
   async function exportJson() {
     const current=controller.getSnapshot();const store=current.store;
