@@ -68,12 +68,16 @@ function RemoteWorkspace({controller}:{controller:RemoteController}) {
     if(!canView||!canTransmit)return;
     const sync=()=>{if(document.visibilityState==='visible'&&navigator.onLine!==false)void controller.sync();};
     sync();
+    // Broadcast is only a notification. The existing I3 pull validates data.
+    // A conservative foreground poll repairs missed socket notifications.
+    const stopRevisions=controller.watchRevisions(()=>sync());
     const timer=window.setInterval(sync,60_000);
     const focus=()=>sync();
     window.addEventListener('online',focus);
+    window.addEventListener('focus',focus);
     document.addEventListener('visibilitychange',focus);
-    return()=>{window.clearInterval(timer);window.removeEventListener('online',focus);document.removeEventListener('visibilitychange',focus);};
-  },[controller,canView,canTransmit]);
+    return()=>{stopRevisions();window.clearInterval(timer);window.removeEventListener('online',focus);window.removeEventListener('focus',focus);document.removeEventListener('visibilitychange',focus);};
+  },[controller,canView,canTransmit,snapshot.session.userId,snapshot.session.epoch]);
   async function exportJson() {
     const current=controller.getSnapshot();const store=current.store;
     if(!current.session.canView||!store)throw new Error('Entre novamente antes de exportar.');
