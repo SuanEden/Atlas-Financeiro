@@ -10,9 +10,10 @@ async function syntheticApp(page:Page) {
 }
 async function navigateBackup(page:Page) {
   const mobile=(page.viewportSize()?.width??1280)<761;
-  const nav=page.getByRole('navigation',{name:mobile?'Navegação móvel':'Navegação principal'});
-  await nav.getByRole('button',{name:mobile?'Mais':'Modo nuvem',exact:true}).click();
-  if(mobile)await page.getByRole('button',{name:'Modo nuvem',exact:true}).click();
+  if(mobile){
+    await page.getByRole('navigation',{name:'Navegação móvel'}).getByRole('button',{name:'Mais',exact:true}).click();
+    await page.getByRole('button',{name:'Modo nuvem',exact:true}).click();
+  }else await page.getByRole('button',{name:'Modo nuvem',exact:true}).click();
 }
 async function expandCloudControls(page:Page) {
   await navigateBackup(page);

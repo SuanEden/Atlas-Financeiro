@@ -1680,6 +1680,33 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 /* Atlas Cloud Hub — consolidated synchronization and backup experience */
 .app-shell .sidebar-cloud-hint {display:flex;align-items:center;gap:9px;margin-top:auto;padding:16px 12px 5px;color:var(--muted);font-size:.74rem;line-height:1.4;}
 .app-shell .sidebar-cloud-hint svg {color:var(--accent);flex:none;}
+
+/* Modo nuvem is a single, persistent destination at the foot of the desktop sidebar. */
+.app-shell .sidebar-cloud-link {
+  width:100%; min-width:0; text-align:left; cursor:pointer;
+  display:flex; align-items:center; gap:11px;
+  padding:14px 12px; margin-top:auto;
+  border:1px solid var(--line); border-radius:15px;
+  background:var(--surface); color:var(--ink);
+  transition:background-color .18s,border-color .18s,transform .18s;
+}
+.app-shell .sidebar-cloud-link:hover {background:var(--accent-soft);border-color:var(--accent);}
+.app-shell .sidebar-cloud-link:focus-visible {outline:2px solid var(--accent);outline-offset:3px;}
+.app-shell .sidebar-cloud-link.is-active {background:var(--accent-soft);border-color:var(--accent);}
+.app-shell .sidebar-cloud-link-icon {display:grid;place-items:center;width:37px;height:37px;flex:0 0 37px;background:var(--accent-soft);color:var(--accent-dark);border-radius:11px;}
+.app-shell .sidebar-cloud-link-copy {display:grid;gap:4px;flex:1;min-width:0;}
+.app-shell .sidebar-cloud-link-copy strong {font-size:.79rem;letter-spacing:-.01em;}
+.app-shell .sidebar-cloud-link-copy small {color:var(--muted);font-size:.66rem;font-weight:450;line-height:1.35;overflow-wrap:anywhere;}
+.app-shell .sidebar-cloud-link-chevron {color:var(--muted);flex:none;}
+.app-shell[data-theme="dark"] .sidebar-cloud-link {background:#1c2118;border-color:#36422e;}
+.app-shell[data-theme="dark"] .sidebar-cloud-link:hover,
+.app-shell[data-theme="dark"] .sidebar-cloud-link.is-active {background:#28351d;border-color:#647c39;}
+.app-shell[data-theme="dark"] .sidebar-cloud-link-icon {background:#303f20;color:var(--accent);}
+.app-shell[data-theme="light"] .sidebar-cloud-link {background:#f5f9ef;border-color:#d7e6cb;}
+.app-shell[data-theme="light"] .sidebar-cloud-link:hover,
+.app-shell[data-theme="light"] .sidebar-cloud-link.is-active {background:#e6f1da;border-color:#9bbc81;}
+@media(max-width:760px) {.app-shell .sidebar-cloud-link {display:none;}}
+
 .app-shell .cloud-hub {width:min(1250px,100%);margin:0 auto;padding:34px clamp(18px,3.6vw,58px) 78px;display:grid;gap:20px;}
 .app-shell .cloud-hub-header {display:flex;align-items:center;gap:18px;padding:26px;border:1px solid var(--line);border-radius:22px;background:var(--surface);box-shadow:var(--atlas-shadow);}
 .app-shell .cloud-hub-symbol {display:grid;place-items:center;flex:0 0 57px;height:57px;border-radius:18px;background:var(--accent-soft);color:var(--accent-dark);}

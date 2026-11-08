@@ -6,8 +6,9 @@ import { join } from 'node:path';
 async function navigate(page: Page, destination: string) {
   const mobile = (page.viewportSize()?.width ?? 1280) < 761;
   const nav = page.getByRole('navigation', { name: mobile ? 'Navegação móvel' : 'Navegação principal' });
-  const label = mobile ? ({ Movimentações: 'Extrato', Backup: 'Mais', Categorias: 'Mais', Contas: 'Mais' }[destination] ?? destination) : destination === 'Backup' ? 'Modo nuvem' : destination;
-  await nav.getByRole('button', { name: label, exact: true }).click();
+  const label = mobile ? ({ Movimentações: 'Extrato', Backup: 'Mais', Categorias: 'Mais', Contas: 'Mais' }[destination] ?? destination) : destination;
+  if (!mobile && destination === 'Backup') await page.getByRole('button',{name:'Modo nuvem',exact:true}).click();
+  else await nav.getByRole('button', { name: label, exact: true }).click();
   if (mobile && (destination === 'Backup' || destination === 'Categorias' || destination === 'Contas')) await page.getByRole('button', { name: destination === 'Backup' ? 'Modo nuvem' : destination, exact: true }).click();
 }
 
