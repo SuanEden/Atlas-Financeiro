@@ -247,12 +247,12 @@ begin
         raise exception 'Parent category is archived' using errcode='23514';
       end if;
       with recursive ancestors(id,parent_id,path) as (
-        select c.id,coalesce(latest.metadata->>'parentId',c.parent_id::text)::uuid,array[c.id]
+        select c.id,(case when latest.metadata is null then c.parent_id::text else latest.metadata->>'parentId' end)::uuid,array[c.id]
           from atlas_private.categories c left join lateral(
             select l.metadata from atlas_private.entity_lifecycle l where l.user_id=owner_id and l.entity_kind='category' and l.entity_id=c.id order by l.entity_version desc limit 1
           ) latest on true where c.user_id=owner_id and c.id=v_parent_id
         union all
-        select p.id,coalesce(latest.metadata->>'parentId',p.parent_id::text)::uuid,a.path||p.id
+        select p.id,(case when latest.metadata is null then p.parent_id::text else latest.metadata->>'parentId' end)::uuid,a.path||p.id
           from ancestors a join atlas_private.categories p on p.user_id=owner_id and p.id=a.parent_id
           left join lateral(select l.metadata from atlas_private.entity_lifecycle l where l.user_id=owner_id and l.entity_kind='category' and l.entity_id=p.id order by l.entity_version desc limit 1) latest on true
           where not p.id=any(a.path)
