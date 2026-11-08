@@ -121,10 +121,10 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,ex
   }
 
   async function saveTransaction(input: TransactionInput) {
-    const editingExisting=modal?.type==='transaction'&&modal.initial!==undefined;
-    if(!isEntitySelectable(state.entityLifecycles??[],userId,'account',input.accountId)&&(!editingExisting||modal.initial.accountId!==input.accountId))throw new Error('Escolha uma conta ativa para o novo lançamento.');
-    if(input.transferAccountId&&!isEntitySelectable(state.entityLifecycles??[],userId,'account',input.transferAccountId)&&(!editingExisting||modal.initial.transferAccountId!==input.transferAccountId))throw new Error('A conta de destino está arquivada.');
-    if(input.categoryId&&!isEntitySelectable(state.entityLifecycles??[],userId,'category',input.categoryId)&&(!editingExisting||modal.initial.categoryId!==input.categoryId))throw new Error('Escolha uma categoria ativa.');
+    const editingEvent=modal?.type==='transaction'?modal.initial:undefined;
+    if(!isEntitySelectable(state.entityLifecycles??[],userId,'account',input.accountId)&&(!editingEvent||editingEvent.accountId!==input.accountId))throw new Error('Escolha uma conta ativa para o novo lançamento.');
+    if(input.transferAccountId&&!isEntitySelectable(state.entityLifecycles??[],userId,'account',input.transferAccountId)&&(!editingEvent||editingEvent.transferAccountId!==input.transferAccountId))throw new Error('A conta de destino está arquivada.');
+    if(input.categoryId&&!isEntitySelectable(state.entityLifecycles??[],userId,'category',input.categoryId)&&(!editingEvent||editingEvent.categoryId!==input.categoryId))throw new Error('Escolha uma categoria ativa.');
     if (modal?.type === 'transaction' && modal.initial !== undefined) {
       await execute(replaceEventCommand(state, modal.initial.id, input, context));
     } else {
