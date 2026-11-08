@@ -127,7 +127,8 @@ export type PendingOperationKind =
   | 'record_event'
   | 'reverse_event'
   | 'replace_event'
-  | 'reconcile_account';
+  | 'reconcile_account'
+  | 'manage_entity';
 
 /** Durable local operation prepared for the future remote synchronization layer. */
 export interface PendingOperation extends OwnedEntity {
