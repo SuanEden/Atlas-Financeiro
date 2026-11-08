@@ -11,7 +11,7 @@ import {
   type Settlement,
 } from '../domain';
 
-export const FINANCIAL_JSON_SCHEMA_VERSION = 3 as const;
+export const FINANCIAL_JSON_SCHEMA_VERSION = 4 as const;
 
 /**
  * A versioned data representation for the local foundation and its tests.
@@ -78,15 +78,20 @@ export function serializeFinancialDataset(dataset: FinancialDataset, userId: str
       accountId: posting.accountId,
       amountCents: encodeCents(posting.amountCents),
     })),
+    entityLifecycles: (dataset.entityLifecycles ?? []).map((row) => ({
+      operationId: row.operationId, userId: row.userId, entity: row.entity, entityId: row.entityId,
+      expectedVersion: row.expectedVersion, version: row.version, nextState: row.nextState,
+      revision: row.revision, metadata: row.metadata,
+    })),
   });
 }
 
 export function deserializeFinancialDataset(json: string, expectedUserId: string): FinancialDataset {
   if (typeof json !== 'string') throw new TypeError('A representação financeira deve ser texto JSON.');
   const root = readObject(JSON.parse(json) as unknown, [
-    'schemaVersion', 'userId', 'accounts', 'categories', 'events', 'settlements', 'postings', 'accountReconciliations',
+    'schemaVersion', 'userId', 'accounts', 'categories', 'events', 'settlements', 'postings', 'accountReconciliations', 'entityLifecycles',
   ]);
-  if (root.schemaVersion !== 1 && root.schemaVersion !== 2 && root.schemaVersion !== FINANCIAL_JSON_SCHEMA_VERSION) {
+  if (root.schemaVersion !== 1 && root.schemaVersion !== 2 && root.schemaVersion !== 3 && root.schemaVersion !== FINANCIAL_JSON_SCHEMA_VERSION) {
     throw new TypeError('Versão da representação financeira não suportada.');
   }
   if (readString(root, 'userId') !== expectedUserId) {
@@ -99,6 +104,7 @@ export function deserializeFinancialDataset(json: string, expectedUserId: string
     settlements: readCollection(root, 'settlements', readSettlement),
     postings: readCollection(root, 'postings', readPosting),
     ...(Array.isArray(root.accountReconciliations) && root.accountReconciliations.length === 0 ? {} : root.accountReconciliations === undefined ? {} : { accountReconciliations: readCollection(root, 'accountReconciliations', readAccountReconciliation) }),
+    ...(root.entityLifecycles === undefined ? {} : { entityLifecycles: readCollection(root, 'entityLifecycles', readLifecycle) }),
   };
   assertFinancialDataset(dataset, expectedUserId);
   return dataset;
@@ -106,7 +112,7 @@ export function deserializeFinancialDataset(json: string, expectedUserId: string
 
 /** Decodes a command's rows without assuming its references are all in this packet. */
 export function deserializeFinancialAggregate(json: string, expectedUserId: string): FinancialDataset {
-  const root = readObject(JSON.parse(json) as unknown, ['schemaVersion', 'userId', 'accounts', 'categories', 'events', 'settlements', 'postings', 'accountReconciliations']);
+  const root = readObject(JSON.parse(json) as unknown, ['schemaVersion', 'userId', 'accounts', 'categories', 'events', 'settlements', 'postings', 'accountReconciliations', 'lifecycleChange', 'entityLifecycles']);
   if (root.schemaVersion !== 1 || readString(root, 'userId') !== expectedUserId) throw new TypeError('Schema ou proprietário de comando inválido.');
   return {
     accounts: root.accounts === undefined ? [] : readCollection(root, 'accounts', readAccount),
@@ -115,10 +121,23 @@ export function deserializeFinancialAggregate(json: string, expectedUserId: stri
     settlements: root.settlements === undefined ? [] : readCollection(root, 'settlements', readSettlement),
     postings: root.postings === undefined ? [] : readCollection(root, 'postings', readPosting),
     ...(root.accountReconciliations === undefined || (Array.isArray(root.accountReconciliations) && root.accountReconciliations.length === 0) ? {} : { accountReconciliations: readCollection(root, 'accountReconciliations', readAccountReconciliation) }),
+    ...(root.entityLifecycles === undefined ? {} : { entityLifecycles: readCollection(root, 'entityLifecycles', readLifecycle) }),
   };
 }
 
 type JsonObject = Record<string, unknown>;
+
+function readLifecycle(value: unknown): import('../domain').EntityLifecycleRecord {
+  const row=readObject(value,['operationId','userId','entity','entityId','expectedVersion','version','nextState','revision','metadata']);
+  const entity=readEnum(row,'entity',['account','category']);
+  const metadata=entity==='account'
+    ? (()=>{const m=readObject(row.metadata,['name','kind','availability']);return {name:readString(m,'name'),kind:readEnum(m,'kind',['checking','savings','cash','digital','transport','investment','other']),availability:readEnum(m,'availability',['free','reserved','restricted'])};})()
+    : (()=>{const m=readObject(row.metadata,['name','kind','parentId']);return {name:readString(m,'name'),kind:readEnum(m,'kind',['income','expense','both']),...readOptionalString(m,'parentId')};})();
+  const integer=(key:string)=>{const v=row[key];if(typeof v!=='number'||!Number.isSafeInteger(v)||v<0)throw new TypeError('Versão ou revisão inválida.');return v;};
+  return {operationId:readString(row,'operationId'),userId:readString(row,'userId'),entity,entityId:readString(row,'entityId'),
+    expectedVersion:integer('expectedVersion'),version:integer('version'),nextState:readEnum(row,'nextState',['active','archived']),
+    revision:integer('revision'),metadata};
+}
 
 function readObject(value: unknown, allowedKeys: readonly string[]): JsonObject {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
