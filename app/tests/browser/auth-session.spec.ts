@@ -34,7 +34,7 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   await expect(page.locator('.device-status')).toContainText('Modo nuvem');
   await expect(page.getByRole('button',{name:'Sincronizar agora'})).toHaveCount(0);
   const homeNav=page.getByRole('navigation',{name:(page.viewportSize()?.width??1280)<761?'Navegação móvel':'Navegação principal'});
-  await homeNav.getByRole('button',{name:(page.viewportSize()?.width??1280)<761?'Início':'Visão geral',exact:true}).click();
+  await homeNav.getByRole('button',{name:'Início',exact:true}).click();
   // Hold the transport offline: a financial write must stay pending while
   // authentication remains valid and the foreground timer is enabled.
   await page.evaluate(()=>localStorage.setItem('synthetic-transport-offline','yes'));
