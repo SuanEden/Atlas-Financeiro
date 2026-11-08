@@ -157,7 +157,7 @@ export function adapterFromClient(client:ApiClient,origin:string,clearLocalSessi
   };
   return {auth,transport:{
     apply:async(envelope:SyncEnvelope)=>{assertEnvelope(envelope);return rpc<Receipt>('i3_apply',{p_envelope:envelope});},
-    pull:(after:string,through:string|null)=>rpc<ChangePage>('i3_pull',{p_after:after,p_through,p_limit:10}),
+    pull:(after:string,through:string|null)=>rpc<ChangePage>('i3_pull',{p_after:after,p_through:through,p_limit:10}),
     watchRevisions,
   }};
 }
