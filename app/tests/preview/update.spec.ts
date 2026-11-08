@@ -47,12 +47,12 @@ test('nova versão espera fechar as abas e mantém contas, histórico e outbox o
     await reopened.goto(url);
     await expect(reopened).toHaveTitle('Atlas Financeiro atualizado');
     await expect(reopened.getByText('R$ 12,34').first()).toBeVisible();
-    await expect(reopened.locator('.sidebar-footer')).toContainText('1 pendente');
+    await expect(reopened.locator('.sidebar-cloud-hint')).toContainText('1 pendente');
     await expect.poll(() => reopened.evaluate(async () => (await caches.keys()).filter((key) => key.startsWith('atlas-shell-')))).toEqual([expect.stringMatching(/-next$/)]);
     await context.setOffline(true);
     await reopened.reload();
     await expect(reopened.getByText('R$ 12,34').first()).toBeVisible();
-    await expect(reopened.locator('.sidebar-footer')).toContainText('1 pendente');
+    await expect(reopened.locator('.sidebar-cloud-hint')).toContainText('1 pendente');
     await context.setOffline(false);
     await reopened.close();
   } finally {
