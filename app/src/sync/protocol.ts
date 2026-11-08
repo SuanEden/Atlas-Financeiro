@@ -142,7 +142,7 @@ export function envelopeData(envelope: SyncEnvelope,feedRevision?:string): Finan
 
 export function mergeAppendOnly(base: FinancialDataset, incoming: FinancialDataset, owner: string): FinancialDataset {
   const merged = structuredClone(base);
-  for (const table of DATA_TABLES.filter(name=>name!=='entityLifecycles')) {
+  for (const table of DATA_TABLES) {
     const rows = (merged[table] ?? []) as { id: string; userId: string }[];
     const existing = new Map(rows.map((row) => [row.id, row]));
     for (const row of (incoming[table] ?? [])) {
