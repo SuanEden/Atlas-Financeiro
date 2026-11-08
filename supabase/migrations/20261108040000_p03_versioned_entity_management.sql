@@ -27,7 +27,8 @@ begin
   foreach t in array array['accounts','categories','events','settlements','postings','accountReconciliations','entityLifecycles'] loop
     if d ? t and jsonb_typeof(d->t) is distinct from 'array' then raise exception 'Invalid collection' using errcode='22023'; end if;
     if financial_schema in (2,3,4) and not d ? t
-      and (t<>'accountReconciliations' or financial_schema in (3,4)) then
+      and (t<>'accountReconciliations' or financial_schema in (3,4))
+      and (t<>'entityLifecycles' or financial_schema=4) then
       raise exception 'Incomplete snapshot' using errcode='22023';
     end if;
     case t
