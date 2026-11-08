@@ -115,6 +115,12 @@ export class RemoteController {
   async joinExisting() {
     this.requireOnline();await this.#store!.prepareJoin();await this.sync();
   }
+  /** A notification only schedules a normal, validated I3 pull. */
+  watchRevisions(onRevision:(revision?:string)=>void):()=>void {
+    const session=this.policy.snapshot;
+    if(!session.onlineVerified||!session.canTransmit||!session.userId)return ()=>{};
+    return this.transport.watchRevisions?.(session.userId,onRevision)??(()=>{});
+  }
   async sync():Promise<SyncResult> {
     if(this.#recovering) return 'retry_later';
     if(this.#syncing) return this.#syncing;
