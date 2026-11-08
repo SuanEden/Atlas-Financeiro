@@ -11,14 +11,7 @@ export async function sqlTestServer() {
     create schema auth; create table auth.users(id uuid primary key);
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     grant usage on schema auth to authenticated; grant execute on function auth.uid() to authenticated;
-    -- This PGlite harness has no Supabase Realtime service: the stub only
-    -- verifies SQL migration compatibility, not live WebSocket delivery.
-    create schema realtime;
-    create table realtime.messages(extension text);
-    alter table realtime.messages enable row level security;
-    create function realtime.topic() returns text language sql stable as $ select null::text $;
-    create function realtime.send(payload jsonb,event text,topic text,private boolean)
-      returns void language plpgsql as $ begin return; end $;`);
+`);
   const migrations = fileURLToPath(new URL('../../../supabase/migrations/', import.meta.url));
   for (const file of readdirSync(migrations).filter((name) => name.endsWith('.sql')).sort()) {
     try { await db.exec(readFileSync(join(migrations,file),'utf8')); }
