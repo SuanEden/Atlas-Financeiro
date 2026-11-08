@@ -132,6 +132,18 @@ describe('I3 schema v3 migrado e protegido por capability do servidor',()=>{
     expect(await f.snapshot()).toEqual(before);
   });
 
+  it('servidor sem capability declarada não deve incorporar feed v3',async()=>{
+    const f=await fixture(true);
+    await server.apply(f.owner,f.envelope);
+    const before=await f.snapshot();
+    const unknownVersion=new SyncEngine(f.store,f.transport,()=>({
+      userId:f.owner,epoch:1,canTransmit:true,
+    }));
+    expect(await unknownVersion.run()).toBe('retry_later');
+    expect(f.transport.apply).not.toHaveBeenCalled();
+    expect(await f.snapshot()).toEqual(before);
+  });
+
   it('importa conciliações v3 somente após confirmação explícita de suporte remoto',async()=>{
     const f=await fixture(true);
     expect(f.envelope.data.schemaVersion).toBe(3);
@@ -162,6 +174,11 @@ describe('bloqueio seguro de recursos locais ainda não migrados no servidor', (
     const future=structuredClone(f.envelope);
     future.data.tombstones=[{entityId:account.id,version:2}];
     expect(isI3SchemaCompatible(future,3)).toBe(false);
+    const nested=structuredClone(f.envelope);
+    if(nested.coveredOperations[0]) {
+      nested.coveredOperations[0].payload.archivedEntities=[{entityId:account.id}];
+      expect(isI3SchemaCompatible(nested,3)).toBe(false);
+    }
     const old=createAccountCommand({name:'Conta sintética',kind:'cash',availability:'free',openingDate:'2026-11-08'},{
       userId:f.owner,nextId:()=>crypto.randomUUID(),now:()=> '2026-11-08T00:00:00.000Z',today:()=> '2026-11-08',
     });
