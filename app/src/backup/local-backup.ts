@@ -19,6 +19,7 @@ export function serializeLocalBackup(state: LocalFinancialState, userId: string,
   const dataset = JSON.parse(serializeFinancialDataset(state, userId)) as Record<string, unknown>;
   // Local I2 exports do not own the cloud-only lifecycle ledger; keep this export boundary explicit.
   delete dataset.entityLifecycles;
+  dataset.schemaVersion=3;
   const outbox = state.outbox.map((operation) => ({
     id: operation.id,
     userId: operation.userId,
