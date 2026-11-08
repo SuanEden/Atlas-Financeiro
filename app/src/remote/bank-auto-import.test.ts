@@ -11,6 +11,26 @@ const row=(id:string,date:string,status='POSTED')=>({
   id,accountId,date,description:'PIX',amount:-19.99,currencyCode:'BRL',status,type:'DEBIT' as const,
 });
 describe('automatic Pluggy bank imports',()=>{
+  it('blocks conflicting IDs returned on different pages before writing any financial record',async()=>{
+    let executed=0;
+    const state:LocalFinancialState={
+      accounts:[{id:atlasAccountId,userId,name:'Conta sintética',kind:'digital',availability:'free'}],
+      events:[],categories:[],settlements:[],postings:[],outbox:[],
+    };
+    await expect(syncLinkedBankAccount(
+      {itemId,pluggyAccountId:accountId,atlasAccountId,activatedOn:'2026-11-01'},
+      {
+        readPage:async(_account,after)=> after
+          ? {results:[{...row('same-id','2026-11-03'),amount:-25.00}],next:null}
+          : {results:[row('same-id','2026-11-03')],next:'?after=cursor'},
+        readState:async()=>state,
+        execute:async()=>{executed++;},
+        context:{userId,nextId:()=>crypto.randomUUID(),now:()=>new Date().toISOString(),today:()=> '2026-11-04'},
+      },
+    )).rejects.toThrow(/mesmo identificador/);
+    expect(executed).toBe(0);
+    expect(state.events).toHaveLength(0);
+  });
   it('retrieves all pages and never posts the same event twice',async()=>{
     let counter=0;
     const context:CommandContext={userId,nextId:()=>{counter++;return '00000000-0000-4000-8000-'+counter.toString(16).padStart(12,'0');},now:()=>new Date().toISOString(),today:()=> '2026-11-03'};

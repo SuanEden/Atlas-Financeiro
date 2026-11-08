@@ -24,6 +24,14 @@ describe('Pluggy to Atlas command bridge', () => {
     expect(() => prepareBankImportCommand(candidate, { pluggyAccountId: 'other', atlasAccountId: accountId }, dataset, context)).toThrow();
     expect(() => prepareBankImportCommand(candidate, { pluggyAccountId: 'external-1', atlasAccountId: crypto.randomUUID() }, dataset, context)).toThrow();
   });
+  it('refuses a reused imported event ID whose amount, date or target account differs',async()=>{
+    const first=await prepareUniqueBankImportCommand(candidate,{pluggyAccountId:'external-1',atlasAccountId:accountId},dataset,context);
+    const stored={...dataset,events:[first!.aggregate.events![0]!]};
+    await expect(prepareUniqueBankImportCommand({...candidate,amountCents:1600n},{pluggyAccountId:'external-1',atlasAccountId:accountId},stored,context)).rejects.toThrow(/Identificador bancário/);
+    await expect(prepareUniqueBankImportCommand({...candidate,date:'2026-11-03'},{pluggyAccountId:'external-1',atlasAccountId:accountId},stored,context)).rejects.toThrow(/Identificador bancário/);
+    await expect(prepareUniqueBankImportCommand(candidate,{pluggyAccountId:'external-1',atlasAccountId:crypto.randomUUID()},stored,context)).rejects.toThrow(/Identificador bancário/);
+    expect(stored.events).toHaveLength(1);
+  });
   it('assigns stable owner-scoped IDs across sessions and ignores a previously imported event', async () => {
     const first = await prepareUniqueBankImportCommand(candidate, { pluggyAccountId: 'external-1', atlasAccountId: accountId }, dataset, context);
     const second = await prepareUniqueBankImportCommand(candidate, { pluggyAccountId: 'external-1', atlasAccountId: accountId }, dataset, context);

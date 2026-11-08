@@ -59,7 +59,19 @@ export async function prepareUniqueBankImportCommand(
   context: CommandContext,
 ): Promise<LocalCommand | null> {
   const eventId = await bankImportEventId(context.userId, candidate.externalKey);
-  if (dataset.events.some(event => event.id === eventId)) return null;
+  const existing = dataset.events.find(event => event.id === eventId);
+  if (existing) {
+    // A known bank ID is idempotent only when the financial identity still matches.
+    // Never silently discard a different amount/date/target that reused the same ID.
+    if (existing.accountId !== mapping.atlasAccountId ||
+        existing.amountCents !== candidate.amountCents ||
+        existing.kind !== candidate.kind ||
+        existing.competenceDate !== candidate.date ||
+        existing.description !== candidate.description ||
+        existing.source !== 'import')
+      throw new TypeError('Identificador bancário já usado com informações financeiras diferentes. A importação foi interrompida para conferência.');
+    return null;
+  }
   let calls = 0;
   return prepareBankImportCommand(candidate, mapping, dataset, {
     ...context,

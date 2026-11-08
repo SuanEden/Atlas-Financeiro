@@ -25,6 +25,11 @@ describe('Pluggy import safety boundary', () => {
     expect(pluggyCandidate('item-1', withoutStatus)).toBeNull();
     expect(() => pluggyCandidate('item-1', { ...row, type:'UNEXPECTED' as 'CREDIT' })).toThrow();
   });
+  it('refuses reused transaction IDs with different financial values or dates', () => {
+    expect(() => previewPluggyImport('item-1', [row, {...row,amount:160.75}])).toThrow(/mesmo identificador/);
+    expect(() => previewPluggyImport('item-1', [row, {...row,date:'2026-11-03'}])).toThrow(/mesmo identificador/);
+    expect(previewPluggyImport('item-1', [row,{...row}])).toHaveLength(1);
+  });
   it('deduplicates within a batch and against persisted external IDs', () => {
     expect(previewPluggyImport('item-1', [row, row])).toHaveLength(1);
     expect(previewPluggyImport('item-1', [row], new Set(['pluggy:item-1:account-1:transaction-1']))).toEqual([]);
