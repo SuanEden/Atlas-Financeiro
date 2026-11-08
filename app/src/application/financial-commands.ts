@@ -1,5 +1,6 @@
 import {
   assertEntryAmount,
+  assertFinancialDataset,
   assertIsoDate,
   type Account,
   type AccountReconciliation,
@@ -182,6 +183,18 @@ export function manageEntityCommand(
     operationId:context.nextId(),userId:context.userId,entity,entityId:id,expectedVersion:current.version,
     nextState:action==='archive'?'archived':action==='restore'?'active':current.state,metadata,
   } as LifecycleChange;
+  const provisional={...change,version:current.version+1,revision:0};
+  const candidate=structuredClone(dataset);
+  candidate.entityLifecycles=[...(candidate.entityLifecycles??[]),provisional];
+  if(entity==='account') {
+    const target=candidate.accounts.find(item=>item.id===id)!;
+    Object.assign(target,metadata);
+  } else {
+    const target=candidate.categories.find(item=>item.id===id)!;
+    target.name=metadata.name;target.kind=metadata.kind;
+    if('parentId' in metadata&&metadata.parentId!==undefined)target.parentId=metadata.parentId;else delete target.parentId;
+  }
+  assertFinancialDataset(candidate,context.userId);
   const payload={schemaVersion:1,userId:context.userId,lifecycleChange:{
     entity:change.entity,entityId:change.entityId,expectedVersion:change.expectedVersion,
     nextState:change.nextState,metadata:change.metadata,
