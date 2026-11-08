@@ -67,6 +67,31 @@ export interface AccountReconciliation extends OwnedEntity {
   eventId?: string;
   replacesReconciliationId?: string;
 }
+export interface AccountLifecycleMetadata {
+  name: string;
+  kind: Account['kind'];
+  availability: Account['availability'];
+}
+export interface CategoryLifecycleMetadata {
+  name: string;
+  kind: Category['kind'];
+  parentId?: string;
+}
+export type LifecycleEntity = 'account' | 'category';
+export type LifecycleState = 'active' | 'archived';
+export type LifecycleMetadata = AccountLifecycleMetadata | CategoryLifecycleMetadata;
+export type EntityLifecycleRecord = {
+  operationId: string;
+  userId: string;
+  entity: LifecycleEntity;
+  entityId: string;
+  expectedVersion: number;
+  version: number;
+  nextState: LifecycleState;
+  revision: number;
+  metadata: LifecycleMetadata;
+};
+
 export interface FinancialDataset {
   accounts: Account[];
   categories: Category[];
@@ -74,6 +99,8 @@ export interface FinancialDataset {
   settlements: Settlement[];
   postings: Posting[];
   accountReconciliations?: AccountReconciliation[];
+  /** Append-only, server-versioned metadata and lifecycle history. */
+  entityLifecycles?: EntityLifecycleRecord[];
 }
 
 export interface DatePeriod {
@@ -100,7 +127,8 @@ export type PendingOperationKind =
   | 'record_event'
   | 'reverse_event'
   | 'replace_event'
-  | 'reconcile_account';
+  | 'reconcile_account'
+  | 'manage_entity';
 
 /** Durable local operation prepared for the future remote synchronization layer. */
 export interface PendingOperation extends OwnedEntity {
