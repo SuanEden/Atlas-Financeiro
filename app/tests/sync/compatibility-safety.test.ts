@@ -153,6 +153,25 @@ describe('I3 schema v3 migrado e protegido por capability do servidor',()=>{
 });
 
 describe('bloqueio seguro de recursos locais ainda não migrados no servidor', () => {
+  it('P03 desconhecido não pode ressuscitar conta/categoria arquivada no protocolo v1',async()=>{
+    const f=await fixture(true);
+    const archived=structuredClone(f.envelope);
+    const account=(archived.data.accounts as Array<Record<string,unknown>>)[0]!;
+    account.archivedAt='2026-11-08T00:00:00.000Z';
+    expect(isI3SchemaCompatible(archived,3)).toBe(false);
+    const future=structuredClone(f.envelope);
+    future.data.tombstones=[{entityId:account.id,version:2}];
+    expect(isI3SchemaCompatible(future,3)).toBe(false);
+    const old=createAccountCommand({name:'Conta sintética',kind:'cash',availability:'free',openingDate:'2026-11-08'},{
+      userId:f.owner,nextId:()=>crypto.randomUUID(),now:()=> '2026-11-08T00:00:00.000Z',today:()=> '2026-11-08',
+    });
+    const command=commandEnvelope(old.operation,'0');
+    (command.operation.payload.accounts as Array<Record<string,unknown>>)[0]!.entityVersion=2;
+    expect(isI3SchemaCompatible(command,3)).toBe(false);
+    expect(isI3SchemaCompatible(f.envelope,3)).toBe(true);
+  });
+
+
   it('não transmite uma associação com conciliação v3 ao backend v2', async () => {
     const f = await fixture(true);
     const before = await f.snapshot();
