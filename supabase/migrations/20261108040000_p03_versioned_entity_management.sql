@@ -56,12 +56,15 @@ begin
         m:=r->'metadata';
         if r->>'entity'='account' then
           perform atlas_private.assert_object(m,array['name','kind','availability'],array['name','kind','availability']);
-          if m->>'kind' not in ('checking','savings','cash','digital','transport','investment','other')
+          if jsonb_typeof(m->'name') is distinct from 'string' or jsonb_typeof(m->'kind') is distinct from 'string' or jsonb_typeof(m->'availability') is distinct from 'string'
+            or m->>'kind' not in ('checking','savings','cash','digital','transport','investment','other')
             or m->>'availability' not in ('free','reserved','restricted')
             or (m->>'kind'='transport' and m->>'availability'<>'restricted') then raise exception 'Invalid account lifecycle metadata' using errcode='22023'; end if;
         else
           perform atlas_private.assert_object(m,array['name','kind','parentId'],array['name','kind']);
-          if m->>'kind' not in ('income','expense','both')
+          if jsonb_typeof(m->'name') is distinct from 'string' or jsonb_typeof(m->'kind') is distinct from 'string'
+            or (m ? 'parentId' and m->'parentId'<>'null'::jsonb and jsonb_typeof(m->'parentId') is distinct from 'string')
+            or m->>'kind' not in ('income','expense','both')
             or (m ? 'parentId' and m->>'parentId' is not null and coalesce(m->>'parentId','') !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') then
             raise exception 'Invalid category lifecycle metadata' using errcode='22023';
           end if;
@@ -84,6 +87,14 @@ begin
   end loop;
   if financial_schema=4 then
     if d ? 'lifecycleChange' then raise exception 'Lifecycle intent is not valid in a snapshot' using errcode='22023'; end if;
+    if exists(select 1 from (
+      select (x->>'entity') entity,(x->>'entityId') entity_id,(x->>'version')::integer version,
+        row_number() over(partition by x->>'entity',x->>'entityId' order by (x->>'version')::integer) expected
+      from jsonb_array_elements(d->'entityLifecycles') x
+    ) q where q.version<>q.expected) then raise exception 'Lifecycle snapshot versions are not contiguous' using errcode='22023'; end if;
+    if exists(select 1 from jsonb_array_elements(d->'entityLifecycles') x where (x->>'revision')::bigint<>0) then
+      raise exception 'Bootstrap lifecycle revisions must be rebased to zero' using errcode='22023';
+    end if;
     if exists(select 1 from jsonb_array_elements(d->'entityLifecycles') x
       where (x->>'entity'='account' and not exists(select 1 from jsonb_array_elements(d->'accounts') a where a->>'id'=x->>'entityId'))
          or (x->>'entity'='category' and not exists(select 1 from jsonb_array_elements(d->'categories') c where c->>'id'=x->>'entityId'))) then
@@ -153,6 +164,11 @@ begin
     or exists(select 1 from jsonb_array_elements(coalesce(p->'postings','[]')) r where not exists(select 1 from jsonb_array_elements(coalesce(p->'settlements','[]')) v where v->>'id'=r->>'settlementId')) then
     raise exception 'Command splits a financial aggregate' using errcode='22023';
   end if;
+  if kind='reconcile_account' and exists(
+    select 1 from jsonb_array_elements(coalesce(p->'accountReconciliations','[]')) r
+    where exists(select 1 from atlas_private.entity_lifecycle l where l.user_id=owner_id and l.entity_kind='account' and l.entity_id=(r->>'accountId')::uuid
+      and l.entity_version=(select max(x.entity_version) from atlas_private.entity_lifecycle x where x.user_id=owner_id and x.entity_kind='account' and x.entity_id=l.entity_id) and l.new_state='archived')
+  ) then raise exception 'Archived account cannot be reconciled' using errcode='23514'; end if;
   if kind in ('record_event','reconcile_account') and exists(
     select 1 from jsonb_array_elements(coalesce(p->'events','[]')) e
     where exists(select 1 from atlas_private.entity_lifecycle l where l.user_id=owner_id and l.entity_kind='account' and l.entity_id=(e->>'accountId')::uuid
