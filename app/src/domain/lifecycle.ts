@@ -92,8 +92,8 @@ export function decideLifecycleChange(
   const latest=currentLifecycle(history,change.ownerId,change.entity,change.entityId);
   if (latest.version!==change.expectedVersion) throw new LifecycleConflict(latest.version);
   if (latest.state===change.nextState) throw new TypeError('A entidade já está no estado solicitado.');
-  if (history.some(row=>row.ownerId===change.ownerId&&row.revision===nextRevision))
-    throw new TypeError('Revisão global já utilizada.');
+  if (history.some(row=>row.ownerId===change.ownerId&&row.revision>=nextRevision))
+    throw new TypeError('Revisão global não avança monotonicamente.');
   return {record:{...change,version:latest.version+1,revision:nextRevision},created:true};
 }
 
@@ -120,6 +120,11 @@ export function incorporateLifecyclePage(
     const latest=currentLifecycle(result,ownerId,record.entity,record.entityId);
     if (record.expectedVersion!==latest.version || record.version!==latest.version+1)
       throw new LifecycleConflict(latest.version);
+    if (record.nextState===latest.state)
+      throw new TypeError('Feed de arquivamento contém transição sem mudança de estado.');
+    const lastOwnerRevision=result.reduce((max,row)=>row.ownerId===ownerId?Math.max(max,row.revision):max,0);
+    if(record.revision<=lastOwnerRevision)
+      throw new TypeError('Feed de arquivamento fora de ordem cronológica.');
     if (result.some(row=>row.ownerId===ownerId&&row.revision===record.revision))
       throw new TypeError('Revisão repetida com outro evento.');
     result.push({...record});
