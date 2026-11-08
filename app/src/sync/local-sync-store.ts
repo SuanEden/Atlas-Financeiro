@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { assertEntityId, type FinancialDataset } from '../domain';
+import { applyLifecycleMetadata } from '../domain/lifecycle';
 import { deserializeFinancialDataset, serializeFinancialDataset } from '../serialization';
 import { canonicalJson } from '../serialization/canonical-json';
 import { assertEnvelope, assertFields, assertRevision, assertSize, DATA_TABLES, emptyDataset, envelopeData, isI3SchemaCompatible, jsonDigest, mergeAppendOnly, receiptAcknowledges, type BootstrapEnvelope, type ChangePage, type Receipt, type SyncEnvelope } from './protocol';
@@ -184,7 +185,7 @@ export class LocalSyncStore {
         if(await jsonDigest(row.envelope)!==row.digest||(row.operationDigest!==undefined&&(row.envelope.kind==='bootstrap'||await jsonDigest(row.envelope.operation)!==row.operationDigest))) throw new TypeError('Pendência divergente da cópia original.');
       })));
       for(const batch of page.batches) {
-        confirmed=mergeAppendOnly(confirmed,envelopeData(batch.envelope),this.userId);
+        confirmed=mergeAppendOnly(confirmed,envelopeData(batch.envelope,batch.revision),this.userId);
         await this.putReceipt(batch.receipt);
         for(const pending of await this.#db.pending.toArray()) {
           const ack=acknowledgements.get(pending.id);
@@ -274,7 +275,7 @@ function project(confirmed: FinancialDataset, input: PendingDelivery[], owner: s
     if(!progressed) { for(const row of next) { row.status='blocked'; row.error='MISSING_OR_CONFLICTED_DEPENDENCY'; } break; }
     remaining=next;
   }
-  return {data,pending};
+  return {data:applyLifecycleMetadata(data,owner),pending};
 }
 
 function assertKnownFields(value: unknown,required: readonly string[],optional: readonly string[]) {
