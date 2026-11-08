@@ -12,7 +12,7 @@ test('produção recupera arquivo I2 offline e preserva histórico e novas pend�
   await page.reload();
   await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller !== null)).toBe(true);
   await context.setOffline(true);
-  await page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('button', { name: 'Modo nuvem', exact: true }).click();
+  await page.getByRole('button', { name: 'Modo nuvem', exact: true }).click();
   await page.getByLabel('Arquivo JSON de I2').setInputFiles({ name: 'synthetic-i2.json', mimeType: 'application/json', buffer: Buffer.from(json) });
   await expect(page.locator('.recovery-panel').getByRole('status')).toContainText('Arquivo validado');
   await page.getByRole('checkbox', { name: /Conferi o arquivo/ }).check();
@@ -26,7 +26,7 @@ test('produção recupera arquivo I2 offline e preserva histórico e novas pend�
   await page.reload();
   await expect(page.getByLabel('Resumo dos saldos')).toContainText('R$ 998,01');
   await expect(page.locator('.sidebar-cloud-hint')).toContainText('11 pendentes');
-  await page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('button', { name: 'Modo nuvem', exact: true }).click();
+  await page.getByRole('button', { name: 'Modo nuvem', exact: true }).click();
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Baixar backup' }).click();
   const after = JSON.parse(readFileSync((await (await download).path())!, 'utf8'));
