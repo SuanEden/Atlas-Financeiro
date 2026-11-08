@@ -71,7 +71,7 @@ export function adapterFromClient(client:ApiClient,origin:string,clearLocalSessi
       if(user.is_anonymous||!user.identities?.some((identity)=>identity.provider==='google')) throw new SyncFailure('access_denied','GOOGLE_IDENTITY_REQUIRED');
       const readiness=await rpc<{protocolVersion:number;financialWritesEnabled:boolean;financialSchemaVersion?:number}>('i3_readiness');
       if(readiness.protocolVersion!==1||typeof readiness.financialWritesEnabled!=='boolean'||
-         (readiness.financialSchemaVersion!==undefined&&!([2,3].includes(readiness.financialSchemaVersion))))
+         (readiness.financialSchemaVersion!==undefined&&!([2,3,4].includes(readiness.financialSchemaVersion))))
         throw new SyncFailure('access_denied','UNSUPPORTED_SERVER');
       const session=await client.auth.getSession();
       if(session.error||!session.data.session||session.data.session.user.id!==user.id||!session.data.session.expires_at) throw new SyncFailure('login_required','SESSION_CHANGED');
