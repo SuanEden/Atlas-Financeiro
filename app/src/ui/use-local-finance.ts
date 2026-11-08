@@ -122,7 +122,10 @@ export function useLocalFinance(mode: 'normal' | 'test' = 'normal') {
     }
   };
 
-  return { state, loading, busy, error, clearError: () => setError(undefined), execute, modifyEntity, recover, readState: () => local.store.readLocalState(), context: local.context, userId: local.userId };
+  const restoreEntity=async(_entity:'account'|'category',_id:string):Promise<void>=>{
+    throw new Error('A restauração de registros arquivados exige a sincronização I3.');
+  };
+  return { state, loading, busy, error, clearError: () => setError(undefined), execute, modifyEntity, restoreEntity, recover, readState: () => local.store.readLocalState(), context: local.context, userId: local.userId };
 }
 
 function messageFrom(reason: unknown): string {
