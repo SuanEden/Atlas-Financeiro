@@ -1,4 +1,5 @@
 import 'fake-indexeddb/auto';
+import Dexie from 'dexie';
 import { IDBObjectStore as FakeObjectStore } from 'fake-indexeddb';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { sqlTestServer } from './sql-test-server';
@@ -43,6 +44,23 @@ async function income(store:LocalSyncStore,amountCents=1n) {
 }
 
 describe('proteção operacional da cópia I3 — sem importador I3/I4',()=>{
+  it('recusa exportar pendência adulterada antes de gerar arquivo de recuperação',async()=>{
+    const {store,bootstrap}=await prepared();
+    // Valid copies must remain downloadable with the original immutable envelope.
+    const original=JSON.parse(await copy(store));
+    expect(original.pending[0].id).toBe(bootstrap.operationId);
+    const raw=new Dexie(store.name);
+    raw.version(1).stores({confirmed:'id',pending:'id,ordinal,status',receipts:'id,revision',meta:'id'});
+    try {
+      const row=await raw.table('pending').get(bootstrap.operationId);
+      row.envelope.data.accounts[0].name='Alteração sintética indevida';
+      await raw.table('pending').put(row);
+      await expect(copy(store)).rejects.toThrow(/diverge|digest|projeção|incompatível/i);
+      expect((await raw.table('pending').get(bootstrap.operationId)).envelope.data.accounts[0].name).toBe('Alteração sintética indevida');
+    } finally {raw.close();}
+  });
+
+
   it('preserva associação ainda não enviada e proveniência exata após reabrir o namespace',async()=>{
     const {owner,sourceOwner,source,bootstrap,store}=await prepared();
     const before=await stableCopy(store);store.close();const reopened=open(owner);
