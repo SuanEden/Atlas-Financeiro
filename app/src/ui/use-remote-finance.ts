@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { createDefaultCommandContext, type LocalCommand } from '../application';
+import { createDefaultCommandContext, manageEntityCommand, type LocalCommand } from '../application';
 import type { LocalFinancialState } from '../domain';
 import type { RemoteController } from '../remote/controller';
 
@@ -37,6 +37,16 @@ export function useRemoteFinance(controller:RemoteController) {
     finally {executing.current=false;setBusy(false);}
   },[controller,readState]);
   const recover=async(json:string)=>{await controller.recoverBackup(json);setState(await readState());};
-  const modifyEntity = async (_action:'edit'|'delete',_entity:'account'|'category',_id:string,_changes?:{name:string;kind:string;availability?:string;parentId?:string}):Promise<void>=>{ throw new Error('A edição e a exclusão ainda não são suportadas pelo protocolo de sincronização I3.'); };
-  return {state,loading,busy,error,clearError:()=>setError(undefined),execute,modifyEntity,recover,readState,context,userId};
+  const modifyEntity = async (action:'edit'|'delete',entity:'account'|'category',id:string,changes?:{name:string;kind:string;availability?:string;parentId?:string}):Promise<void>=>{
+    if(executing.current)throw new Error('Aguarde a operação em andamento.');
+    const current=await readState();
+    const command=manageEntityCommand(current,entity,id,action==='delete'?'archive':'edit',changes,context);
+    await execute(command);
+  };
+  const restoreEntity = async(entity:'account'|'category',id:string):Promise<void>=>{
+    if(executing.current)throw new Error('Aguarde a operação em andamento.');
+    const current=await readState();
+    await execute(manageEntityCommand(current,entity,id,'restore',undefined,context));
+  };
+  return {state,loading,busy,error,clearError:()=>setError(undefined),execute,modifyEntity,restoreEntity,recover,readState,context,userId};
 }
