@@ -73,13 +73,22 @@ export function pluggyCandidate(itemId: string, row: PluggyTransaction): BankImp
 export function previewPluggyImport(
   itemId: string, transactions: PluggyTransaction[], previouslyImported: ReadonlySet<string> = new Set(),
 ): BankImportCandidate[] {
-  const seen = new Set(previouslyImported);
+  const seen = new Map<string, BankImportCandidate>();
   const candidates: BankImportCandidate[] = [];
   for (const transaction of transactions) {
     const candidate = pluggyCandidate(itemId, transaction);
-    if (!candidate || seen.has(candidate.externalKey)) continue;
-    seen.add(candidate.externalKey);
-    candidates.push(candidate);
+    if (!candidate) continue;
+    const prior = seen.get(candidate.externalKey);
+    if (prior) {
+      if (prior.date !== candidate.date || prior.kind !== candidate.kind ||
+          prior.amountCents !== candidate.amountCents ||
+          prior.description !== candidate.description ||
+          prior.accountId !== candidate.accountId)
+        throw new TypeError('O banco retornou o mesmo identificador com dados diferentes. Importe somente após conferir o extrato; nenhum lançamento foi gravado.');
+      continue;
+    }
+    seen.set(candidate.externalKey,candidate);
+    if (!previouslyImported.has(candidate.externalKey)) candidates.push(candidate);
   }
   return candidates;
 }
