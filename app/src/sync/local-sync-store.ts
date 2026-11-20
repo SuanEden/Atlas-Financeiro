@@ -130,7 +130,7 @@ export class LocalSyncStore {
         const receipt = receipts.get(row.id);
         if (receipt) {
           const covered = receipt.coveredOperations.find(operation => operation.id === row.id);
-          if (receipt.digest !== row.digest && covered?.digest !== row.operationDigest)
+          if (receipt.digest !== row.digest && !(row.operationDigest !== undefined && covered?.digest === row.operationDigest))
             throw new Error('Operação confirmada com mesmo identificador e dados divergentes.');
           continue;
         }
