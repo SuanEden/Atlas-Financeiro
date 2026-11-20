@@ -148,4 +148,18 @@ describe('recuperação I3 não concede autenticação nem escrita remota',()=>{
     await other.logout();await expect(other.recoverBackup(json)).rejects.toThrow(/Entre/);
     expect(other.getSnapshot().session.canView).toBe(false);
   });
+
+  it('recusa recuperação no navegador quando Web Locks não está disponível',async()=>{
+    const f=await setup();await associate(f);
+    const {exportSyncBackup}=await import('../../src/sync/export-backup');
+    const store=f.controller.getSnapshot().store!;
+    const json=await exportSyncBackup(store,'synthetic-controller');
+    const before=await store.read();
+    vi.stubGlobal('window',{});
+    vi.stubGlobal('navigator',{locks:undefined});
+    try {
+      await expect(f.controller.recoverBackup(json)).rejects.toThrow(/coordenação necessária/);
+      expect(await store.read()).toEqual(before);
+    } finally { vi.unstubAllGlobals(); }
+  });
 });
