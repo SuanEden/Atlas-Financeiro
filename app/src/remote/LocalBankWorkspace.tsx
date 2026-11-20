@@ -30,8 +30,9 @@ export default function LocalBankWorkspace(){
     const key=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     if(typeof url!=='string'||typeof key!=='string'||!url||!key)return undefined;
     // OAuth in production must not inherit a temporary Vercel Preview origin.
-    const canonicalOrigin='https://atlas-financeiro-nine.vercel.app';
-    const origin=location.hostname==='localhost' ? location.origin : canonicalOrigin;
+    const approvedHosts=new Set(['atlas-financeiro-nine.vercel.app','atlas-financeiro-henna.vercel.app']);
+    const origin=location.hostname==='localhost'||approvedHosts.has(location.hostname)
+      ? location.origin : 'https://atlas-financeiro-nine.vercel.app';
     return createSupabaseAdapter({url,publishableKey:key,serverId:new URL(url).hostname},origin);
   });
   const [session,setSession]=useState<'checking'|'connected'|'disconnected'|'unavailable'>('checking');
@@ -54,8 +55,8 @@ export default function LocalBankWorkspace(){
   const triggerBankSync=useRef<()=>void>(()=>{});
   async function connectBank(){
     if(!adapter){setMessage('Integração bancária não configurada.');return;}
-    if(location.hostname!=='atlas-financeiro-nine.vercel.app'){
-      setMessage('Para autorizar seus bancos, abra primeiro atlas-financeiro-nine.vercel.app.');
+    if(location.hostname!=='atlas-financeiro-nine.vercel.app'&&location.hostname!=='atlas-financeiro-henna.vercel.app'){
+      setMessage('Para autorizar seus bancos, abra uma das versões de produção aprovadas do Atlas Financeiro.');
       return;
     }
     try{setMessage('Abrindo autorização segura do Google…');await adapter.auth.login();}
