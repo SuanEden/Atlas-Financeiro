@@ -115,20 +115,29 @@ export class LocalSyncStore {
           if (target.get(row.id) !== compareRow(row)) throw new Error('A base confirmada da cópia diverge da atual. Nada foi importado.');
         }
       }
-      const existingIds = new Set([...existingPending.map(row => row.id), ...existingReceipts.map(row => row.id)]);
+      // An operation ID may only represent one immutable payload, including across
+      // already-confirmed receipts and repeated entries inside the same import.
+      const known = new Map(existingPending.map(row => [row.id, row.digest]));
+      const receipts = new Map(existingReceipts.map(row => [row.id, row]));
       let ordinal = meta.ordinal;
       let imported = 0;
       for (const row of deliveries) {
-        if (existingIds.has(row.id)) {
-          const prior = existingPending.find(item => item.id === row.id);
-          if (prior && (prior.envelope.kind === 'bootstrap' || row.envelope.kind === 'bootstrap' || canonicalJson(prior.envelope.operation) !== canonicalJson(row.envelope.operation)))
-            throw new Error('Operação com mesmo identificador e dados divergentes.');
+        const priorDigest = known.get(row.id);
+        if (priorDigest !== undefined) {
+          if (priorDigest !== row.digest) throw new Error('Operação com mesmo identificador e dados divergentes.');
+          continue;
+        }
+        const receipt = receipts.get(row.id);
+        if (receipt) {
+          const covered = receipt.coveredOperations.find(operation => operation.id === row.id);
+          if (receipt.digest !== row.digest && covered?.digest !== row.operationDigest)
+            throw new Error('Operação confirmada com mesmo identificador e dados divergentes.');
           continue;
         }
         current = mergeAppendOnly(current, envelopeData(row.envelope), this.userId);
         ordinal++;
         await this.#db.pending.add({ ...row, ordinal });
-        existingIds.add(row.id);
+        known.set(row.id, row.digest);
         imported++;
       }
       if (imported) await this.#db.meta.put({ ...meta, ordinal });
