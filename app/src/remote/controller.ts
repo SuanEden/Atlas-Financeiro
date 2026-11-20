@@ -183,12 +183,14 @@ export class RemoteController {
     try {
     // Coordinate recovery with foreground sync in other tabs of the same namespace.
     // Never restore while another tab may be transmitting the previous local state.
-    if (typeof navigator !== 'undefined' && navigator.locks) {
+    if (typeof window !== 'undefined') {
+      if (!navigator.locks) throw new Error('Este navegador não oferece a coordenação necessária para recuperar com segurança. Use um navegador compatível.');
       await navigator.locks.request(`atlas-financeiro:sync:${store.name}`, async () => {
         if (!authorized()) throw new Error('A sessão mudou antes da recuperação.');
         await store.recoverBackup(json, authorized);
       });
     } else {
+      // Non-browser unit tests have no cross-tab execution context.
       await store.recoverBackup(json, authorized);
     }
     if (!authorized()) throw new Error('A sessão mudou. Entre novamente; os dados recuperados foram preservados.');
