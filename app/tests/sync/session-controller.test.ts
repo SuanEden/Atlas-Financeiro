@@ -53,6 +53,28 @@ describe('controlador local de sessão com SQL e identidades simuladas',()=>{
     await reopened.enqueue(command);expect(await reopened.sync()).toBe('login_required');
     expect((await reopened.getSnapshot().store!.read()).pending).toHaveLength(1);
   });
+  it('não declara sincronizado apenas porque a fila local está vazia',async()=>{
+    const f=await setup();
+    expect(f.controller.getSnapshot().lastSyncResult).toBeNull();
+    expect((await f.controller.getSnapshot().store!.read()).pending).toHaveLength(0);
+    await f.controller.joinExisting();
+    expect(f.controller.getSnapshot().lastSyncResult).toBe('unassociated');
+    expect((await f.controller.getSnapshot().store!.read()).meta.binding).toBe('join');
+  });
+
+  it('revoga confirmação visual anterior quando uma consulta remota falha',async()=>{
+    const f=await setup();await associate(f);
+    expect(f.controller.getSnapshot().lastSyncResult).toBe('synced');
+    f.controller.dispose();
+    const reopened=f.make({...f.transport,pull:async()=>{throw new Error('PRIVATE_REMOTE_ERROR');}});
+    await reopened.start();
+    expect(reopened.getSnapshot().lastSyncResult).toBeNull();
+    expect(await reopened.sync()).toBe('retry_later');
+    expect(reopened.getSnapshot().lastSyncResult).toBe('retry_later');
+    expect(reopened.getSnapshot().notice).not.toContain('PRIVATE_REMOTE_ERROR');
+    expect((await reopened.getSnapshot().store!.read()).meta.binding).toBe('active');
+  });
+
   it('informa a etapa de leitura sem expor erro remoto nem alterar a associação',async()=>{
     const f=await setup();
     f.controller.dispose();
