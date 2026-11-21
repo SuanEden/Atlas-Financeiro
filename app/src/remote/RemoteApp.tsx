@@ -29,10 +29,21 @@ function AccessGate({controller}:{controller:RemoteController}) {
   const [failure,setFailure]=useState('');
   const [dark]=useState(()=>localStorage.getItem('atlas-financeiro:theme:v2')!=='light');
   const canAssociate=snapshot.session.onlineVerified&&snapshot.session.canTransmit;
+  const [association,setAssociation]=useState<{binding:string;pending:number;conflicts:number}|null>(null);
+  const [associationReadError,setAssociationReadError]=useState(false);
+  async function refreshAssociation() {
+    if(!snapshot.store){setAssociation(null);return;}
+    try {
+      const state=await snapshot.store.read();
+      setAssociation({binding:state.meta.binding,pending:state.pending.filter(row=>row.status==='pending').length,conflicts:state.pending.filter(row=>row.status==='conflict'||row.status==='blocked').length});
+      setAssociationReadError(false);
+    }catch{setAssociation(null);setAssociationReadError(true);}
+  }
+  useEffect(()=>{void refreshAssociation();},[snapshot.store,snapshot.dataRevision,snapshot.syncing]);
   async function run(action:()=>Promise<unknown>) {
     setBusy(true);setFailure('');
     try {await action();}catch{setFailure('Não foi possível concluir. Os dados e a origem foram preservados. Confira a sessão e tente novamente.');}
-    finally {setBusy(false);}
+    finally {await refreshAssociation();setBusy(false);}
   }
   return <main className="app-shell access-page" data-theme={dark?'dark':'light'}><section className="access-card">
     <span className="brand-mark" aria-hidden="true">A</span><h1>Atlas Financeiro</h1>
@@ -42,13 +53,23 @@ function AccessGate({controller}:{controller:RemoteController}) {
     {snapshot.session.onlineVerified?<button className="button button--ghost" disabled={busy} onClick={()=>void controller.logout()}>Sair e bloquear acesso local</button>:null}
     {snapshot.session.onlineVerified&&!snapshot.session.canTransmit?<section className="association-panel"><p>O servidor ainda não liberou gravações financeiras. Nenhum envio será executado.</p><button className="text-button" disabled={busy} onClick={()=>void run(async()=>{setPreview(await controller.previewLocalSource());})}>Conferir base local sem enviar</button>{preview?<p>Base local: {preview.accounts} contas, {preview.events} lançamentos e {preview.pending} operações pendentes. A origem permanece neste dispositivo.</p>:null}</section>:null}
     {canAssociate?<section className="association-panel" aria-label="Associação inicial">
-      <h2>Escolha como começar neste navegador</h2><p>Confirme a conta Google antes de continuar. Dados de teste não devem ser usados como sua base pessoal.</p>
-      <label><input type="checkbox" checked={confirmed} onChange={(event)=>setConfirmed(event.target.checked)} />Conferi a conta e autorizo somente a opção que escolher abaixo.</label>
-      <button className="button button--secondary" disabled={busy||!confirmed} onClick={()=>void run(()=>controller.associateEmpty())}>Iniciar uma base vazia</button>
-      <button className="button button--secondary" disabled={busy||!confirmed} onClick={()=>void run(()=>controller.joinExisting())}>Receber minha base já associada</button>
-      <button className="text-button" disabled={busy} onClick={()=>void run(async()=>{setPreview(await controller.previewLocalSource());})}>Conferir base local I2 para associação</button>
-      {preview?<div><p>{preview.accounts} contas, {preview.events} lançamentos e {preview.pending} operações locais. A origem será preservada. Feche abas antigas de I2 antes de copiar.</p><button className="button button--secondary" disabled={busy||!confirmed} onClick={()=>void run(()=>controller.associateLocal(preview.digest))}>Confirmar cópia da base conferida</button></div>:null}
-      <button className="text-button" disabled={busy||snapshot.syncing} onClick={()=>void run(()=>controller.sync())}>Retomar associação pendente</button>
+      <h2>{association?.binding==='unbound'?'Escolha como começar neste navegador':'Conferência da associação'}</h2>
+      {associationReadError?<p role="alert">Não foi possível conferir o estado local. Nenhuma nova associação está liberada. Preserve este navegador e suas cópias.</p>:null}
+      {!association&&!associationReadError?<p role="status">Conferindo a associação local antes de liberar opções…</p>:null}
+      {association?.binding==='unbound'?<>
+        <p>Confirme a conta Google antes de continuar. Dados de teste não devem ser usados como sua base pessoal.</p>
+        <label><input type="checkbox" checked={confirmed} onChange={(event)=>setConfirmed(event.target.checked)} />Conferi a conta e autorizo somente a opção que escolher abaixo.</label>
+        <button className="button button--secondary" disabled={busy||!confirmed} onClick={()=>void run(()=>controller.associateEmpty())}>Iniciar uma base vazia</button>
+        <button className="button button--secondary" disabled={busy||!confirmed} onClick={()=>void run(()=>controller.joinExisting())}>Receber minha base já associada</button>
+        <button className="text-button" disabled={busy} onClick={()=>void run(async()=>{setPreview(await controller.previewLocalSource());})}>Conferir base local I2 para associação</button>
+        {preview?<div><p>{preview.accounts} contas, {preview.events} lançamentos e {preview.pending} operações locais. A origem será preservada. Feche abas antigas de I2 antes de copiar.</p><button className="button button--secondary" disabled={busy||!confirmed} onClick={()=>void run(()=>controller.associateLocal(preview.digest))}>Confirmar cópia da base conferida</button></div>:null}
+      </>:null}
+      {association&&association.binding!=='unbound'?<>
+        <p role="status">{association.binding==='bootstrap'?'A cópia inicial está preparada e aguarda confirmação do servidor.':association.binding==='verifying_source'?'O servidor recebeu a associação; falta confirmar que a origem local não mudou.':association.binding==='join'?'Este navegador está recebendo a base já associada.':'A associação local está ativa; confira a sessão antes de qualquer nova tentativa.'}</p>
+        <p>{association.pending} operações pendentes; {association.conflicts} alterações com conflito ou dependência.</p>
+        {association.conflicts>0?<p role="alert">Existem alterações bloqueadas ou conflitantes. Preserve o backup I3 e não tente iniciar outra base neste navegador.</p>:null}
+        <button className="text-button" disabled={busy||snapshot.syncing} onClick={()=>void run(()=>controller.sync())}>Retomar associação pendente</button>
+      </>:null}
     </section>:null}
     {snapshot.session.onlineVerified ? <PluggyReadPanel controller={controller} /> : null}
     {snapshot.session.onlineVerified ? <SyncRecoveryPanel userId={snapshot.session.userId} serverId={controller.serverId} onRecover={json => controller.recoverBackup(json)} disabled={busy || snapshot.syncing} /> : null}
