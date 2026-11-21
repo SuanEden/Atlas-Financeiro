@@ -1,4 +1,4 @@
-import type { FinancialDataset } from '../domain';
+import { isEntitySelectable, type FinancialDataset } from '../domain';
 import { createTransactionCommand, replaceEventCommand, type CommandContext, type LocalCommand } from './financial-commands';
 import type { BankImportCandidate } from './pluggy-import';
 import { serializeOperationPayload } from '../serialization';
@@ -15,12 +15,18 @@ export function prepareBankImportCommand(
   mapping: BankImportMapping,
   dataset: FinancialDataset,
   context: CommandContext,
+  categoryId?: string,
 ): LocalCommand {
   if (candidate.accountId !== mapping.pluggyAccountId) throw new TypeError('Conta externa não corresponde ao vínculo selecionado.');
   if (!dataset.accounts.some(account => account.id === mapping.atlasAccountId && account.userId === context.userId)) {
     throw new TypeError('Conta financeira do Atlas não encontrada para esta importação.');
   }
   if (candidate.amountCents <= 0n) throw new TypeError('Valor importado inválido.');
+  if (categoryId !== undefined && !dataset.categories.some(category => category.id === categoryId
+    && category.userId === context.userId && (category.kind === 'both' || category.kind === candidate.kind)
+    && isEntitySelectable(dataset.entityLifecycles ?? [], context.userId, 'category', category.id))) {
+    throw new TypeError('A categoria escolhida mudou. Confira o extrato novamente.');
+  }
   const result = createTransactionCommand({
     kind: candidate.kind,
     accountId: mapping.atlasAccountId,
@@ -28,6 +34,7 @@ export function prepareBankImportCommand(
     description: candidate.description,
     date: candidate.date,
     realized: true,
+    ...(categoryId === undefined ? {} : { categoryId }),
   }, context);
   // A bank-imported event must remain attributable as imported in both the
   // local aggregate and its serialized operation, not be mislabeled 'manual'.
@@ -74,6 +81,7 @@ export async function prepareUniqueBankImportCommand(
   dataset: FinancialDataset,
   context: CommandContext,
   manualEventId?: string,
+  categoryId?: string,
 ): Promise<LocalCommand | null> {
   if (candidate.accountId !== mapping.pluggyAccountId) throw new TypeError('Conta externa não corresponde ao vínculo selecionado.');
   const eventId = await bankImportEventId(context.userId, candidate.externalKey);
@@ -92,7 +100,7 @@ export async function prepareUniqueBankImportCommand(
   }
   let calls = 0;
   const bankContext = { ...context, nextId: () => calls++ === 0 ? eventId : context.nextId() };
-  if (manualEventId === undefined) return prepareBankImportCommand(candidate, mapping, dataset, bankContext);
+  if (manualEventId === undefined) return prepareBankImportCommand(candidate, mapping, dataset, bankContext, categoryId);
   const original = findManualBankMatches(dataset, candidate, mapping.atlasAccountId, context.userId)
     .find(event => event.id === manualEventId);
   if (!original) throw new TypeError('O lançamento selecionado mudou. Confira a importação novamente.');

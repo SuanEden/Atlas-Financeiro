@@ -1,3 +1,4 @@
+import { suggestBankCategory } from '../application/bank-category-suggestions';
 import { bankImportEventId, findManualBankMatches, prepareUniqueBankImportCommand, previewPluggyImport, type PluggyTransaction, type BankImportCandidate, type CommandContext, type LocalCommand } from '../application';
 import type { LocalFinancialState } from '../domain';
 
@@ -135,6 +136,7 @@ export interface BankImportPreflight {
   existingInDestination:number;
   existingInOtherAccount:number;
   otherAccountNames:string[];
+  suggestions?: { candidate: BankImportCandidate; categoryId: string; categoryName: string }[];
   manualMatches?: {
     candidate: BankImportCandidate;
     events: ReturnType<typeof findManualBankMatches>;
@@ -146,6 +148,7 @@ export async function classifyBankImportCandidates(
 ):Promise<BankImportPreflight>{
   const events=new Map(state.events.map(event=>[event.id,event]));
   const otherAccountIds=new Set<string>();
+  const suggestions: NonNullable<BankImportPreflight['suggestions']> = [];
   const manualMatches: NonNullable<BankImportPreflight['manualMatches']> = [];
   let newCount=0,existingInDestination=0,existingInOtherAccount=0;
   for(const candidate of candidates){
@@ -155,6 +158,8 @@ export async function classifyBankImportCandidates(
       newCount++;
       const matches = findManualBankMatches(state, candidate, destinationAccountId, ownerId);
       if (matches.length > 0) manualMatches.push({ candidate, events: matches });
+      const suggestion = suggestBankCategory(state, candidate, ownerId);
+      if (suggestion) suggestions.push({ candidate, categoryId: suggestion.id, categoryName: suggestion.name });
       continue;
     }
     if(existing.accountId===destinationAccountId){existingInDestination++;continue;}
@@ -163,12 +168,13 @@ export async function classifyBankImportCandidates(
   }
   return {
     newCount,existingInDestination,existingInOtherAccount,
+    ...(suggestions.length === 0 ? {} : { suggestions }),
     ...(manualMatches.length === 0 ? {} : { manualMatches }),
     otherAccountNames:[...otherAccountIds].map(id=>state.accounts.find(account=>account.id===id)?.name||'Conta não identificada'),
   };
 }
 /** Run only after a complete validated preview and explicit user approval. */
-export async function commitBankImportPreview(link:BankLink,candidates:BankImportCandidate[],source:ImportSource, matches: ReadonlyMap<string, string> = new Map()):Promise<number>{
+export async function commitBankImportPreview(link:BankLink,candidates:BankImportCandidate[],source:ImportSource, matches: ReadonlyMap<string, string> = new Map(), categories: ReadonlyMap<string, string> = new Map()):Promise<number>{
   let count=0;
   for(const candidate of candidates){
     try {
@@ -178,7 +184,7 @@ export async function commitBankImportPreview(link:BankLink,candidates:BankImpor
       const prepared = await prepareUniqueBankImportCommand(candidate, {
         pluggyAccountId: link.pluggyAccountId,
         atlasAccountId: imported?.accountId ?? link.atlasAccountId,
-      }, current, source.context, matches.get(candidate.externalKey));
+      }, current, source.context, matches.get(candidate.externalKey), categories.get(candidate.externalKey));
       if (!prepared) continue;
       await source.execute(prepared);
     } catch (error) {

@@ -45,6 +45,7 @@ export function PluggyReadPanel({controller,importTarget}:{controller:BankReader
   const [fromDate,setFromDate]=useState(()=>thirtyDaysAgo(importTarget?.context.today()??new Date().toISOString().slice(0,10)));
   const [review,setReview]=useState<Review|null>(null);
   const [matches,setMatches]=useState(new Map<string, string>());
+  const [categories,setCategories]=useState(new Map<string, string>());
   const [confirmed,setConfirmed]=useState(false);
   const [busy,setBusy]=useState<'bank'|'account'|'review'|'commit'|null>(null);
   const [progress,setProgress]=useState('');
@@ -52,7 +53,7 @@ export function PluggyReadPanel({controller,importTarget}:{controller:BankReader
   const [notice,setNotice]=useState('');
 
   function invalidate(){
-    setMatches(new Map());setReview(null);setConfirmed(false);setError('');setNotice('');setProgress('');
+    setCategories(new Map());setMatches(new Map());setReview(null);setConfirmed(false);setError('');setNotice('');setProgress('');
   }
   async function run(kind:NonNullable<typeof busy>,operation:()=>Promise<void>){
     if(busy)return;
@@ -109,7 +110,7 @@ export function PluggyReadPanel({controller,importTarget}:{controller:BankReader
       const count=await commitBankImportPreview(review.link,review.preview.candidates,{
         readPage:(id,after,from,continuation)=>controller.readBank('transactions',id,after,from,continuation),
         readState:importTarget.readState,execute:importTarget.execute,context:importTarget.context,
-      }, matches);
+      }, matches, categories);
       setReview(null);setConfirmed(false);
       setNotice(count
         ? count+' movimentação(ões) salva(s) na base local do Atlas. Confira a aba Movimentações e o status da nuvem.'
@@ -163,6 +164,19 @@ export function PluggyReadPanel({controller,importTarget}:{controller:BankReader
                   Conciliar com {event.description} ({event.status === 'planned' ? 'previsto' : 'realizado'})
                 </option>)}
               </select>
+            </label>
+          ))}
+          {review.preflight.suggestions?.filter(({ candidate }) => !matches.has(candidate.externalKey)).map(({ candidate, categoryId, categoryName }) => (
+            <label className="bank-import-consent" key={candidate.externalKey}>
+              <input type="checkbox" disabled={!!busy} checked={categories.get(candidate.externalKey) === categoryId}
+                onChange={event => {
+                  const next = new Map(categories);
+                  if (event.target.checked) next.set(candidate.externalKey, categoryId);
+                  else next.delete(candidate.externalKey);
+                  setCategories(next);
+                  setConfirmed(false);
+                }} />
+              <span>{candidate.date} · {candidate.description} · {formatBRL(candidate.amountCents)} · Usar categoria {categoryName}</span>
             </label>
           ))}
           <label className="bank-import-consent"><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/> Conferi a conta, a data e o saldo inicial. Autorizo gravar essas movimentações na minha base.</label>
