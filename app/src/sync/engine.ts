@@ -15,13 +15,17 @@ export class SyncFailure extends Error {
 /** A bounded foreground round only. No background/closed-app delivery promise. */
 export class SyncEngine {
   #running: Promise<SyncResult>|undefined;
+  /** Local-only diagnostic. Never includes remote payloads, account IDs or tokens. */
+  lastFailureStage: 'read'|'validate'|'send'|null=null;
   constructor(readonly store: LocalSyncStore, private readonly transport: SyncTransport, private readonly getGrant: ()=>TransmissionGrant, private readonly online=()=>typeof navigator==='undefined'||navigator.onLine!==false) {}
   run(): Promise<SyncResult> {
     if(this.#running) return this.#running;
     this.#running=this.runOnce().finally(()=>{this.#running=undefined;}); return this.#running;
   }
   private async runOnce(): Promise<SyncResult> {
+    this.lastFailureStage=null;
     const grant=this.getGrant();
+    let stage:'read'|'validate'|'send'='read';
     const current=()=>{const now=this.getGrant();return now.canTransmit&&now.epoch===grant.epoch&&now.userId===grant.userId&&now.userId===this.store.userId;};
     if(!this.online()) return 'offline';
     if(!current()) return 'login_required';
@@ -38,9 +42,11 @@ export class SyncEngine {
         let through:string|null=null;
         for(let pageCount=0;pageCount<100;pageCount++) {
           if(!current()) return 'login_required';
+          stage='read';
           const page=await this.transport.pull(state.meta.cursor,through);
           if(!current()) return 'login_required';
           if(through!==null&&page.through!==through) throw new TypeError('O limite da leitura mudou durante a paginação.');
+          stage='validate';
           await this.store.applyPage(page,grant.serverSchemaVersion??2);
           through=page.through; state=await this.store.read();
           if(page.cursor===through) break;
@@ -57,8 +63,10 @@ export class SyncEngine {
           // Keep the original pending envelope and digest intact for the versioned migration.
           if(!isI3SchemaCompatible(pending.envelope,grant.serverSchemaVersion)) return 'retry_later';
           try {
+            stage='send';
             const receipt=await this.transport.apply(pending.envelope);
             if(!current()) return 'login_required';
+            stage='validate';
             await this.store.acknowledge(delivery.id,receipt);
           } catch(reason) {
             if(!current()) return 'login_required';
@@ -78,7 +86,10 @@ export class SyncEngine {
           if(pageCount===99) return 'retry_later';
         }
         return state.pending.some((row)=>['conflict','blocked'].includes(row.status))?'conflict':state.meta.binding!=='active'?'unassociated':state.pending.some((row)=>row.status!=='resolved')?'retry_later':'synced';
-      } catch(reason) { return reason instanceof SyncFailure?reason.reason:'retry_later'; }
+      } catch(reason) {
+        this.lastFailureStage=stage;
+        return reason instanceof SyncFailure?reason.reason:'retry_later';
+      }
     };
     if(typeof navigator!=='undefined'&&navigator.locks) return navigator.locks.request(`atlas-financeiro:sync:${this.store.name}`,work);
     // Server idempotency remains mandatory even when this tab cannot obtain a cross-tab lock.
