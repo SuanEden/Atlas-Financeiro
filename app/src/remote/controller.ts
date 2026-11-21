@@ -10,7 +10,7 @@ import { jsonDigest } from '../sync/protocol';
 import type { LocalFinancialState } from '../domain';
 
 export interface SourcePort {read():Promise<{ownerId:string;state:LocalFinancialState}>}
-export interface RemoteSnapshot {session:SessionView;loading:boolean;dataRevision:number;notice:string;syncing:boolean;store:LocalSyncStore|undefined}
+export interface RemoteSnapshot {session:SessionView;loading:boolean;dataRevision:number;notice:string;syncing:boolean;lastSyncResult:SyncResult|null;store:LocalSyncStore|undefined}
 
 export class RemoteController {
   readonly policy:SessionPolicy;
@@ -27,7 +27,7 @@ export class RemoteController {
   readonly #unsubscribeAuth:()=>void;
   constructor(readonly serverId:string,private readonly auth:AuthPort,private readonly transport:SyncTransport,storage:Storage,private readonly source:SourcePort,private readonly deviceNamespace='default',private readonly now=()=>Date.now()) {
     this.policy=new SessionPolicy(serverId,storage,now);
-    this.#snapshot={session:this.policy.snapshot,loading:true,dataRevision:0,notice:'',syncing:false,store:undefined};
+    this.#snapshot={session:this.policy.snapshot,loading:true,dataRevision:0,notice:'',syncing:false,lastSyncResult:null,store:undefined};
     this.#unsubscribeAuth=auth.onChange((userId)=>{
       if(this.#disposed||this.policy.snapshot.blocked)return;
       this.#generation++;
@@ -56,7 +56,7 @@ export class RemoteController {
   async login() {this.publish({notice:''});try {await this.auth.login();}catch{this.publish({notice:'Não foi possível abrir o Google. Confira a conexão e tente novamente.'});}}
   async verify(interactive=false):Promise<void> {
     const generation=++this.#generation;
-    this.policy.expire();this.publish({});
+    this.policy.expire();this.publish({lastSyncResult:null});
     const run=(async()=>{
       try {
         // A durable explicit logout cannot be undone by a cached SDK token/event.
@@ -88,10 +88,10 @@ export class RemoteController {
   async logout() {
     this.#generation++;
     try {this.policy.lock();}catch { /* Policy fails closed even when persistence fails. */ }
-    this.publish({notice:'Acesso local bloqueado. As pendências foram preservadas.'});
+    this.publish({lastSyncResult:null,notice:'Acesso local bloqueado. As pendências foram preservadas.'});
     try {await this.auth.logout();}catch {this.publish({notice:'Acesso local bloqueado. A saída no servidor depende de conexão; suas pendências foram preservadas.'});}
   }
-  storageChanged() {this.#generation++;this.policy.reloadFromStorage();this.publish({notice:'A sessão mudou em outra aba. Entre novamente para sincronizar.'});}
+  storageChanged() {this.#generation++;this.policy.reloadFromStorage();this.publish({lastSyncResult:null,notice:'A sessão mudou em outra aba. Entre novamente para sincronizar.'});}
   expireIfNeeded() {if(this.policy.snapshot.expiresAt>0&&!this.policy.snapshot.onlineVerified){this.policy.expire();this.publish({});}}
 
   async previewLocalSource() {
@@ -121,7 +121,7 @@ export class RemoteController {
     this.#syncing=(async()=>{
       if(!this.policy.snapshot.canTransmit||!this.#engine)return 'login_required';
       const epoch=this.policy.snapshot.epoch;const store=this.#store!;
-      this.publish({syncing:true,notice:''});
+      this.publish({syncing:true,notice:'',lastSyncResult:null});
       try {
         // Each engine round deliberately transmits at most 50 operations.
         // After a bulk bank import, make bounded progress in this same foreground
@@ -157,9 +157,11 @@ export class RemoteController {
         const latestState=await store.read();
         const incompatiblePending=latestState.pending.some((row)=>row.status==='pending'&&!isI3SchemaCompatible(row.envelope,this.policy.snapshot.serverSchemaVersion));
         const notice=incompatiblePending?'A cópia local contém recorrências ou conciliações ainda não suportadas pelo esquema remoto. A sincronização permanece pendente até uma migração versionada do servidor; não considere estes dados replicados. A cópia local e as pendências continuam preservadas.':result==='retry_later'&&this.#engine.lastFailureStage?syncStageMessage(this.#engine.lastFailureStage):syncMessage(result,latestState.meta.binding==='active');
-        this.publish({dataRevision:this.#snapshot.dataRevision+1,notice});
+        // No pending rows alone is insufficient evidence that the server confirmed the state.
+        const confirmed=active && latestState.pending.every(row=>row.status==='resolved') && (result==='synced'||result==='unassociated');
+        this.publish({dataRevision:this.#snapshot.dataRevision+1,notice,lastSyncResult:confirmed?'synced':result==='synced'?'retry_later':result});
         return result;
-      } catch(reason) {this.publish({notice:safeAssociationFailureMessage(reason)});return 'retry_later';}
+      } catch(reason) {this.publish({lastSyncResult:'retry_later',notice:safeAssociationFailureMessage(reason)});return 'retry_later';}
       finally {this.publish({syncing:false});}
     })().finally(()=>{this.#syncing=undefined;});return this.#syncing;
   }
@@ -170,7 +172,7 @@ export class RemoteController {
     const store=this.#store;const epoch=this.policy.snapshot.epoch;const state=await store.read();
     if(epoch!==this.policy.snapshot.epoch||!this.policy.snapshot.canWriteLocal) throw new Error('A sessão mudou. Seus dados anteriores foram preservados.');
     await store.enqueue(commandEnvelope(command.operation,state.meta.cursor));
-    if(epoch===this.policy.snapshot.epoch){this.publish({dataRevision:this.#snapshot.dataRevision+1});if(this.policy.snapshot.canTransmit)void this.sync();}
+    if(epoch===this.policy.snapshot.epoch){this.publish({lastSyncResult:null,dataRevision:this.#snapshot.dataRevision+1});if(this.policy.snapshot.canTransmit)void this.sync();}
   }
   async recoverBackup(json: string) {
     if (this.#syncing || this.#recovering) throw new Error('Aguarde a operação em andamento antes de recuperar.');
@@ -197,7 +199,7 @@ export class RemoteController {
     const state = await store.read();
     if (state.meta.binding === 'active') this.policy.markAssociated(store.userId);
     this.publish({dataRevision: this.#snapshot.dataRevision + 1,
-      notice: 'Cópia recuperada localmente. Nenhuma operação foi enviada; confira os dados antes de sincronizar.'});
+      lastSyncResult:null,notice: 'Cópia recuperada localmente. Nenhuma operação foi enviada; confira os dados antes de sincronizar.'});
     } finally { this.#recovering = false; }
   }
 
@@ -221,14 +223,14 @@ export class RemoteController {
     if(this.policy.snapshot.epoch!==session.epoch || !this.policy.snapshot.canWriteLocal) throw new Error('A sessão mudou. Nenhum dado foi importado.');
     // Do not auto-trigger a send from this method. The usual foreground sync may send later.
     const imported=await store.importPendingFromBackup(backup.confirmed,operations);
-    this.publish({dataRevision:this.#snapshot.dataRevision+1,
+    this.publish({dataRevision:this.#snapshot.dataRevision+1,lastSyncResult:null,
       notice: imported ? `${imported} operações importadas localmente. A sincronização normal poderá enviá-las à nuvem.` : 'Nenhuma operação nova para importar.'});
     return imported;
   }
 
   async acceptRemoteConflict(id:string) {
     if(!this.policy.snapshot.canView||!this.#store)throw new Error('Entre novamente antes de revisar conflitos.');
-    await this.#store.resolveConflict(id);this.publish({dataRevision:this.#snapshot.dataRevision+1});
+    await this.#store.resolveConflict(id);this.publish({dataRevision:this.#snapshot.dataRevision+1,lastSyncResult:null});
   }
   dispose() {this.#disposed=true;this.#generation++;this.#unsubscribeAuth();this.#store?.close();this.#listeners.clear();}
 
@@ -245,6 +247,7 @@ export class RemoteController {
     if(this.#store?.userId!==owner) {
       const previous=this.#store;this.#store=new LocalSyncStore(owner,this.serverId,this.deviceNamespace);
       this.#engine=new SyncEngine(this.#store,this.transport,()=>this.policy.snapshot);
+      this.#snapshot={...this.#snapshot,lastSyncResult:null};
       // Old handles are closed only after their pending IDB transaction can settle; namespaces remain on disk.
       previous?.close();
     }
