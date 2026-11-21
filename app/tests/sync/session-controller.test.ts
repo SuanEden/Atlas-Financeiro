@@ -68,6 +68,40 @@ describe('controlador local de sessão com SQL e identidades simuladas',()=>{
     expect(state.confirmed.accounts).toEqual([]);
     expect(state.pending).toEqual([]);
   });
+  it('mantém pendência e informa falha na leitura posterior ao envio',async()=>{
+    const f=await setup();f.controller.dispose();
+    let pulls=0;
+    const controller=f.make({...f.transport,pull:async(after,through)=>{
+      pulls++;
+      if(pulls===2) throw new Error('INTERNAL_REMOTE_TOKEN_MUST_NOT_APPEAR');
+      return f.transport.pull(after,through);
+    }});
+    await controller.start();
+    await controller.associateEmpty();
+    const snapshot=controller.getSnapshot();
+    expect(snapshot.notice).toMatch(/consulta das revisões no servidor falhou/);
+    expect(snapshot.notice).not.toContain('INTERNAL_REMOTE_TOKEN_MUST_NOT_APPEAR');
+    const local=await snapshot.store!.read();
+    expect(local.meta.binding).toBe('bootstrap');
+    expect(local.pending).toHaveLength(1);
+    expect(local.meta.cursor).toBe('0');
+    expect(await server.counts(f.owner)).toMatchObject({sync_batches:'1',operation_receipts:'1'});
+  });
+
+  it('não permite nova associação após a resposta remota se perder',async()=>{
+    const f=await setup();f.controller.dispose();
+    const controller=f.make({...f.transport,apply:async(envelope)=>{
+      await f.transport.apply(envelope);
+      throw new SyncFailure('offline','LOST_RESPONSE_FOR_TEST');
+    }});
+    await controller.start();
+    await controller.associateEmpty();
+    const local=await controller.getSnapshot().store!.read();
+    expect(local.meta.binding).toBe('bootstrap');
+    await expect(controller.associateEmpty()).rejects.toThrow(/Já existe associação/);
+    expect((await controller.getSnapshot().store!.read()).meta.associationId).toBe(local.meta.associationId);
+    expect(await server.counts(f.owner)).toMatchObject({sync_batches:'1',operation_receipts:'1'});
+  });
   it('retoma associação depois de perder resposta e memória do controlador',async()=>{
     const f=await setup();f.controller.dispose();
     const lost=f.make({...f.transport,apply:async(envelope)=>{await f.transport.apply(envelope);throw new SyncFailure('offline','SYNTHETIC_LOST_RESPONSE');}});
