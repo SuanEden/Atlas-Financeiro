@@ -19,6 +19,7 @@ import { RecoveryPanel } from './RecoveryPanel';
 import {
   calculateAccountBalance,
   calculateCashTotals,
+  calculateCashProjection30Days,
   calculateSpendingAvailability,
   calculateFinancialForecast,
   hasReconciledOpeningBalance,
@@ -57,6 +58,7 @@ export function Dashboard({ state, today, userId, onAddAccount, onAddTransaction
     .slice(0, 4);
 
   const spending = calculateSpendingAvailability(state, today);
+  const projection = calculateCashProjection30Days(state, today);
   const balanceFor = (accountId: string) => calculateAccountBalance(state, accountId, today);
   const reconciled = (accountId: string) => hasReconciledOpeningBalance(state, accountId);
   const bankAccounts = state.accounts.filter((account) => ['checking', 'savings', 'digital'].includes(account.kind));
@@ -142,6 +144,16 @@ export function Dashboard({ state, today, userId, onAddAccount, onAddTransaction
           <div><span>Resultado realizado</span><strong>{formatBRL(cash.resultCents)}</strong></div>
         </div>
         <p className="form-note">Somente liquidações efetivas entram nestes três indicadores. Previsões, obrigações e regras recorrentes ficam separados abaixo.</p>
+      </section>
+
+      <section className="flow-section" aria-labelledby="cash-projection-title">
+        <div className="section-heading"><div><p className="section-kicker">Até {formatFinancialDate(projection.through)}</p><h2 id="cash-projection-title">Fluxo de caixa dos próximos 30 dias</h2></div></div>
+        <div className="forecast-grid">
+          <MoneyStat label="Entradas esperadas" value={formatBRL(projection.incomeCents)} />
+          <MoneyStat label="Saídas esperadas" value={formatBRL(projection.expenseCents)} />
+          <MoneyStat label="Variação de caixa prevista" value={formatBRL(projection.changeCents)} />
+        </div>
+        <p className="form-note">Inclui despesas confirmadas vencidas e recorrências com data. As entradas previstas entram no saldo quando forem recebidas.</p>
       </section>
 
       <FinanceCharts key={userId} ownerId={userId} state={state} month={selectedMonth} />

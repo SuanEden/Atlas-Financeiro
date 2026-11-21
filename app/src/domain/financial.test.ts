@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateAccountBalance, calculateAccrualTotals, calculateAvailabilityBalances, calculateCashTotals, calculateFinancialForecast, calculateSpendingAvailability, hasReconciledOpeningBalance } from './calculations';
+import { calculateAccountBalance, calculateAccrualTotals, calculateAvailabilityBalances, calculateCashTotals, calculateCashProjection30Days, calculateFinancialForecast, calculateSpendingAvailability, hasReconciledOpeningBalance } from './calculations';
 import type { FinancialDataset } from './models';
 import { assertEntityId, assertFinancialDataset, assertIsoDate } from './validation';
 import { serializeMonthlyRecurrenceRule } from './recurrence';
@@ -39,6 +39,21 @@ function example(): FinancialDataset {
 }
 
 describe('agregados e cálculos financeiros', () => {
+  it('projeta recebimentos e saldos a pagar sem incluir salário bruto ou duplicar liquidações', () => {
+    const data = example();
+    data.settlements[1]!.amountCents = 600n;
+    data.postings[1]!.amountCents = -600n;
+    const income = data.events[4]!;
+    data.events.push(
+      { ...income, id: uuid(63), amountCents: 2500n, dueDate: '2026-03-04' },
+      { ...income, id: uuid(64), description: 'Salário bruto de referência', dueDate: '2026-02-15' },
+      { ...income, id: uuid(65), dueDate: '2026-03-05' },
+    );
+    expect(calculateCashProjection30Days(data, '2026-02-02')).toEqual({
+      through: '2026-03-04', incomeCents: 2500n, expenseCents: 1200n, changeCents: 1300n,
+    });
+  });
+
   it('desconta o saldo a pagar em 30 dias e cobre compromissos somente com a reserva indicada', () => {
     const data = example();
     const expense = data.events[1]!;

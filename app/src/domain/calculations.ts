@@ -36,8 +36,8 @@ export function calculateAvailabilityBalances(dataset: FinancialDataset, asOf?: 
   return balances;
 }
 
-/** Outstanding confirmed expenses, in settlement terms, including overdue items. */
-export function calculateOpenCommitments(dataset: FinancialDataset, asOf: IsoDate, through?: IsoDate) {
+/** Open or planned cash movements, with effective settlements removed. */
+function openCashEvents(dataset: FinancialDataset, asOf: IsoDate, through?: IsoDate) {
   assertIsoDate(asOf);
   if (through !== undefined) assertIsoDate(through);
   const superseded = new Set(dataset.events.flatMap(event => [event.reversesEventId, event.replacesEventId]));
@@ -47,20 +47,49 @@ export function calculateOpenCommitments(dataset: FinancialDataset, asOf: IsoDat
     paid.set(settlement.eventId, (paid.get(settlement.eventId) ?? 0n) + settlement.amountCents);
   }
   return dataset.events.flatMap(event => {
-    if (event.kind !== 'expense' || event.status === 'cancelled' || event.certainty !== 'confirmed'
+    if ((event.kind !== 'expense' && event.kind !== 'income') || event.status === 'cancelled'
       || event.recurrenceJson !== undefined || event.reversesEventId !== undefined || superseded.has(event.id)) return [];
     const date = event.dueDate ?? event.competenceDate;
     const amountCents = event.amountCents - (paid.get(event.id) ?? 0n);
     if (amountCents <= 0n || (through !== undefined && date > through)) return [];
-    return [{ eventId: event.id, description: event.description, accountId: event.accountId, date, amountCents }];
+    return [{ eventId: event.id, description: event.description, accountId: event.accountId, kind: event.kind,
+      certainty: event.certainty, date, amountCents }];
   }).sort((left, right) => left.date.localeCompare(right.date));
 }
 
-export function calculateSpendingAvailability(dataset: FinancialDataset, today: IsoDate) {
+export function calculateOpenCommitments(dataset: FinancialDataset, asOf: IsoDate, through?: IsoDate) {
+  return openCashEvents(dataset, asOf, through)
+    .filter(item => item.kind === 'expense' && item.certainty === 'confirmed');
+}
+
+function forecastEnd(today: IsoDate): IsoDate {
   assertIsoDate(today);
   const horizon = new Date(today + 'T00:00:00Z');
   horizon.setUTCDate(horizon.getUTCDate() + 30);
-  const through = horizon.toISOString().slice(0, 10);
+  return horizon.toISOString().slice(0, 10);
+}
+
+export function calculateCashProjection30Days(dataset: FinancialDataset, today: IsoDate) {
+  const through = forecastEnd(today);
+  const forecast = calculateFinancialForecast(dataset, today.slice(0, 7), 3);
+  const items = [
+    ...openCashEvents(dataset, today, through).filter(item =>
+      (item.date >= today || (item.kind === 'expense' && item.certainty === 'confirmed'))
+      && !(item.kind === 'income' && isGrossSalaryReference(item.description))),
+    ...forecast.items.filter(item => item.source === 'recurrence' && item.amountBasis === 'cash'
+      && item.date !== undefined && item.date >= today && item.date <= through),
+  ];
+  const incomeCents = sumCents(items.filter(item => item.kind === 'income').map(item => item.amountCents));
+  const expenseCents = sumCents(items.filter(item => item.kind === 'expense').map(item => item.amountCents));
+  return { through, incomeCents, expenseCents, changeCents: incomeCents - expenseCents };
+}
+
+function isGrossSalaryReference(description: string): boolean {
+  return /sal[aá]rio.*bruto|bruto.*sal[aá]rio/i.test(description);
+}
+
+export function calculateSpendingAvailability(dataset: FinancialDataset, today: IsoDate) {
+  const through = forecastEnd(today);
   const commitments = calculateOpenCommitments(dataset, today, through);
   const exposure = new Map<string, bigint>();
   for (const commitment of commitments) {
@@ -170,7 +199,7 @@ export function calculateFinancialForecast(dataset: FinancialDataset, startMonth
     if (month < startMonth || month > endMonth || (event.kind !== 'income' && event.kind !== 'expense')) continue;
     const categoryName = dataset.categories.find((category) => category.id === event.categoryId)?.name.trim().toLocaleLowerCase('pt-BR');
     const obligation = event.kind === 'expense' && (event.certainty === 'confirmed' || categoryName === 'cartão de crédito');
-    const grossSalaryReference = event.kind === 'income' && /sal[aá]rio.*bruto|bruto.*sal[aá]rio/i.test(event.description);
+    const grossSalaryReference = event.kind === 'income' && isGrossSalaryReference(event.description);
     if (grossSalaryReference) result.grossIncomeReferenceCents += event.amountCents;
     else if (event.kind === 'income') result.plannedIncomeCents += event.amountCents;
     else if (obligation) result.obligationCents += event.amountCents;
