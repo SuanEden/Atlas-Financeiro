@@ -159,7 +159,7 @@ export class RemoteController {
         const notice=incompatiblePending?'A cópia local contém recorrências ou conciliações ainda não suportadas pelo esquema remoto. A sincronização permanece pendente até uma migração versionada do servidor; não considere estes dados replicados. A cópia local e as pendências continuam preservadas.':result==='retry_later'&&this.#engine.lastFailureStage?syncStageMessage(this.#engine.lastFailureStage):syncMessage(result,latestState.meta.binding==='active');
         this.publish({dataRevision:this.#snapshot.dataRevision+1,notice});
         return result;
-      } catch {this.publish({notice:'A sincronização precisa de conferência. Os registros, a origem e as pendências foram preservados.'});return 'retry_later';}
+      } catch(reason) {this.publish({notice:safeAssociationFailureMessage(reason)});return 'retry_later';}
       finally {this.publish({syncing:false});}
     })().finally(()=>{this.#syncing=undefined;});return this.#syncing;
   }
@@ -269,4 +269,13 @@ function syncStageMessage(stage:'read'|'validate'|'send'):string {
     validate:'A conferência de uma revisão ou recibo não foi concluída. Nenhum dado incompatível foi aceito; preserve a cópia e confira a associação.',
     send:'O envio não pôde ser confirmado. A operação original foi preservada para retomada sem gerar uma nova associação.',
   }[stage];
+}
+
+/** Only recognized local invariants produce specific UI messages; unknown exception text is never shown. */
+function safeAssociationFailureMessage(reason:unknown):string {
+  if(reason instanceof Error) {
+    if(reason.message==='Confirmação da associação ausente.') return 'O servidor ainda não confirmou o recibo da associação. A operação original permanece preservada; não inicie outra base.';
+    if(reason.message==='A origem ativa mudou.'||reason.message.startsWith('A origem mudou ou o recibo ainda não foi conferido.')) return 'A origem local não corresponde à cópia que iniciou a associação. O vínculo não será ativado nem substituído. Preserve as duas bases para conferência.';
+  }
+  return 'A sincronização precisa de conferência. Os registros, a origem e as pendências foram preservados.';
 }
