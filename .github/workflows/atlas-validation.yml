@@ -2,16 +2,22 @@ name: Atlas validation
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [codex/recuperacao-i3-chat, codex/auditoria-dashboard-recorrencias]
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: atlas-validation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   unit-and-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: 'true'
+      VITE_ATLAS_REMOTE_MODE: disabled
     defaults:
       run:
         working-directory: app
@@ -23,7 +29,7 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
       - run: npm ci
-      - run: npm run test -- --maxWorkers=2
+      - run: npm run test -- --maxWorkers=2 --minWorkers=1
       - run: npm run build
   browser-and-pwa:
     runs-on: ubuntu-latest
