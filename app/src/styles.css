@@ -1739,3 +1739,110 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .app-shell .cloud-hub-section--backup > .page-content {padding:16px;}
   .app-shell .cloud-hub-section .sync-panel button {min-height:42px;}
 }
+
+
+/* Atlas UX polish: compositor-friendly motion, no financial-data behavior changes. */
+.app-shell .movement-results {
+  margin: 12px 2px;
+  min-height: 1.2rem;
+  color: var(--muted);
+  font-size: .79rem;
+}
+.app-shell .movement-load-more {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 24px 16px 10px;
+  color: var(--muted);
+  font-size: .8rem;
+}
+.app-shell .movement-load-more .button {
+  min-width: min(100%, 265px);
+}
+.app-shell .atlas-loading-shell {
+  width: min(1160px, 100%);
+  margin-inline: auto;
+  padding: 38px clamp(18px, 4vw, 56px) 64px;
+}
+.app-shell .atlas-loading-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  color: var(--muted);
+  font-size: .9rem;
+}
+.app-shell .atlas-loading-hero {
+  height: clamp(170px, 26vw, 260px);
+  border-radius: 22px;
+  margin-bottom: 18px;
+}
+.app-shell .atlas-loading-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.app-shell .atlas-loading-cards > span {display: block;height: 130px;border-radius: 16px;}
+.app-shell .atlas-skeleton {
+  background: linear-gradient(105deg, var(--subtle) 20%, var(--line) 46%, var(--subtle) 70%);
+  background-size: 240% 100%;
+  border: 1px solid var(--line);
+}
+@media (max-width: 760px) {
+  .app-shell .atlas-loading-shell {padding: 22px 15px 98px;}
+  .app-shell .atlas-loading-cards {grid-template-columns: 1fr 1fr;gap: 10px;}
+  .app-shell .atlas-loading-cards > span {height: 104px;}
+  .app-shell .atlas-loading-cards > span:last-child {display: none;}
+}
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes atlas-enter {
+    from {opacity: .01; transform: translate3d(0, 9px, 0);}
+    to {opacity: 1;transform: translate3d(0, 0, 0);}
+  }
+  @keyframes atlas-skeleton-shimmer {
+    from {background-position: 115% 0;}
+    to {background-position: -115% 0;}
+  }
+  .app-shell .page-content,
+  .app-shell .cloud-hub {
+    animation: atlas-enter 245ms cubic-bezier(.22, 1, .36, 1) both;
+  }
+  .app-shell .atlas-skeleton {animation: atlas-skeleton-shimmer 1.9s linear infinite;}
+  .app-shell .account-card,
+  .app-shell .flow-band > div,
+  .app-shell .chart-studio-card {
+    transition: transform 180ms cubic-bezier(.22, 1, .36, 1), box-shadow 180ms ease, border-color 180ms ease;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .app-shell .account-card:hover,
+    .app-shell .flow-band > div:hover,
+    .app-shell .chart-studio-card:hover {
+      transform: translate3d(0, -3px, 0);
+      box-shadow: 0 14px 32px rgba(0, 0, 0, .09);
+    }
+  }
+  .app-shell .button:active:not(:disabled),
+  .app-shell .icon-button:active:not(:disabled),
+  .app-shell .more-menu > button:active:not(:disabled) {
+    transform: scale(.975);
+  }
+  .app-shell .bottom-nav > button:not(.bottom-add) svg,
+  .app-shell .sidebar nav button svg {
+    transition: transform 170ms cubic-bezier(.22, 1, .36, 1);
+  }
+  .app-shell .bottom-nav > button.is-active:not(.bottom-add) svg,
+  .app-shell .sidebar nav button.is-active svg {transform: scale(1.08);}
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .page-content,
+  .app-shell .cloud-hub,
+  .app-shell .atlas-skeleton {animation: none !important;}
+  .app-shell .account-card,
+  .app-shell .flow-band > div,
+  .app-shell .chart-studio-card,
+  .app-shell .bottom-nav > button svg,
+  .app-shell .sidebar nav button svg,
+  .app-shell .icon-button {transition: none !important;}
+  .app-shell .button:active:not(:disabled),
+  .app-shell .icon-button:active:not(:disabled) {transform: none !important;}
+}
