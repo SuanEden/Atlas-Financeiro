@@ -1,3 +1,4 @@
+import { NexoTasksLink } from './NexoTasksLink';
 import { UnifiedSyncBackupPanel } from './UnifiedSyncBackupPanel';
 import { FinanceCharts } from './FinanceCharts';
 import {
@@ -7,7 +8,6 @@ import {
   Download,
   FolderOpen,
   History,
-  ListTodo,
   Plus,
   Pencil,
   Trash2,
@@ -37,7 +37,6 @@ import { groupMovementHistory, activeEventIds, accountKindLabels, availabilityLa
 type Page = 'dashboard' | 'movements' | 'accounts' | 'categories' | 'backup';
 
 interface DashboardProps {
-  nexoTasksUrl: string;
   userId: string;
   integration?:boolean;
   state: LocalFinancialState;
@@ -47,7 +46,7 @@ interface DashboardProps {
   onNavigate: (page: Page) => void;
 }
 
-export function Dashboard({ nexoTasksUrl, state, today, userId, onAddAccount, onAddTransaction, onNavigate, integration=false }: DashboardProps) {
+export function Dashboard({ state, today, userId, onAddAccount, onAddTransaction, onNavigate, integration=false }: DashboardProps) {
   const [selectedMonth, setSelectedMonth] = useState(today.slice(0, 7));
   const [quickInsight, setQuickInsight] = useState<'expense'|'income'|'pending'>('expense');
   const period = financialMonthPeriod(`${selectedMonth}-01`);
@@ -118,12 +117,7 @@ export function Dashboard({ nexoTasksUrl, state, today, userId, onAddAccount, on
         <button type="button" onClick={onAddTransaction} disabled={state.accounts.length === 0}><span className="quick-action-icon"><Plus size={19}/></span><span>Novo lançamento</span></button>
         <button type="button" onClick={()=>onNavigate('movements')}><span className="quick-action-icon"><ArrowLeftRight size={19}/></span><span>Ver movimentações</span></button>
         <button type="button" onClick={()=>onNavigate('accounts')}><span className="quick-action-icon"><WalletCards size={19}/></span><span>Minhas contas</span></button>
-        <a className="dashboard-mobile-tool" href={nexoTasksUrl} target="_blank" rel="noopener noreferrer"
-          aria-label="Nexo Tasks, abre em nova aba">
-          <span className="quick-action-icon"><ListTodo size={19} aria-hidden="true" /></span>
-          <span>Nexo Tasks</span>
-          <ArrowUpRight className="quick-action-external" size={14} aria-hidden="true" />
-        </a>
+        <NexoTasksLink placement="quickAction" />
       </div>
       <section className="money-summary" aria-label="Resumo dos saldos">
         <MoneyStat label="Saldo bancário conciliado" value={bankComplete ? formatBRL(bankBalance) : 'A conciliar'} />

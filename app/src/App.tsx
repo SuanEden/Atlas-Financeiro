@@ -1,7 +1,5 @@
 import {
   HardDrive,
-  ArrowUpRight,
-  ListTodo,
   Cloud,
   Landmark,
   Home,
@@ -31,6 +29,7 @@ import { categoryTemplatePreview } from './application/category-template';
 import { isEntitySelectable, type Account, type Category, type FinancialEvent } from './domain';
 import { AccountForm, AccountReconciliationForm, CategoryForm, DialogFrame, MetadataEditForm, TransactionForm } from './ui/Forms';
 import { AccountsView, BackupView, CategoriesView, Dashboard, MovementsView, type Page } from './ui/Views';
+import { NexoTasksLink } from './ui/NexoTasksLink';
 import { useLocalFinance } from './ui/use-local-finance';
 
 type Modal =
@@ -43,8 +42,6 @@ type Modal =
   | { type: 'delete_entity'; entity: Account | Category; kind: 'account' | 'category' }
   | { type: 'transaction'; initial?: FinancialEvent; kind?: TransactionInput['kind'] }
   | { type: 'reverse'; event: FinancialEvent };
-
-const nexoTasksUrl = 'https://script.google.com/macros/s/AKfycbzN980rOIZbFsRtUJLpqGn6g-L97QCcYVYFGw3GANwTSJTbOFhpRTrhoTY8Sw-MFR8f/exec';
 
 const desktopNavigation = [
   { page: 'dashboard' as const, label: 'Início', Icon: Home },
@@ -170,11 +167,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
         <Brand />
         <div className="sidebar-section-label">ESPAÇO FINANCEIRO</div>
         <nav aria-label="Navegação principal">{[...desktopNavigation, ...(integration || bankPanel !== undefined ? [{page:'banks' as const,label:'Bancos',Icon:Landmark}] : [])].map(({ page: target, label, Icon }) => <button className={page === target ? 'is-active' : ''} key={target} onClick={() => setPage(target)}><Icon size={19} /><span>{label}</span></button>)}</nav>
-        <a className="sidebar-cloud-link sidebar-tool-link" href={nexoTasksUrl} target="_blank" rel="noopener noreferrer">
-          <span className="sidebar-cloud-link-icon"><ListTodo size={19} aria-hidden="true" /></span>
-          <span className="sidebar-cloud-link-copy"><strong>Nexo Tasks</strong><small>Organizador de tarefas</small></span>
-          <ArrowUpRight size={17} className="sidebar-cloud-link-chevron" aria-hidden="true" />
-        </a>
+        <NexoTasksLink placement="sidebar" />
         <button type="button" aria-label="Modo nuvem" className={'sidebar-cloud-hint sidebar-cloud-link'+(page==='backup'?' is-active':'')} onClick={()=>setPage('backup')} aria-current={page==='backup'?'page':undefined}>
           <span className="sidebar-cloud-link-icon"><Cloud size={19}/></span>
           <span className="sidebar-cloud-link-copy"><strong>Modo nuvem</strong><small>{integration?'Cópia local ativa':'Dados neste dispositivo'} · {state.outbox.length} pendente{state.outbox.length===1?'':'s'}</small></span>
@@ -195,14 +188,10 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
               <button type="button" aria-label="Contas" onClick={()=>setPage('accounts')}><span className="more-menu-icon"><WalletCards size={20}/></span><span><strong>Minhas contas</strong><small>Saldos, reservas e conciliação</small></span><ChevronRight size={20}/></button>
               <button type="button" aria-label="Categorias" onClick={()=>setPage('categories')}><span className="more-menu-icon"><Tags size={20}/></span><span><strong>Categorias</strong><small>Organize entradas e despesas</small></span><ChevronRight size={20}/></button>
               <button type="button" aria-label="Modo nuvem" onClick={()=>setPage('backup')}><span className="more-menu-icon"><Cloud size={20}/></span><span><strong>Modo nuvem</strong><small>Sincronização, backups e recuperação</small></span><ChevronRight size={20}/></button>
-              <a href={nexoTasksUrl} target="_blank" rel="noopener noreferrer">
-                <span className="more-menu-icon"><ListTodo size={20} aria-hidden="true" /></span>
-                <span><strong>Nexo Tasks</strong><small>Organizador de tarefas</small></span>
-                <ArrowUpRight size={20} aria-hidden="true" />
-              </a>
+              <NexoTasksLink placement="menu" />
               <button type="button" onClick={toggleTheme}><span className="more-menu-icon">{dark?<Sun size={20}/>:<Moon size={20}/>}</span><span><strong>Aparência</strong><small>{dark?'Mudar para tema claro':'Mudar para tema escuro'}</small></span><ChevronRight size={20}/></button>
             </div></section> : null}
-            {page === 'dashboard' ? <Dashboard nexoTasksUrl={nexoTasksUrl} integration={integration} state={state} today={today} userId={userId} onAddAccount={() => setModal({ type: 'account' })} onAddTransaction={openTransaction} onNavigate={(next)=>setPage(next)} /> : null}
+            {page === 'dashboard' ? <Dashboard integration={integration} state={state} today={today} userId={userId} onAddAccount={() => setModal({ type: 'account' })} onAddTransaction={openTransaction} onNavigate={(next)=>setPage(next)} /> : null}
             {page === 'movements' ? <MovementsView integration={integration} state={state} onAdd={openTransaction} onEdit={(event) => setModal({ type: 'transaction', initial: event })} onReverse={(event) => setModal({ type: 'reverse', event })} /> : null}
             {page === 'accounts' ? <AccountsView state={state} integration={integration} canManage={entityManagementEnabled} onAdd={() => setModal({ type: 'account' })} onEdit={(account)=>setModal({type:'edit_account',account})} onDelete={(account)=>{setDeleteFailure('');setModal({type:'delete_entity',entity:account,kind:'account'});}} onRestore={(account)=>void restoreEntity('account',account.id).catch(()=>setDeleteFailure('Não foi possível reativar a conta.'))} onReconcile={(account) => setModal({ type: 'reconcile', account })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
             {page === 'categories' || page === 'backup' ? <div className="mobile-settings-tabs"><button className={page === 'categories' ? 'is-active' : ''} onClick={() => setPage('categories')}>Categorias</button><button className={page === 'backup' ? 'is-active' : ''} onClick={() => setPage('backup')}>Modo nuvem</button></div> : null}
