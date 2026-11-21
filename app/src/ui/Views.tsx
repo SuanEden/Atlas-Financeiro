@@ -14,7 +14,7 @@ import {
   ShieldCheck,
   WalletCards,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 import { RecoveryPanel } from './RecoveryPanel';
 import {
   calculateAccountBalance,
@@ -176,42 +176,53 @@ interface MovementsProps {
 }
 
 export function MovementsView({ state, onAdd, onEdit, onReverse, integration=false }: MovementsProps) {
-  const activeIds = activeEventIds(state);
+  const activeIds = useMemo(() => activeEventIds(state), [state]);
   const [selectedMonth, setSelectedMonth] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [query, setQuery] = useState('');
-  const groups = groupMovementHistory(state.events);
-  const filteredGroups = groups.filter(({ current: event, history, cancelled }) => {
-    if (selectedMonth !== 'all' && event.competenceDate.slice(0, 7) !== selectedMonth) return false;
-    const category = state.categories.find(item => item.id === event.categoryId);
-    const label = eventStatusLabel(event, category);
-    if (statusFilter === 'realized' && (event.status !== 'confirmed' || cancelled)) return false;
-    if (statusFilter === 'pending' && (label !== 'Pendente' || cancelled)) return false;
-    if (statusFilter === 'planned' && (label !== 'Previsto' || cancelled)) return false;
-    if (statusFilter === 'recurring' && (!isRecurringTemplate(event) || cancelled)) return false;
-    if (statusFilter === 'cancelled' && !cancelled) return false;
-    if (statusFilter === 'superseded' && history.length === 0) return false;
-    if (query.trim()) {
-      const account = state.accounts.find(item => item.id === event.accountId)?.name ?? '';
-      const categoryName = category?.name ?? '';
-      const searchable = [event.description, account, categoryName,
-        ...history.map(item => item.description)].join(' ').toLocaleLowerCase('pt-BR');
-      if (!searchable.includes(query.trim().toLocaleLowerCase('pt-BR'))) return false;
-    }
-    return true;
-  });
+  const [visibleCount, setVisibleCount] = useState(80);
+  // Keep the input synchronous while a large history finishes filtering in the background.
+  const deferredQuery = useDeferredValue(query);
+  const searching = query !== deferredQuery;
+  const groups = useMemo(() => groupMovementHistory(state.events), [state.events]);
+  const categories = useMemo(() => new Map(state.categories.map(item => [item.id, item.name])), [state.categories]);
+  const accounts = useMemo(() => new Map(state.accounts.map(item => [item.id, item.name])), [state.accounts]);
+  const filteredGroups = useMemo(() => {
+    const search = deferredQuery.trim().toLocaleLowerCase('pt-BR');
+    return groups.filter(({ current: event, history, cancelled }) => {
+      if (selectedMonth !== 'all' && event.competenceDate.slice(0, 7) !== selectedMonth) return false;
+      const categoryName = categories.get(event.categoryId ?? '') ?? '';
+      const category = state.categories.find(item => item.id === event.categoryId);
+      const label = eventStatusLabel(event, category);
+      if (statusFilter === 'realized' && (event.status !== 'confirmed' || cancelled)) return false;
+      if (statusFilter === 'pending' && (label !== 'Pendente' || cancelled)) return false;
+      if (statusFilter === 'planned' && (label !== 'Previsto' || cancelled)) return false;
+      if (statusFilter === 'recurring' && (!isRecurringTemplate(event) || cancelled)) return false;
+      if (statusFilter === 'cancelled' && !cancelled) return false;
+      if (statusFilter === 'superseded' && history.length === 0) return false;
+      if (search) {
+        const searchable = [event.description, accounts.get(event.accountId) ?? '', categoryName,
+          ...history.map(item => item.description)].join(' ').toLocaleLowerCase('pt-BR');
+        if (!searchable.includes(search)) return false;
+      }
+      return true;
+    });
+  }, [groups, selectedMonth, statusFilter, deferredQuery, categories, accounts, state.categories]);
+  const visibleGroups = filteredGroups.slice(0, visibleCount);
+  const hasMore = filteredGroups.length > visibleCount;
   return (
     <div className="page-content">
       <PageHeading title="Movimentações" subtitle="Lançamentos atuais, com correções e estornos preservados dentro de cada histórico." action={<button className="button button--primary" onClick={onAdd} disabled={state.accounts.length === 0}><Plus size={18} />Novo lançamento</button>} />
       <div className="local-status"><span><ShieldCheck size={17} />{state.outbox.length} {state.outbox.length === 1 ? 'operação local pendente' : 'operações locais pendentes'}</span><small>{integration?'Confira o envio e eventuais conflitos no painel de sincronização.':'Sincronização remota ainda não disponível.'}</small></div>
       <div className="movement-filters">
-        <label>Período <input aria-label="Filtrar movimentações por mês" type="month" value={selectedMonth === 'all' ? '' : selectedMonth} onChange={(event) => setSelectedMonth(event.target.value || 'all')} /></label>
-        <label>Status<select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">Todos</option><option value="realized">Realizados</option><option value="pending">Obrigações pendentes</option><option value="planned">Previstos</option><option value="recurring">Regras recorrentes</option><option value="cancelled">Cancelados</option><option value="superseded">Versões substituídas</option></select></label>
-        <label className="movement-search">Buscar<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Descrição, conta ou categoria" /></label>
-        {selectedMonth !== 'all' ? <button className="text-button" onClick={() => setSelectedMonth('all')}>Todos os meses</button> : null}
+        <label>Período <input aria-label="Filtrar movimentações por mês" type="month" value={selectedMonth === 'all' ? '' : selectedMonth} onChange={(event) => {setVisibleCount(80);setSelectedMonth(event.target.value || 'all');}} /></label>
+        <label>Status<select value={statusFilter} onChange={(event) => {setVisibleCount(80);setStatusFilter(event.target.value);}}><option value="all">Todos</option><option value="realized">Realizados</option><option value="pending">Obrigações pendentes</option><option value="planned">Previstos</option><option value="recurring">Regras recorrentes</option><option value="cancelled">Cancelados</option><option value="superseded">Versões substituídas</option></select></label>
+        <label className="movement-search">Buscar<input type="search" value={query} onChange={(event) => {setVisibleCount(80);setQuery(event.target.value);}} placeholder="Descrição, conta ou categoria" /></label>
+        {selectedMonth !== 'all' ? <button className="text-button" onClick={() => {setVisibleCount(80);setSelectedMonth('all');}}>Todos os meses</button> : null}
       </div>
+      <p className="movement-results" role="status" aria-live="polite">{searching ? 'Atualizando resultados…' : `${filteredGroups.length} ${filteredGroups.length === 1 ? 'movimentação encontrada' : 'movimentações encontradas'}`}</p>
       {groups.length === 0 ? <EmptyPanel icon={<ArrowLeftRight />} title="Ainda não há movimentações" description="Crie uma conta e registre sua primeira receita, despesa ou transferência." action="Novo lançamento" onAction={onAdd} disabled={state.accounts.length === 0} /> : filteredGroups.length === 0 ? <CompactEmpty text="Nenhuma movimentação corresponde aos filtros selecionados." /> : (
-        <div className="history-list">{filteredGroups.map(({ current: event, history, cancelled }) => (
+        <div className="history-list" aria-busy={searching}>{visibleGroups.map(({ current: event, history, cancelled }) => (
           <MovementHistoryArticle
             key={event.id}
             event={event}
@@ -222,7 +233,7 @@ export function MovementsView({ state, onAdd, onEdit, onReverse, integration=fal
             onEdit={onEdit}
             onReverse={onReverse}
           />
-        ))}</div>
+        ))}{hasMore ? <div className="movement-load-more"><span>Exibindo {visibleGroups.length} de {filteredGroups.length} movimentações</span><button className="button button--secondary" type="button" onClick={() => setVisibleCount(count => count + 80)}>Mostrar mais movimentações</button></div> : null}</div>
       )}
     </div>
   );
