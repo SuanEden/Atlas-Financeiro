@@ -371,7 +371,7 @@ export function BackupView({ state, userId, today, readState, onRecover, busy, i
   }
   return (
     <div className="page-content">
-      <PageHeading title="Backup e dados" subtitle="Exporte uma cópia dos seus dados ou recupere informações com segurança." />
+      <h2 className="backup-title">Cópias de segurança</h2>
       <div className="backup-overview" aria-label="Resumo da cópia">
         <div><span>Armazenamento</span><strong>{testMode ? 'Teste isolado' : integration ? 'Nuvem e dispositivo' : 'Neste dispositivo'}</strong></div>
         <div><span>Contas</span><strong>{state.accounts.length}</strong></div>
@@ -384,7 +384,6 @@ export function BackupView({ state, userId, today, readState, onRecover, busy, i
         <div className="backup-primary__header">
           <span className="backup-icon"><Download size={24} /></span>
           <div>
-            <span className="backup-eyebrow">1 · Guardar uma cópia</span>
             <h2 id="backup-export-title">Exportar backup</h2>
             <p>Baixe um JSON com suas contas, lançamentos, histórico e dados necessários para recuperar seus dados.</p>
           </div>
@@ -396,7 +395,6 @@ export function BackupView({ state, userId, today, readState, onRecover, busy, i
       </section>
       <section className="backup-tools" aria-labelledby="backup-tools-title">
         <div className="backup-section-heading">
-          <span className="backup-eyebrow">2 · Usar um arquivo existente</span>
           <h2 id="backup-tools-title">Importar backup</h2>
           <p>Selecione o JSON. O Atlas identifica o formato e informa a opção segura antes de aplicar qualquer alteração.</p>
         </div>
@@ -406,9 +404,9 @@ export function BackupView({ state, userId, today, readState, onRecover, busy, i
             : <RecoveryPanel onRecover={onRecover} busy={busy} />}
         </div>
       </section>
-      <section className="backup-tools" aria-labelledby="backup-test-title">
+      <details className="backup-tools backup-advanced">
+        <summary>Modo de teste e limites da recuperação</summary>
         <div className="backup-section-heading">
-          <span className="backup-eyebrow">3 · Experimentar sem risco de sincronização</span>
           <h2 id="backup-test-title">Modo de teste</h2>
           <p>Utiliza uma base local independente. Tudo o que você cadastrar nela permanece separado do Atlas real.</p>
         </div>
@@ -416,14 +414,14 @@ export function BackupView({ state, userId, today, readState, onRecover, busy, i
           <span>{testMode ? 'Você está no ambiente de teste.' : 'Seus dados reais não serão alterados.'}</span>
           <a className="button button--secondary" href={testMode ? '/?cloud=1' : '/?test=1'}>{testMode ? 'Voltar ao Atlas real' : 'Abrir modo de teste'}</a>
         </div>
-      </section>
-      <section className="backup-limitations" aria-labelledby="backup-limitations-title">
-        <RefreshCcw size={20} aria-hidden="true" />
-        <div>
-          <h2 id="backup-limitations-title">Restauração completa ainda não disponível</h2>
-          <p>A recuperação aceita cópias compatíveis somente em destino vazio ou idêntico. Substituir bases e gerenciar versões anteriores são recursos previstos para I4. Não apague os dados atuais antes de conferir sua cópia.</p>
-        </div>
-      </section>
+        <section className="backup-limitations" aria-labelledby="backup-limitations-title">
+          <RefreshCcw size={20} aria-hidden="true" />
+          <div>
+            <h2 id="backup-limitations-title">Restauração completa ainda não disponível</h2>
+            <p>A recuperação aceita cópias compatíveis somente em destino vazio ou idêntico. Substituir bases e gerenciar versões anteriores são recursos previstos para I4. Não apague os dados atuais antes de conferir sua cópia.</p>
+          </div>
+        </section>
+      </details>
     </div>
   );
 }

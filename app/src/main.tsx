@@ -10,10 +10,13 @@ const CLOUD_INTENT = 'atlas-financeiro:cloud-auth-intent';
 const url = new URL(location.href);
 const callback = url.pathname === '/auth/callback' || (url.pathname === '/' && (url.searchParams.has('code') || url.searchParams.has('error')));
 const explicitCloud = url.pathname === '/' && url.searchParams.get('cloud') === '1';
-// OAuth redirectTo must stay at the allowlisted /auth/callback. The tab-scoped
-// marker routes only this tab's callback back to the explicitly chosen mode.
+const explicitLocal = url.pathname === '/' && url.searchParams.get('local') === '1';
+const cloudConfigured = import.meta.env.VITE_ATLAS_REMOTE_MODE === 'integration'
+  || Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
 const test = url.pathname === '/' && url.searchParams.get('test') === '1';
-const cloud = !test && (explicitCloud || (callback && sessionStorage.getItem(CLOUD_INTENT) === '1'));
+const cloud = !test && !explicitLocal && (callback
+  ? sessionStorage.getItem(CLOUD_INTENT) === '1'
+  : explicitCloud || (url.pathname === '/' && cloudConfigured));
 if (cloud) {
   if (callback) sessionStorage.removeItem(CLOUD_INTENT);
   else sessionStorage.setItem(CLOUD_INTENT, '1');
@@ -21,8 +24,7 @@ if (cloud) {
   sessionStorage.removeItem(CLOUD_INTENT);
 }
 
-// Default production never migrates or writes local financial data remotely.
-// Cloud mode is an explicit, separately namespaced opt-in with gated writes.
+// Opening the cloud workspace does not associate or migrate the separate local base.
 const Workspace = test
   ? lazy(() => import('./remote/TestWorkspace'))
   : cloud ? lazy(() => import('./remote/bootstrap'))

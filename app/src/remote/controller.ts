@@ -78,6 +78,14 @@ export class RemoteController {
     })();
     this.#verification=run;try {await run;}finally {if(this.#verification===run)this.#verification=undefined;}
   }
+  async resumeConnection() {
+    const session = this.policy.snapshot;
+    if (session.blocked || !session.userId) return;
+    if (!session.onlineVerified) {
+      await (this.#verification ?? this.verify());
+    }
+    if (this.policy.snapshot.canTransmit) await this.sync();
+  }
   async readBank(resource:'item'|'accounts'|'transactions',id?:string,after?:string,dateFrom?:string,continuation?:string):Promise<unknown> {
     if(!this.policy.snapshot.onlineVerified||!this.auth.readBank) throw new Error('A sessão bancária não está autorizada.');
     const epoch=this.policy.snapshot.epoch;

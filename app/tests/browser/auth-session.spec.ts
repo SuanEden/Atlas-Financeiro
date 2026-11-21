@@ -31,7 +31,7 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   await page.getByRole('button',{name:'Iniciar uma base vazia'}).click();
   await expect(page.getByRole('heading',{name:'Visão geral'})).toBeVisible();
   await expandCloudControls(page);
-  await expect(page.locator('.cloud-hub')).toContainText('Cópia local ativa');
+  await expect(page.locator('.cloud-hub')).toContainText('Base da nuvem');
   await expect(page.locator('.device-status')).toContainText('Modo nuvem');
   await expect(page.getByRole('button',{name:'Sincronizar agora'})).toHaveCount(0);
   const homeNav=page.getByRole('navigation',{name:(page.viewportSize()?.width??1280)<761?'Navegação móvel':'Navegação principal'});
@@ -45,13 +45,14 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   await expect(page.getByRole('heading',{name:'Nova conta'})).toHaveCount(0);
   await page.evaluate(async()=>{const path='/tests/auth-browser-entry.tsx';await (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).expireAndDisconnect();});
   await expandCloudControls(page);
-  await expect(page.getByRole('region',{name:'Sincronização'}).getByText('Acesso offline',{exact:true})).toBeVisible();
+  await expect(page.getByRole('region',{name:'Sincronização'}).getByText('Sessão sem verificação',{exact:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'Sincronizar agora'})).toBeDisabled();
   await page.reload();await expect(page.getByRole('heading',{name:'Visão geral'})).toBeVisible();
   await expect(page.getByText('Conta sintética de sessão',{exact:true})).toBeVisible();
   await navigateBackup(page);
-  await expect(page.getByRole('heading',{name:'Backup e dados',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Cópias de segurança',exact:true})).toBeVisible();
   await expect(page.getByRole('heading',{name:'Importar backup',exact:true})).toBeVisible();
+  await page.getByText('Modo de teste e limites da recuperação',{exact:true}).click();
   await expect(page.getByRole('heading',{name:'Modo de teste',exact:true})).toBeVisible();
   await expect(page.getByText('Nuvem e dispositivo',{exact:true})).toBeVisible();
   await expect(page.locator('vite-error-overlay')).toHaveCount(0);

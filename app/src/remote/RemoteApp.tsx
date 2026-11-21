@@ -1,3 +1,4 @@
+import { Cloud, CloudOff } from 'lucide-react';
 import { PluggyReadPanel } from './PluggyReadPanel';
 import { SyncRecoveryPanel } from '../ui/SyncRecoveryPanel';
 import { useEffect, useState, useSyncExternalStore } from 'react';
@@ -16,6 +17,11 @@ export function RemoteApp({controller}:{controller:RemoteController}) {
     window.addEventListener('storage',storage);
     return ()=>{clearInterval(timer);window.removeEventListener('storage',storage);};
   },[controller]);
+  useEffect(() => {
+    const resume = () => { void controller.resumeConnection(); };
+    window.addEventListener('online', resume);
+    return () => window.removeEventListener('online', resume);
+  }, [controller]);
   if(snapshot.loading)return <main className="access-page"><h1>Atlas Financeiro</h1><p role="status">Conferindo acesso…</p></main>;
   if(!snapshot.session.canView)return <AccessGate key={snapshot.session.userId} controller={controller} />;
   return <RemoteWorkspace key={snapshot.session.userId} controller={controller} />;
@@ -52,7 +58,7 @@ function AccessGate({controller}:{controller:RemoteController}) {
     </section>:null}
     {snapshot.session.onlineVerified ? <PluggyReadPanel controller={controller} /> : null}
     {snapshot.session.onlineVerified ? <SyncRecoveryPanel userId={snapshot.session.userId} serverId={controller.serverId} onRecover={json => controller.recoverBackup(json)} disabled={busy || snapshot.syncing} /> : null}
-    <p><a className="text-button" href="/">Voltar ao Atlas local (sem migrar)</a></p>
+    <p><a className="text-button" href="/?local=1">Abrir base local independente (sem migrar)</a></p>
     <p className="warning-copy">Sair bloqueia a visualização neste perfil sem apagar pendências. Esta proteção local não é criptografia. O envio exige sessão verificada e liberação do servidor.</p>
   </section></main>;
 }
@@ -95,21 +101,32 @@ function RemoteWorkspace({controller}:{controller:RemoteController}) {
     }).catch(() => { /* The financial workspace reports storage errors separately. */ });
     return () => { active = false; };
   }, [snapshot.store, snapshot.dataRevision, snapshot.syncing]);
+  const [online, setOnline] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine);
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
+    return () => {
+      window.removeEventListener('online', update);
+      window.removeEventListener('offline', update);
+    };
+  }, []);
   const pendingCount = Math.max(finance.state.outbox.length, pendingInStore);
-  const cloudStatus = !snapshot.session.onlineVerified ? 'Acesso offline'
+  const cloudStatus = !online ? 'Sem internet'
+    : !snapshot.session.onlineVerified ? 'Sessão sem verificação'
     : snapshot.syncing ? 'Sincronizando'
     : !snapshot.session.canTransmit ? 'Envio indisponível'
     : pendingCount > 0 ? 'Alterações pendentes' : 'Sincronizado';
-  const cloudTone = !snapshot.session.onlineVerified || !snapshot.session.canTransmit ? 'offline'
+  const cloudTone = !online || !snapshot.session.onlineVerified || !snapshot.session.canTransmit ? 'offline'
     : snapshot.syncing || pendingCount > 0 ? 'pending' : 'synced';
   const cloudControls = <section className="cloud-control-card" aria-label="Sincronização">
-    <div className="cloud-control-heading"><span className="cloud-control-mark" aria-hidden="true">☁</span><div><h2>Modo nuvem</h2><p>Cópia local ativa</p></div></div>
+    <div className="cloud-control-heading"><span className="cloud-control-mark" aria-hidden="true">{online ? <Cloud size={22} /> : <CloudOff size={22} />}</span><div><h2>Conexão</h2><p>{online ? 'Base da nuvem' : 'Cópia offline da mesma base'}</p></div></div>
     <div className="cloud-control-state" data-status={cloudTone}><span className="cloud-control-dot" aria-hidden="true" /><strong>{cloudStatus}</strong></div>
-    <p className="cloud-control-description" role="status">{snapshot.notice || snapshot.session.message}</p>
+    <p className="cloud-control-description" role="status">{online ? (snapshot.notice || snapshot.session.message) : 'Você pode continuar lançando. As alterações ficam na fila até a conexão voltar.'}</p>
     <p className="cloud-control-pending">{pendingCount} {pendingCount === 1 ? 'operação pendente' : 'operações pendentes'}</p>
     <div className="cloud-control-actions">
-      {pendingCount > 0 ? <button className="button button--secondary" disabled={!snapshot.session.canTransmit || snapshot.syncing} onClick={() => void controller.sync()}>{snapshot.syncing ? 'Conferindo envio…' : 'Sincronizar agora'}</button> : null}
-      {!snapshot.session.onlineVerified ? <button className="text-button" onClick={() => void controller.login()}>Entrar novamente</button> : null}
+      {pendingCount > 0 ? <button className="button button--secondary" disabled={!online || !snapshot.session.canTransmit || snapshot.syncing} onClick={() => void controller.sync()}>{snapshot.syncing ? 'Conferindo envio…' : 'Sincronizar agora'}</button> : null}
+      {online && !snapshot.session.onlineVerified ? <button className="text-button" onClick={() => void controller.login()}>Entrar novamente</button> : null}
       <button className="text-button" onClick={() => void controller.logout()}>Sair e bloquear</button>
     </div>
     <Conflicts controller={controller} />

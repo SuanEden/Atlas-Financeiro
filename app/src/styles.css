@@ -1808,3 +1808,19 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 
 
 .movement-filters .movement-filter-reset { min-height:44px; }
+
+.backup-title { margin:0 0 16px; font-size:1.3rem; }
+.backup-advanced > summary { cursor:pointer; padding:12px 0; font-weight:700; }
+.backup-advanced[open] > summary { margin-bottom:16px; }
+.app-shell .cloud-hub-section--backup { overflow:visible; }
+@media(max-width:760px) {
+  .backup-primary__footer > .button { width:100%; min-height:48px; justify-content:center; }
+}
+
+.cloud-hub .cloud-control-card { padding:0; border:0; background:transparent; }
+.cloud-hub .cloud-control-heading h2 { font-size:1rem; }
+.cloud-hub .cloud-control-heading p,
+.cloud-hub .cloud-control-description { font-size:.82rem; }
+.cloud-hub .cloud-control-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; }
+.cloud-hub .cloud-control-actions :is(.button,.text-button) { width:auto; min-height:44px; }
+.cloud-hub .backup-primary { background:var(--subtle); }
