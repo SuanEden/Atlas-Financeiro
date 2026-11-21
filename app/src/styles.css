@@ -1183,10 +1183,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   --ink:#f7f8f4;
   --muted:#a4a79d;
   --line:#31352d;
-  --accent:#c5fb42;
-  --accent-dark:#d5ff65;
-  --accent-soft:#303f1c;
-  --positive:#bded60;
+  --accent:#9ebd91;
+  --accent-dark:#b1cda6;
+  --accent-soft:#29332a;
+  --positive:#a9c99d;
   --negative:#ff8f92;
   --atlas-shadow:0 12px 30px rgba(0,0,0,.22);
   color-scheme:dark;
@@ -1197,7 +1197,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 }
 .app-shell[data-theme="dark"] .brand-mark {
   background:var(--accent);color:#141a0c;
-  box-shadow:0 0 0 1px rgba(198,251,66,.25),0 4px 18px rgba(198,251,66,.1);
+  box-shadow:none;
 }
 .app-shell[data-theme="dark"] .sidebar-section-label {color:#8c9284;}
 .app-shell[data-theme="dark"] .sidebar nav button {color:#aaaead;}
@@ -1216,28 +1216,27 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .app-shell[data-theme="dark"] .button--primary {
   color:#111709;
   background:var(--accent);
-  box-shadow:0 5px 19px rgba(198,251,66,.15);
+  box-shadow:none;
 }
-.app-shell[data-theme="dark"] .button--primary:hover {background:#d9ff82;}
+.app-shell[data-theme="dark"] .button--primary:hover {background:#b1cda6;}
 .app-shell[data-theme="dark"] .button--secondary,.app-shell[data-theme="dark"] .button--ghost {
   color:var(--ink);background:#252720;border-color:#3a4035;
 }
 .app-shell[data-theme="dark"] .button--secondary:hover {background:#33392b;}
 .app-shell[data-theme="dark"] .balance-hero {
-  background:radial-gradient(circle at 87% 20%,rgba(189,239,60,.14),transparent 46%),linear-gradient(122deg,#1c2019,#131613 68%);
-  border:1px solid #414b32;
-  box-shadow:0 16px 38px rgba(0,0,0,.25);
+  background:var(--surface);
+  border:1px solid var(--line);
+  box-shadow:none;
 }
-.app-shell[data-theme="dark"] .balance-hero-kicker {color:#dceba9;}
+.app-shell[data-theme="dark"] .balance-hero-kicker {color:var(--muted);}
 .app-shell[data-theme="dark"] .balance-hero-dot {background:var(--accent);}
 .app-shell[data-theme="dark"] .balance-hero h2 {color:#f6f9ed;}
 .app-shell[data-theme="dark"] .balance-hero p {color:#adb6a0;}
-.app-shell[data-theme="dark"] .balance-hero-orbit {border-color:rgba(198,251,66,.16);}
-.app-shell[data-theme="dark"] .balance-hero-symbol {color:rgba(198,251,66,.1);}
+.app-shell[data-theme="dark"] .balance-hero-aside {display:none;}
 .app-shell[data-theme="dark"] .balance-hero-action {
-  border-color:var(--accent);
-  background:var(--accent);
-  color:#17200c;
+  border-color:#465447;
+  background:var(--accent-soft);
+  color:var(--ink);
 }
 .app-shell[data-theme="dark"] .balance-hero-action--soft {
   background:#303729;
@@ -1297,7 +1296,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .app-shell[data-theme="dark"] .bottom-nav .bottom-add {
   color:#17200c;
   background:var(--accent);
-  box-shadow:0 7px 25px rgba(198,251,66,.19);
+  box-shadow:none;
 }
 .app-shell[data-theme="dark"] .bottom-nav .bottom-add span {color:#adb69f;}
 .app-shell[data-theme="dark"] .page-heading p,.app-shell[data-theme="dark"] .chart-category-caption {color:#a7aea1;}
@@ -1336,7 +1335,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .app-shell[data-theme="dark"] .insight-prompt {background:#191b18;border-color:#343a2e;box-shadow:none;}
 .app-shell[data-theme="dark"] .insight-prompt-spark {background:#2b3a1d;color:var(--accent);}
 .app-shell[data-theme="dark"] .insight-prompt-options button {background:#272b24;border-color:#42483a;}
-.app-shell[data-theme="dark"] .insight-prompt-options button[aria-pressed="true"] {background:var(--accent);color:#14200b;border-color:var(--accent);}
+.app-shell[data-theme="dark"] .insight-prompt-options button[aria-pressed="true"] {background:var(--accent-soft);color:var(--accent-dark);border-color:#607460;}
 .app-shell[data-theme="dark"] .insight-prompt-answer {background:#10130e;border:1px solid #363f2e;}
 .app-shell[data-theme="dark"] .insight-prompt-answer button {border-color:#46503b;color:var(--accent);}
 @media(max-width:760px){
