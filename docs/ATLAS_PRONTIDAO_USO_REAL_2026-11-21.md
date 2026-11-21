@@ -5,7 +5,7 @@
 - Nova proteção: o painel em modo nuvem não chama o estado de `Sincronizado` quando o servidor não confirmou a revisão. `Sem pendências` e `Sincronizado` são estados diferentes. O resultado é invalidado em novo login, perda de sessão, mudança de origem/namespace, escrita local, recuperação e importação.
 - Supabase conectado pela integração: projeto de staging e projeto I3 existentes; ambos com schema privado `atlas_private` e API `api.i3_*`; não foram executadas migrações, DML nem alterações em credenciais.
 - Staging: existe um recibo e um lote sintéticos conhecidos; nenhuma conta/lançamento bancário confirmado por esta auditoria. O projeto I3 apresenta tabelas financeiras sem registros estimados. Essas informações **não demonstram que os dados financeiros do usuário estejam vazios**.
-- `api.i3_readiness` de staging declara protocolo 1 e versão financeira 4, mas o envio depende de `integration_control`. Não alterar a autorização sem homologação.
+- `api.i3_readiness` de staging declara protocolo 1 e versão financeira 4; consulta read-only confirmou `integration_control.writes_enabled=true` no **staging** e `false` no **projeto I3 principal**. Não alterar a autorização sem homologação nem supor que staging contenha os dados reais.
 - A conexão Vercel acessível no contexto não apresenta projeto Git vinculado a `SuanEden/Atlas-Financeiro`; nenhuma publicação foi possível/realizada.
 
 ## Prioridades para liberar operação diária
