@@ -120,6 +120,8 @@ describe('controlador local de sessão com SQL e identidades simuladas',()=>{
     await f.controller.associateLocal(preview.digest);
     expect(f.controller.getSnapshot().session.canView).toBe(false);
     expect((await f.controller.getSnapshot().store!.read()).meta.binding).toBe('verifying_source');
+    expect(f.controller.getSnapshot().notice).toMatch(/origem local não corresponde/);
+    expect((await server.counts(f.owner)).sync_batches).toBe('1');
   });
   it('logout offline bloqueia imediatamente, persiste e mantém pendência sem aceitar token/evento tardio',async()=>{
     const f=await setup();await associate(f);const store=f.controller.getSnapshot().store!;const initial=await store.read();
