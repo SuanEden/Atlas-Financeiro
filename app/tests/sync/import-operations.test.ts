@@ -50,6 +50,42 @@ describe('importação append-only de I3 em base associada',()=>{
     expect(batches.sync_batches).toBe('3');
   });
 
+  it('recusa ID repetido com conteúdo divergente no mesmo lote sem gravar parcialmente',async()=>{
+    const owner=await server.user();
+    const sourceOwner=crypto.randomUUID();
+    const bootstrap=await prepareBootstrap(legacyRecoveryFixture(sourceOwner),sourceOwner,owner,crypto.randomUUID());
+    const store=open(owner,'duplicate-batch');
+    await store.prepareAssociation(bootstrap);
+    await engine(store).run();
+    await store.activateAssociation(bootstrap.source.digest);
+    await engine(store).run();
+    const before=await store.read();
+    const commandA=createCategoryCommand({name:'Categoria A',kind:'income'},context(owner));
+    const commandB=createCategoryCommand({name:'Categoria B',kind:'income'},context(owner));
+    const first=commandEnvelope(commandA.operation,before.meta.cursor);
+    const second=commandEnvelope(commandB.operation,before.meta.cursor);
+    const duplicated={...second,operationId:first.operationId,operation:{...second.operation,id:first.operationId}};
+    await expect(store.importPendingFromBackup(before.confirmed,[first,duplicated])).rejects.toThrow(/identificador.*divergentes/);
+    expect(await store.read()).toEqual(before);
+  });
+
+  it('recusa reutilizar ID de operação já confirmada com outro conteúdo',async()=>{
+    const owner=await server.user();
+    const sourceOwner=crypto.randomUUID();
+    const bootstrap=await prepareBootstrap(legacyRecoveryFixture(sourceOwner),sourceOwner,owner,crypto.randomUUID());
+    const store=open(owner,'duplicate-receipt');
+    await store.prepareAssociation(bootstrap);
+    await engine(store).run();
+    await store.activateAssociation(bootstrap.source.digest);
+    await engine(store).run();
+    const before=await store.read();
+    const command=createCategoryCommand({name:'Nova categoria',kind:'income'},context(owner));
+    const envelope=commandEnvelope(command.operation,before.meta.cursor);
+    const collided={...envelope,operationId:bootstrap.operationId,operation:{...envelope.operation,id:bootstrap.operationId}};
+    await expect(store.importPendingFromBackup(before.confirmed,[collided])).rejects.toThrow(/confirmada.*divergentes/);
+    expect(await store.read()).toEqual(before);
+  });
+
   it('rejeita histórico divergente e dependência inexistente sem importar parcialmente',async()=>{
     const owner=await server.user();
     const sourceOwner=crypto.randomUUID();

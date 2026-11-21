@@ -53,6 +53,55 @@ describe('controlador local de sessão com SQL e identidades simuladas',()=>{
     await reopened.enqueue(command);expect(await reopened.sync()).toBe('login_required');
     expect((await reopened.getSnapshot().store!.read()).pending).toHaveLength(1);
   });
+  it('informa a etapa de leitura sem expor erro remoto nem alterar a associação',async()=>{
+    const f=await setup();
+    f.controller.dispose();
+    const failing=f.make({...f.transport,pull:async()=>{throw new Error('sensitive-provider-details-do-not-show');}});
+    await failing.start();
+    await failing.joinExisting();
+    const snapshot=failing.getSnapshot();
+    expect(snapshot.notice).toMatch(/consulta das revisões no servidor falhou/);
+    expect(snapshot.notice).not.toContain('sensitive-provider-details-do-not-show');
+    const state=await snapshot.store!.read();
+    expect(state.meta.binding).toBe('join');
+    expect(state.meta.cursor).toBe('0');
+    expect(state.confirmed.accounts).toEqual([]);
+    expect(state.pending).toEqual([]);
+  });
+  it('mantém pendência e informa falha na leitura posterior ao envio',async()=>{
+    const f=await setup();f.controller.dispose();
+    let pulls=0;
+    const controller=f.make({...f.transport,pull:async(after,through)=>{
+      pulls++;
+      if(pulls===2) throw new Error('INTERNAL_REMOTE_TOKEN_MUST_NOT_APPEAR');
+      return f.transport.pull(after,through);
+    }});
+    await controller.start();
+    await controller.associateEmpty();
+    const snapshot=controller.getSnapshot();
+    expect(snapshot.notice).toMatch(/consulta das revisões no servidor falhou/);
+    expect(snapshot.notice).not.toContain('INTERNAL_REMOTE_TOKEN_MUST_NOT_APPEAR');
+    const local=await snapshot.store!.read();
+    expect(local.meta.binding).toBe('bootstrap');
+    expect(local.pending).toHaveLength(1);
+    expect(local.meta.cursor).toBe('0');
+    expect(await server.counts(f.owner)).toMatchObject({sync_batches:'1',operation_receipts:'1'});
+  });
+
+  it('não permite nova associação após a resposta remota se perder',async()=>{
+    const f=await setup();f.controller.dispose();
+    const controller=f.make({...f.transport,apply:async(envelope)=>{
+      await f.transport.apply(envelope);
+      throw new SyncFailure('offline','LOST_RESPONSE_FOR_TEST');
+    }});
+    await controller.start();
+    await controller.associateEmpty();
+    const local=await controller.getSnapshot().store!.read();
+    expect(local.meta.binding).toBe('bootstrap');
+    await expect(controller.associateEmpty()).rejects.toThrow(/Já existe associação/);
+    expect((await controller.getSnapshot().store!.read()).meta.associationId).toBe(local.meta.associationId);
+    expect(await server.counts(f.owner)).toMatchObject({sync_batches:'1',operation_receipts:'1'});
+  });
   it('retoma associação depois de perder resposta e memória do controlador',async()=>{
     const f=await setup();f.controller.dispose();
     const lost=f.make({...f.transport,apply:async(envelope)=>{await f.transport.apply(envelope);throw new SyncFailure('offline','SYNTHETIC_LOST_RESPONSE');}});
@@ -71,6 +120,8 @@ describe('controlador local de sessão com SQL e identidades simuladas',()=>{
     await f.controller.associateLocal(preview.digest);
     expect(f.controller.getSnapshot().session.canView).toBe(false);
     expect((await f.controller.getSnapshot().store!.read()).meta.binding).toBe('verifying_source');
+    expect(f.controller.getSnapshot().notice).toMatch(/origem local não corresponde/);
+    expect((await server.counts(f.owner)).sync_batches).toBe('1');
   });
   it('logout offline bloqueia imediatamente, persiste e mantém pendência sem aceitar token/evento tardio',async()=>{
     const f=await setup();await associate(f);const store=f.controller.getSnapshot().store!;const initial=await store.read();
@@ -147,5 +198,19 @@ describe('recuperação I3 não concede autenticação nem escrita remota',()=>{
     expect((await other.getSnapshot().store!.read()).projection).toEqual((await f.controller.getSnapshot().store!.read()).projection);
     await other.logout();await expect(other.recoverBackup(json)).rejects.toThrow(/Entre/);
     expect(other.getSnapshot().session.canView).toBe(false);
+  });
+
+  it('recusa recuperação no navegador quando Web Locks não está disponível',async()=>{
+    const f=await setup();await associate(f);
+    const {exportSyncBackup}=await import('../../src/sync/export-backup');
+    const store=f.controller.getSnapshot().store!;
+    const json=await exportSyncBackup(store,'synthetic-controller');
+    const before=await store.read();
+    vi.stubGlobal('window',{});
+    vi.stubGlobal('navigator',{locks:undefined});
+    try {
+      await expect(f.controller.recoverBackup(json)).rejects.toThrow(/coordenação necessária/);
+      expect(await store.read()).toEqual(before);
+    } finally { vi.unstubAllGlobals(); }
   });
 });
