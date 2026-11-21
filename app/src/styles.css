@@ -226,6 +226,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .form-details summary { color: var(--accent-dark); font-size: .85rem; font-weight: 700; }
 .form-details[open] summary { margin-bottom: 16px; }
 .confirm-dialog { padding: 24px; }
+.confirm-dialog > label { display: grid; gap: 8px; margin-top: 16px; }
 .confirm-dialog p { margin: 0; color: var(--muted); line-height: 1.65; }
 
 .bottom-nav { display: none; }
@@ -792,6 +793,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .bank-import-summary > div { display:grid; gap:3px; padding:12px; border:1px solid var(--line); background:var(--surface); border-radius:10px; }
 .bank-import-summary strong { font-size:1.35rem; font-variant-numeric:tabular-nums; }
 .bank-import-summary span { color:var(--muted); font-size:.71rem; }
+.bank-import-match { display: grid; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
+.bank-import-match select { width: 100%; min-width: 0; }
 .bank-import-review > p { margin:0; font-size:.82rem; line-height:1.55; }
 .bank-import-consent { display:flex; align-items:flex-start; gap:9px; font-size:.83rem; line-height:1.5; }
 .bank-import-consent input { flex:none; margin-top:3px; }

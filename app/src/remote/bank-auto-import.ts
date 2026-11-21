@@ -171,13 +171,19 @@ export async function classifyBankImportCandidates(
 export async function commitBankImportPreview(link:BankLink,candidates:BankImportCandidate[],source:ImportSource, matches: ReadonlyMap<string, string> = new Map()):Promise<number>{
   let count=0;
   for(const candidate of candidates){
-    const current=await source.readState();
-    const prepared=await prepareUniqueBankImportCommand(
-      candidate,{pluggyAccountId:link.pluggyAccountId,atlasAccountId:link.atlasAccountId},current,source.context,matches.get(candidate.externalKey),
-    );
-    if(!prepared)continue;
-    try{await source.execute(prepared);}
-    catch(error){throw new Error('Importação interrompida após '+count+' lançamento(s). Os itens anteriores foram preservados, e a repetição é protegida por ID bancário. '+(error instanceof Error?error.message:''));}
+    try {
+      const current = await source.readState();
+      const eventId = await bankImportEventId(source.context.userId, candidate.externalKey);
+      const imported = current.events.find(event => event.id === eventId && event.userId === source.context.userId);
+      const prepared = await prepareUniqueBankImportCommand(candidate, {
+        pluggyAccountId: link.pluggyAccountId,
+        atlasAccountId: imported?.accountId ?? link.atlasAccountId,
+      }, current, source.context, matches.get(candidate.externalKey));
+      if (!prepared) continue;
+      await source.execute(prepared);
+    } catch (error) {
+      throw new Error('Importação interrompida após ' + count + ' lançamento(s). Os itens anteriores foram preservados, e a repetição é protegida por ID bancário. ' + (error instanceof Error ? error.message : ''));
+    }
     count++;
   }
   return count;

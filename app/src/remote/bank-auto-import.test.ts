@@ -179,7 +179,7 @@ describe('automatic Pluggy bank imports',()=>{
     expect(parseBankContinuation('/v2/transactions?after=a',accountId)).toBe('a');
   });
   it('counts already imported IDs in the correct and other accounts before import',async()=>{
-    const {classifyBankImportCandidates}=await import('./bank-auto-import');
+    const {classifyBankImportCandidates,commitBankImportPreview}=await import('./bank-auto-import');
     const {bankImportEventId,previewPluggyImport}=await import('../application');
     const otherAccountId='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
     const candidates=previewPluggyImport(itemId,[
@@ -208,6 +208,21 @@ describe('automatic Pluggy bank imports',()=>{
       newCount:1,existingInDestination:1,existingInOtherAccount:1,
       otherAccountNames:['Infinite'],
     });
+    const executed: string[] = [];
+    const link = {itemId,pluggyAccountId:accountId,atlasAccountId,activatedOn:'2026-11-01'};
+    const source = {
+      readPage: async () => ({}),
+      readState: async () => state,
+      execute: async (command: import('../application').LocalCommand) => {
+        executed.push(command.aggregate.events![0]!.id);
+      },
+      context: {userId,nextId:()=>crypto.randomUUID(),now:()=>new Date().toISOString(),today:()=> '2026-11-03'},
+    };
+    expect(await commitBankImportPreview(link,candidates,source)).toBe(1);
+    expect(executed).toEqual([await bankImportEventId(userId,candidates[2]!.externalKey)]);
+    await expect(commitBankImportPreview(link,[{...candidates[1]!,amountCents:2000n}],source))
+      .rejects.toThrow(/Identificador bancário/);
+
   });
   it('imports only same-day transactions after the confirmed bank snapshot',async()=>{
     const events: string[]=[];

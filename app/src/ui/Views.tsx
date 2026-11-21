@@ -64,25 +64,21 @@ export function Dashboard({ state, today, userId, onAddAccount, onAddTransaction
   const bankAccounts = state.accounts.filter((account) => ['checking', 'savings', 'digital'].includes(account.kind));
   const cashAccounts = state.accounts.filter((account) => account.kind === 'cash');
   const transportAccounts = state.accounts.filter((account) => account.kind === 'transport');
-  const freeAccounts = state.accounts.filter((account) => account.availability === 'free');
   const receiptAccount = state.accounts.find((account) => account.kind === 'other' && account.availability === 'reserved' && account.name.trim().toLocaleLowerCase('pt-BR') === 'recebimentos a conciliar');
   const reservedAccounts = state.accounts.filter((account) => account.availability === 'reserved' && account.id !== receiptAccount?.id);
   const bankComplete = bankAccounts.length > 0 && bankAccounts.every((account) => reconciled(account.id));
   const cashComplete = cashAccounts.length > 0 && cashAccounts.every((account) => reconciled(account.id));
   const transportComplete = transportAccounts.length > 0 && transportAccounts.every((account) => reconciled(account.id));
-  const freeComplete = freeAccounts.length > 0 && freeAccounts.every((account) => reconciled(account.id));
   const reservedComplete = reservedAccounts.length === 0 || reservedAccounts.every((account) => reconciled(account.id));
   const bankBalance = bankAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
   const physicalCash = cashAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
   const transportBalance = transportAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
-  const available = freeAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
   const reservedBalance = reservedAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
   const investments = state.accounts.filter(account => account.kind === 'investment');
   const investmentTotal = investments.reduce((sum, account) => sum + balanceFor(account.id), 0n);
   const accountsToReconcile = state.accounts.filter(account => balanceFor(account.id) !== 0n
     || isEntitySelectable(state.entityLifecycles ?? [], userId, 'account', account.id));
   const allAccountsComplete = state.accounts.length > 0 && accountsToReconcile.every(account => reconciled(account.id));
-  const projectedBalance = freeComplete && selectedMonth === today.slice(0, 7) ? available + forecast.projectedCashChangeCents : undefined;
   const obligations = spending.commitments.slice(0, 5);
   const grossForecast = forecast.recurringGrossIncomeCents > 0n ? forecast.recurringGrossIncomeCents : forecast.grossIncomeReferenceCents;
   const grossLabel = forecast.recurringGrossIncomeCents > 0n ? 'Salário bruto previsto (6 meses)' : 'Salário bruto de referência';
@@ -170,7 +166,7 @@ export function Dashboard({ state, today, userId, onAddAccount, onAddTransaction
           <MoneyStat label="Obrigações pendentes" value={formatBRL(forecast.obligationCents)} />
           <MoneyStat label="Despesas recorrentes futuras" value={formatBRL(forecast.recurringExpenseCents)} />
           <MoneyStat label={grossLabel} value={grossForecast > 0n ? formatBRL(grossForecast) : '—'} />
-          <MoneyStat label="Saldo projetado" value={projectedBalance === undefined ? (freeComplete ? 'Selecione o mês atual' : 'Concilie as contas') : formatBRL(projectedBalance)} />
+          <MoneyStat label="Variação prevista em 6 meses" value={formatBRL(forecast.projectedCashChangeCents)} />
         </div>
         {grossForecast > 0n ? <p className="form-note">Valor bruto de referência/projeção; não é dinheiro recebido nem entra no saldo projetado. O primeiro pagamento proporcional e o valor líquido permanecem separados até confirmação.</p> : null}
         {proratedUnknown.map((item) => <p className="form-note" key={item.description}>Primeira ocorrência de {item.description}: competência {monthLabel(item.month + '-01')}; valor proporcional ainda não informado.</p>)}
@@ -184,7 +180,7 @@ export function Dashboard({ state, today, userId, onAddAccount, onAddTransaction
         <section aria-labelledby="accounts-title"><div className="section-heading"><h2 id="accounts-title">Contas</h2><button className="text-button" onClick={() => onNavigate('accounts')}>Ver todas</button></div>{state.accounts.length === 0 ? <CompactEmpty text="Nenhuma conta criada." /> : <div className="plain-list">{state.accounts.slice(0, 4).map((account) => <div className="account-row" key={account.id}><span className="account-icon"><WalletCards size={19} /></span><span><strong>{account.name}</strong><small>{availabilityLabels[account.availability]} · {reconciled(account.id) ? 'Saldo conciliado' : 'Saldo a conciliar'}</small></span><b>{accountBalanceLabel(state, account.id)}</b></div>)}</div>}</section>
         <section aria-labelledby="recent-title"><div className="section-heading"><h2 id="recent-title">Movimentações recentes</h2><button className="text-button" onClick={() => onNavigate('movements')}>Ver todas</button></div>{recent.length === 0 ? <CompactEmpty text="Nenhum lançamento realizado ou previsto." /> : <div className="plain-list">{recent.map((event) => <MovementRow event={event} state={state} key={event.id} />)}</div>}</section>
       </div>
-      {state.accounts.length === 0 ? <EmptyPanel icon={<WalletCards />} title="Comece criando sua primeira conta" description="Depois, concilie o saldo atual para habilitar o saldo disponível e o saldo projetado." action="Criar minha primeira conta" onAction={onAddAccount} /> : null}
+      {state.accounts.length === 0 ? <EmptyPanel icon={<WalletCards />} title="Comece criando sua primeira conta" description="Depois, concilie o saldo da conta para visualizar quanto pode gastar." action="Criar minha primeira conta" onAction={onAddAccount} /> : null}
     </div>
   );
 }

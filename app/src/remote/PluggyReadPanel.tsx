@@ -142,13 +142,13 @@ export function PluggyReadPanel({controller,importTarget}:{controller:BankReader
         {busy==='review'?<p role="status"><LoaderCircle size={16} className="bank-import-loading"/> {progress||'Consultando extrato completo…'}</p>:null}
         {review?<div className="bank-import-review" role="region" aria-label="Conferência da importação">
           <h3><CheckCircle2 size={19} aria-hidden="true"/> Extrato conferido</h3>
-          <div className="bank-import-summary"><div><strong>{review.preview.pages}</strong><span>Páginas verificadas</span></div><div><strong>{review.preview.received}</strong><span>Movimentações consultadas</span></div><div><strong>{review.preflight.newCount}</strong><span>Novas para importar</span></div></div>
+          <div className="bank-import-summary"><div><strong>{review.preview.pages}</strong><span>Páginas verificadas</span></div><div><strong>{review.preview.received}</strong><span>Movimentações consultadas</span></div><div><strong>{review.preflight.newCount}</strong><span>A revisar ou importar</span></div></div>
           <p>Destino: <strong>{review.accountName}</strong> · Desde: <strong>{review.period}</strong>. Isso ainda não registrou movimentações.</p>
           <p className="bank-import-preflight">Das {review.preview.candidates.length} movimentações elegíveis: <strong>{review.preflight.newCount} novas</strong>, {review.preflight.existingInDestination} já importadas nesta conta e {review.preflight.existingInOtherAccount} já importadas em outra conta.</p>
           {review.preflight.existingInOtherAccount>0?<p role="alert" className="bank-import-caution"><AlertTriangle size={17} aria-hidden="true"/> Algumas movimentações já estão vinculadas a {review.preflight.otherAccountNames.join(', ')}. O Atlas não as duplicará nesta conta. Confira em Movimentações antes de qualquer ajuste.</p>:null}
           {review.preflight.newCount===0?<p role="status"><CheckCircle2 size={17} aria-hidden="true"/> Não há lançamentos novos neste extrato. Você pode conferir os registros já importados em Movimentações, na conta de destino e no período selecionado.</p>:null}
           {review.preflight.manualMatches?.map(({ candidate, events }) => (
-            <label key={candidate.externalKey}>
+            <label className="bank-import-match" key={candidate.externalKey}>
               <span>{candidate.date} · {candidate.description} · {formatBRL(candidate.amountCents)}</span>
               <select disabled={!!busy} value={matches.get(candidate.externalKey) ?? ''} onChange={event => {
                 const next = new Map(matches);
@@ -166,7 +166,7 @@ export function PluggyReadPanel({controller,importTarget}:{controller:BankReader
             </label>
           ))}
           <label className="bank-import-consent"><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/> Conferi a conta, a data e o saldo inicial. Autorizo gravar essas movimentações na minha base.</label>
-          <button type="button" className="button button--primary" disabled={!confirmed||!importTarget.canWrite||!!busy||review.preflight.newCount===0} onClick={()=>void commit()}>{busy==='commit'?'Gravando…':'Importar '+review.preflight.newCount+' nova(s) movimentação(ões)'}</button>
+          <button type="button" className="button button--primary" disabled={!confirmed||!importTarget.canWrite||!!busy||review.preflight.newCount===0} onClick={()=>void commit()}>{busy==='commit'?'Gravando…':'Confirmar '+review.preflight.newCount+' movimentação(ões)'}</button>
           {!importTarget.canWrite?<p role="alert">A nuvem não autorizou novas gravações nesta sessão; confira o acesso.</p>:null}
         </div>:null}
       </div>:<p>Este ambiente permite apenas consulta. A importação exige uma base financeira associada.</p>}

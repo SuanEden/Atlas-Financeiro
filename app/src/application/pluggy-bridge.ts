@@ -75,6 +75,7 @@ export async function prepareUniqueBankImportCommand(
   context: CommandContext,
   manualEventId?: string,
 ): Promise<LocalCommand | null> {
+  if (candidate.accountId !== mapping.pluggyAccountId) throw new TypeError('Conta externa não corresponde ao vínculo selecionado.');
   const eventId = await bankImportEventId(context.userId, candidate.externalKey);
   const existing = dataset.events.find(event => event.id === eventId);
   if (existing) {
@@ -92,7 +93,6 @@ export async function prepareUniqueBankImportCommand(
   let calls = 0;
   const bankContext = { ...context, nextId: () => calls++ === 0 ? eventId : context.nextId() };
   if (manualEventId === undefined) return prepareBankImportCommand(candidate, mapping, dataset, bankContext);
-  if (candidate.accountId !== mapping.pluggyAccountId) throw new TypeError('Conta externa não corresponde ao vínculo selecionado.');
   const original = findManualBankMatches(dataset, candidate, mapping.atlasAccountId, context.userId)
     .find(event => event.id === manualEventId);
   if (!original) throw new TypeError('O lançamento selecionado mudou. Confira a importação novamente.');
