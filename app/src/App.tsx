@@ -134,13 +134,11 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
     setModal(undefined);
   }
 
-  async function confirmReverse() {
+  async function confirmReverse(reversalDate?: string) {
     if (modal?.type !== 'reverse') return;
-    try {
-      await execute(reverseEventCommand(state, modal.event.id, context));
-      setNotice('Estorno salvo. O histórico foi preservado.');
-      setModal(undefined);
-    } catch { /* Keep the confirmation open; execute reports persistence errors. */ }
+    await execute(reverseEventCommand(state, modal.event.id, context, reversalDate));
+    setNotice(modal.event.status === 'planned' ? 'Previsão cancelada.' : 'Estorno salvo. O histórico foi preservado.');
+    setModal(undefined);
   }
 
   const openTransaction = () => setModal({ type: 'transaction' });
@@ -210,7 +208,8 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
       {modal?.type === 'edit_category' ? <DialogFrame title="Editar categoria" onClose={()=>setModal(undefined)}><MetadataEditForm entity={modal.category} categories={state.categories.filter(row=>isEntitySelectable(state.entityLifecycles??[],userId,'category',row.id))} busy={busy} onCancel={()=>setModal(undefined)} onSave={saveMetadata}/></DialogFrame> : null}
       {modal?.type === 'delete_entity' ? <DialogFrame title={integration?(modal.kind==='account'?'Arquivar conta':'Arquivar categoria'):(modal.kind==='account'?'Excluir conta':'Excluir categoria')} onClose={()=>setModal(undefined)}><div className="confirm-dialog"><p>Deseja {integration?'arquivar':'excluir'} <strong>{modal.entity.name}</strong>?</p><p className="form-note">{integration?'O registro e todo o histórico financeiro serão preservados. Ele deixará de aparecer nas opções de novos lançamentos e poderá ser reativado.':'A exclusão é permitida apenas para registros sem lançamentos, conciliações, importações vinculadas ou dependências. Caso contrário, será bloqueada para preservar o histórico financeiro.'}</p>{deleteFailure?<p className="form-error" role="alert">{deleteFailure}</p>:null}<footer className="dialog-actions"><button type="button" className="button button--ghost" onClick={()=>setModal(undefined)}>Cancelar</button><button type="button" className="button button--danger" disabled={busy} onClick={()=>void deleteEntity()}>{busy?'Excluindo…':'Confirmar exclusão'}</button></footer></div></DialogFrame> : null}
       {modal?.type === 'transaction' ? <DialogFrame title={modal.initial === undefined ? 'Novo lançamento' : 'Corrigir lançamento'} onClose={() => setModal(undefined)} wide><TransactionForm defaultKind={modal.kind ?? 'expense'} accounts={state.accounts.filter(row=>isEntitySelectable(state.entityLifecycles??[],userId,'account',row.id))} categories={state.categories.filter(row=>isEntitySelectable(state.entityLifecycles??[],userId,'category',row.id))} recurrenceRules={state.events.filter((event) => event.recurrenceJson !== undefined && event.status === 'planned')} {...(modal.initial === undefined ? {} : { initial: modal.initial })} today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveTransaction} /></DialogFrame> : null}
-      {modal?.type === 'reverse' ? <DialogFrame title="Confirmar estorno" onClose={() => setModal(undefined)}><div className="confirm-dialog"><p>O lançamento <strong>{modal.event.description}</strong> não será apagado. Uma contrapartida inversa será adicionada para preservar o histórico.</p><div className="dialog-actions"><button className="button button--ghost" onClick={() => setModal(undefined)}>Cancelar</button><button className="button button--danger" disabled={busy} onClick={() => void confirmReverse()}>{busy ? 'Estornando…' : 'Estornar lançamento'}</button></div></div></DialogFrame> : null}
+      {modal?.type === 'reverse' ? <ReverseDialog key={modal.event.id} event={modal.event} today={today} busy={busy}
+        onClose={() => setModal(undefined)} onSave={confirmReverse} /> : null}
     </main>
   );
 }
@@ -221,4 +220,39 @@ function Brand() {
 
 function MobileNavButton({ active, label, Icon, onClick }: { active: boolean; label: string; Icon: typeof Home; onClick: () => void }) {
   return <button className={active ? 'is-active' : ''} onClick={onClick}><Icon size={21} /><span>{label}</span></button>;
+}
+
+
+function ReverseDialog({ event, today, busy, onClose, onSave }: {
+  event: FinancialEvent;
+  today: string;
+  busy: boolean;
+  onClose: () => void;
+  onSave: (date?: string) => Promise<void>;
+}) {
+  const [date, setDate] = useState(today);
+  const [error, setError] = useState('');
+  const planned = event.status === 'planned';
+  return (
+    <DialogFrame title={planned ? 'Cancelar previsão' : 'Registrar estorno integral'} onClose={onClose}>
+      <form className="confirm-dialog" onSubmit={async submit => {
+        submit.preventDefault();
+        setError('');
+        try {
+          await onSave(planned ? undefined : date);
+        } catch (reason) {
+          setError(reason instanceof Error ? reason.message : 'Não foi possível salvar.');
+        }
+      }}>
+        <p>{planned ? 'O cancelamento ficará vinculado à previsão' : 'O estorno integral ficará vinculado à movimentação'} <strong>{event.description}</strong>.</p>
+        {planned ? null : <label>Data do estorno<input type="date" required value={date}
+          min={event.competenceDate} max={today} onChange={change => setDate(change.target.value)} /></label>}
+        {error ? <p role="alert">{error}</p> : null}
+        <div className="dialog-actions">
+          <button type="button" className="button button--ghost" onClick={onClose}>Voltar</button>
+          <button className="button button--danger" disabled={busy}>{busy ? 'Salvando…' : planned ? 'Cancelar previsão' : 'Estornar lançamento'}</button>
+        </div>
+      </form>
+    </DialogFrame>
+  );
 }

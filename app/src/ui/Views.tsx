@@ -77,6 +77,8 @@ export function Dashboard({ state, today, userId, onAddAccount, onAddTransaction
   const transportBalance = transportAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
   const available = freeAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
   const reservedBalance = reservedAccounts.filter((account) => reconciled(account.id)).reduce((sum, account) => sum + balanceFor(account.id), 0n);
+  const investments = state.accounts.filter(account => account.kind === 'investment');
+  const investmentTotal = investments.reduce((sum, account) => sum + balanceFor(account.id), 0n);
   const accountsToReconcile = state.accounts.filter(account => balanceFor(account.id) !== 0n
     || isEntitySelectable(state.entityLifecycles ?? [], userId, 'account', account.id));
   const allAccountsComplete = state.accounts.length > 0 && accountsToReconcile.every(account => reconciled(account.id));
@@ -127,6 +129,8 @@ export function Dashboard({ state, today, userId, onAddAccount, onAddTransaction
         <MoneyStat label="Recebimentos a conciliar" value={receiptAccount === undefined ? '—' : reconciled(receiptAccount.id) ? formatBRL(balanceFor(receiptAccount.id)) : 'Concilie a conta'} />
         <MoneyStat label="Comprometido em até 30 dias" value={formatBRL(spending.committedCents)} />
         <MoneyStat label="Coberto por contas reservadas" value={allAccountsComplete ? formatBRL(spending.coveredCents) : 'A conciliar'} />
+        {investments.length > 0 ? <MoneyStat label="Saldo em investimentos"
+          value={investments.every(account => reconciled(account.id)) ? formatBRL(investmentTotal) : 'A conciliar'} /> : null}
         <MoneyStat label="Saldo restrito" value={allAccountsComplete ? formatBRL(spending.restrictedCents) : 'A conciliar'} />
         <MoneyStat label="Disponível antes dos compromissos" value={allAccountsComplete ? formatBRL(spending.immediatelyAvailableCents) : 'A conciliar'} />
         <MoneyStat label="Saldo total conciliado" value={allAccountsComplete ? formatBRL(spending.totalCents) : 'A conciliar'} />
@@ -272,11 +276,11 @@ function MovementHistoryArticle({
       ><History size={17} aria-hidden="true" /></button>
     ) : undefined} />
     <div className="history-actions">
-      {editable ? <><button className="text-button" onClick={() => onEdit(event)}>Editar</button><button className="text-button text-button--danger" onClick={() => onReverse(event)}>Estornar</button></> : <span>{cancelled ? 'Estornado ou cancelado · histórico preservado' : 'Lançamento preservado'}</span>}
+      {editable ? <><button className="text-button" onClick={() => onEdit(event)}>Editar</button><button className="text-button text-button--danger" onClick={() => onReverse(event)}>{event.status === 'planned' ? 'Cancelar previsão' : 'Estornar'}</button></> : <span>{cancelled ? 'Estornado ou cancelado · histórico preservado' : 'Lançamento preservado'}</span>}
     </div>
     {history.length > 0 ? <div id={historyId} className="movement-history" hidden={!historyOpen}>
       <ol>{history.map(previous => <li key={previous.id}>
-        <span><strong>{previous.reversesEventId !== undefined ? 'Estorno técnico' : previous.status === 'cancelled' ? 'Cancelamento' : 'Versão anterior'}</strong> · {previous.description}</span>
+        <span><strong>{previous.reversesEventId !== undefined ? 'Estorno vinculado' : previous.status === 'cancelled' ? 'Cancelamento' : 'Versão anterior'}</strong> · {previous.description}</span>
         <span>{eventAmountSign(previous)}{formatBRL(previous.amountCents)} · {formatFinancialDate(previous.competenceDate)}</span>
       </li>)}</ol>
     </div> : null}

@@ -100,6 +100,27 @@ describe('comandos financeiros locais', () => {
     expect(calculateAccountBalance(dataset, accountId)).toBe(3_000n);
   });
 
+  it('registra estorno integral na data efetiva sem alterar períodos anteriores', () => {
+    const ctx = context();
+    let dataset = apply(empty(), createAccountCommand({
+      name: 'Conta teste', kind: 'checking', availability: 'free', openingDate: '2026-10-01',
+    }, ctx));
+    const accountId = dataset.accounts[0]!.id;
+    const expense = createTransactionCommand({
+      kind: 'expense', accountId, description: 'Compra de teste', amountCents: 1000n, date: '2026-10-10', realized: true,
+    }, ctx);
+    dataset = apply(dataset, expense);
+    const originalId = expense.aggregate.events![0]!.id;
+    expect(() => reverseEventCommand(dataset, originalId, ctx, '2026-10-09')).toThrow(/liquidação original/);
+    expect(() => reverseEventCommand(dataset, originalId, ctx, '2026-10-27')).toThrow(/liquidação original/);
+    const reversal = reverseEventCommand(dataset, originalId, ctx, '2026-10-20');
+    expect(reversal.aggregate.events![0]).toMatchObject({ reversesEventId: originalId, competenceDate: '2026-10-20' });
+    dataset = apply(dataset, reversal);
+    assertFinancialDataset(dataset, userId);
+    expect(calculateAccountBalance(dataset, accountId, '2026-10-19')).toBe(-1000n);
+    expect(calculateAccountBalance(dataset, accountId, '2026-10-20')).toBe(0n);
+  });
+
   it('estorna transferência com contrapartidas inversas e conserva o patrimônio', () => {
     const ctx = context();
     let dataset = apply(empty(), createAccountCommand({ name: 'Origem', kind: 'cash', availability: 'free', openingBalanceCents: 10_000n, openingBalanceSource: 'Fonte sintética', openingDate: '2026-10-01' }, ctx));

@@ -222,7 +222,7 @@ export function createTransactionCommand(input: TransactionInput, context: Comma
   return command('record_event', transactionAggregate(input, context), context);
 }
 
-export function reverseEventCommand(dataset: FinancialDataset, eventId: string, context: CommandContext): LocalCommand {
+export function reverseEventCommand(dataset: FinancialDataset, eventId: string, context: CommandContext, reversalDate?: string): LocalCommand {
   const original = dataset.events.find((event) => event.id === eventId);
   if (!original) throw new TypeError('Lançamento não encontrado.');
   if (dataset.events.some((event) => event.reversesEventId === eventId || event.replacesEventId === eventId)) {
@@ -242,7 +242,13 @@ export function reverseEventCommand(dataset: FinancialDataset, eventId: string, 
     return command('reverse_event', { events: [cancelled] }, context);
   }
   ensureFullySettled(dataset, original);
-  return command('reverse_event', reversalAggregate(original, context), context);
+  if (reversalDate !== undefined) {
+    assertIsoDate(reversalDate);
+    if (reversalDate > context.today() || reversalDate < original.competenceDate
+      || dataset.settlements.some(item => item.eventId === original.id && item.settlementDate > reversalDate))
+      throw new TypeError('Informe uma data entre a liquidação original e hoje.');
+  }
+  return command('reverse_event', reversalAggregate(original, context, reversalDate), context);
 }
 
 export function replaceEventCommand(dataset: FinancialDataset, eventId: string, input: TransactionInput, context: CommandContext): LocalCommand {
@@ -293,8 +299,7 @@ function transactionAggregate(input: TransactionInput, context: CommandContext, 
   return input.realized ? settledAggregate(event, context, input.date) : { events: [event] };
 }
 
-function reversalAggregate(original: FinancialEvent, context: CommandContext): FinancialAggregate {
-  const date = context.today();
+function reversalAggregate(original: FinancialEvent, context: CommandContext, date = context.today()): FinancialAggregate {
   const reversal: FinancialEvent = {
     ...original,
     id: context.nextId(),
