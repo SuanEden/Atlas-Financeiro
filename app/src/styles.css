@@ -1008,8 +1008,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .balance-hero-orbit--two {inset:3px;}
 .balance-hero-symbol {position:absolute;right:120px;top:107px;font-size:10rem;font-weight:850;color:rgba(255,255,255,.075);letter-spacing:-.14em;transform:rotate(-12deg);}
 .dashboard-quick-actions {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-bottom:18px;}
-.dashboard-quick-actions button {display:flex;align-items:center;gap:12px;text-align:left;padding:13px 16px;background:var(--surface);border:1px solid var(--line);border-radius:15px;color:var(--ink);font-size:.82rem;font-weight:690;transition:border-color .15s,transform .15s;}
-.dashboard-quick-actions button:hover:not(:disabled) {border-color:var(--accent);transform:translateY(-1px);}
+.dashboard-quick-actions > :is(button, a) {display:flex;align-items:center;gap:12px;text-align:left;padding:13px 16px;background:var(--surface);border:1px solid var(--line);border-radius:15px;color:var(--ink);font-size:.82rem;font-weight:690;transition:border-color .15s,transform .15s;}
+.dashboard-quick-actions > :is(button, a):hover:not(:disabled) {border-color:var(--accent);transform:translateY(-1px);}
 .quick-action-icon {display:grid;place-items:center;flex:0 0 auto;width:37px;height:37px;border-radius:12px;background:var(--accent-soft);color:var(--accent-dark);}
 .app-shell .money-summary {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;border:0;margin-bottom:10px;}
 .app-shell .money-summary > div {display:flex;flex-direction:column;min-width:0;justify-content:center;gap:8px;border:1px solid var(--line);border-radius:16px;padding:18px 19px;background:var(--surface);box-shadow:var(--atlas-shadow);}
@@ -1083,7 +1083,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .balance-hero-actions {margin-top:18px;}
   .balance-hero-action {min-height:40px;padding:0 12px;font-size:.73rem;}
   .dashboard-quick-actions {gap:8px;margin-bottom:12px;}
-  .dashboard-quick-actions button {display:flex;flex-direction:column;text-align:center;justify-content:center;gap:8px;padding:12px 4px;font-size:.67rem;line-height:1.2;border-radius:14px;}
+  .dashboard-quick-actions > :is(button, a) {display:flex;flex-direction:column;text-align:center;justify-content:center;gap:8px;padding:12px 4px;font-size:.67rem;line-height:1.2;border-radius:14px;}
   .quick-action-icon {width:42px;height:42px;}
   .app-shell .money-summary {grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-bottom:9px;}
   .app-shell .money-summary > div,.app-shell .money-summary > div:first-child {min-height:89px;padding:14px;}
@@ -1128,7 +1128,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .app-shell .money-summary strong {font-size:.96rem;}
 }
 @media(prefers-reduced-motion:reduce) {
-  .app-shell .sidebar nav button,.app-shell .button,.app-shell .dashboard-quick-actions button {transition:none;}
+  .app-shell .sidebar nav button,.app-shell .button,.app-shell .dashboard-quick-actions > :is(button, a) {transition:none;}
 }
 
 /* Focused graph editor: progressive grouping instead of a wall of fields. */
@@ -1244,7 +1244,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   color:#e9f2d9;
   border-color:#424e32;
 }
-.app-shell[data-theme="dark"] .dashboard-quick-actions button {
+.app-shell[data-theme="dark"] .dashboard-quick-actions > :is(button, a) {
   background:#191c17;
   border-color:#34382f;
   color:#f0f1ed;
@@ -1523,12 +1523,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   border-color:rgba(255,255,255,.32);
   color:#fff;
 }
-.app-shell[data-theme="light"] .dashboard-quick-actions button {
+.app-shell[data-theme="light"] .dashboard-quick-actions > :is(button, a) {
   background:#fff;
   border-color:#dbe5d4;
   box-shadow:0 5px 18px rgba(34,65,31,.045);
 }
-.app-shell[data-theme="light"] .dashboard-quick-actions button:hover:not(:disabled) {
+.app-shell[data-theme="light"] .dashboard-quick-actions > :is(button, a):hover:not(:disabled) {
   border-color:#83ac75;
   box-shadow:0 8px 22px rgba(30,81,46,.12);
 }
@@ -1746,3 +1746,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .app-shell .sidebar-tool-link {margin-top:16px;text-decoration:none;}
 .more-menu > a {text-decoration:none;}
 .more-menu > a:focus-visible {outline:2px solid var(--accent);outline-offset:3px;}
+
+
+.dashboard-quick-actions > .dashboard-mobile-tool { display:none; }
+
+@media (max-width:760px) {
+  .dashboard-quick-actions { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .dashboard-quick-actions > :is(button, a) {
+    display:flex; flex-direction:row; justify-content:flex-start;
+    min-height:58px; padding:8px 10px; gap:8px; text-align:left; font-size:.75rem;
+  }
+  .dashboard-quick-actions > .dashboard-mobile-tool { display:flex; text-decoration:none; }
+  .dashboard-mobile-tool:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .dashboard-mobile-tool > .quick-action-external { margin-left:auto; flex-shrink:0; color:var(--muted); }
+}
