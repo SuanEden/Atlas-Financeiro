@@ -78,9 +78,11 @@ export class SyncEngine {
         state=await this.store.read(); through=null;
         for(let pageCount=0;pageCount<100;pageCount++) {
           if(!current()) return 'login_required';
+          stage='read';
           const page=await this.transport.pull(state.meta.cursor,through);
           if(!current()) return 'login_required';
           if(through!==null&&page.through!==through) throw new TypeError('O limite da leitura mudou durante a paginação.');
+          stage='validate';
           await this.store.applyPage(page,grant.serverSchemaVersion??2); through=page.through; state=await this.store.read();
           if(page.cursor===through) break;
           if(pageCount===99) return 'retry_later';
