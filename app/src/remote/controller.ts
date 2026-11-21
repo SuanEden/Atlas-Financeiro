@@ -156,10 +156,10 @@ export class RemoteController {
         if(result==='access_denied')this.policy.deny();
         const latestState=await store.read();
         const incompatiblePending=latestState.pending.some((row)=>row.status==='pending'&&!isI3SchemaCompatible(row.envelope,this.policy.snapshot.serverSchemaVersion));
-        const notice=incompatiblePending?'A cópia local contém recorrências ou conciliações ainda não suportadas pelo esquema remoto. A sincronização permanece pendente até uma migração versionada do servidor; não considere estes dados replicados. A cópia local e as pendências continuam preservadas.':syncMessage(result,latestState.meta.binding==='active');
+        const notice=incompatiblePending?'A cópia local contém recorrências ou conciliações ainda não suportadas pelo esquema remoto. A sincronização permanece pendente até uma migração versionada do servidor; não considere estes dados replicados. A cópia local e as pendências continuam preservadas.':result==='retry_later'&&this.#engine.lastFailureStage?syncStageMessage(this.#engine.lastFailureStage):syncMessage(result,latestState.meta.binding==='active');
         this.publish({dataRevision:this.#snapshot.dataRevision+1,notice});
         return result;
-      } catch {this.publish({notice:'A sincronização precisa de conferência. Os registros, a origem e as pendências foram preservados.'});return 'retry_later';}
+      } catch(reason) {this.publish({notice:safeAssociationFailureMessage(reason)});return 'retry_later';}
       finally {this.publish({syncing:false});}
     })().finally(()=>{this.#syncing=undefined;});return this.#syncing;
   }
@@ -183,12 +183,14 @@ export class RemoteController {
     try {
     // Coordinate recovery with foreground sync in other tabs of the same namespace.
     // Never restore while another tab may be transmitting the previous local state.
-    if (typeof navigator !== 'undefined' && navigator.locks) {
+    if (typeof window !== 'undefined') {
+      if (!navigator.locks) throw new Error('Este navegador não oferece a coordenação necessária para recuperar com segurança. Use um navegador compatível.');
       await navigator.locks.request(`atlas-financeiro:sync:${store.name}`, async () => {
         if (!authorized()) throw new Error('A sessão mudou antes da recuperação.');
         await store.recoverBackup(json, authorized);
       });
     } else {
+      // Non-browser unit tests have no cross-tab execution context.
       await store.recoverBackup(json, authorized);
     }
     if (!authorized()) throw new Error('A sessão mudou. Entre novamente; os dados recuperados foram preservados.');
@@ -258,4 +260,22 @@ function syncMessage(result:SyncResult,active:boolean):string {
   return result==='synced'||(result==='unassociated'&&active)?'Alterações confirmadas até a última revisão recebida.':{
     offline:'Sem conexão. Os registros locais e as pendências foram preservados.',login_required:'Entre novamente antes de sincronizar.',access_denied:'O acesso remoto foi bloqueado. Dados locais preservados.',quota:'O serviço atingiu um limite. As pendências foram preservadas; não ative plano pago.',retry_later:'Não foi possível confirmar tudo. Tente novamente mais tarde.',conflict:'Há alterações para revisar antes de continuar.',unassociated:'A associação inicial ainda não foi concluída.',synced:'',
   }[result];
+}
+
+/** Do not display raw server exceptions or identifiers in the financial UI. */
+function syncStageMessage(stage:'read'|'validate'|'send'):string {
+  return {
+    read:'A consulta das revisões no servidor falhou. A base local e o cursor foram preservados. Confira a conexão antes de retomar.',
+    validate:'A conferência de uma revisão ou recibo não foi concluída. Nenhum dado incompatível foi aceito; preserve a cópia e confira a associação.',
+    send:'O envio não pôde ser confirmado. A operação original foi preservada para retomada sem gerar uma nova associação.',
+  }[stage];
+}
+
+/** Only recognized local invariants produce specific UI messages; unknown exception text is never shown. */
+function safeAssociationFailureMessage(reason:unknown):string {
+  if(reason instanceof Error) {
+    if(reason.message==='Confirmação da associação ausente.') return 'O servidor ainda não confirmou o recibo da associação. A operação original permanece preservada; não inicie outra base.';
+    if(reason.message==='A origem ativa mudou.'||reason.message.startsWith('A origem mudou ou o recibo ainda não foi conferido.')) return 'A origem local não corresponde à cópia que iniciou a associação. O vínculo não será ativado nem substituído. Preserve as duas bases para conferência.';
+  }
+  return 'A sincronização precisa de conferência. Os registros, a origem e as pendências foram preservados.';
 }
