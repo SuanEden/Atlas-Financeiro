@@ -96,8 +96,8 @@ test('movimento reduzido desativa animação de entrada sem ocultar a navegaçã
   const nav=testInfo.project.name==='mobile-edge'
     ? page.getByRole('navigation',{name:'Navegação móvel'})
     : page.getByRole('navigation',{name:'Navegação principal'});
-  await nav.getByRole('button',{name:'Movimentações'}).click();
-  await expect(page.getByRole('heading',{name:'Movimentações'})).toBeVisible();
+  await nav.getByRole('button',{name:testInfo.project.name==='mobile-edge'?'Extrato':'Movimentações',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Movimentações',exact:true,level:1})).toBeVisible();
   await expect.poll(()=>page.locator('.app-shell .page-content').first().evaluate(element=>getComputedStyle(element).animationName)).toBe('none');
   await expect(page.getByRole('searchbox',{name:'Buscar'})).toBeVisible();
 });
