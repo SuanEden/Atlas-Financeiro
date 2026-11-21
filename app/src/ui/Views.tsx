@@ -185,14 +185,14 @@ export function MovementsView({ state, onAdd, onEdit, onReverse, integration=fal
   const deferredQuery = useDeferredValue(query);
   const searching = query !== deferredQuery;
   const groups = useMemo(() => groupMovementHistory(state.events), [state.events]);
-  const categories = useMemo(() => new Map(state.categories.map(item => [item.id, item.name])), [state.categories]);
+  const categories = useMemo(() => new Map(state.categories.map(item => [item.id, item])), [state.categories]);
   const accounts = useMemo(() => new Map(state.accounts.map(item => [item.id, item.name])), [state.accounts]);
   const filteredGroups = useMemo(() => {
     const search = deferredQuery.trim().toLocaleLowerCase('pt-BR');
     return groups.filter(({ current: event, history, cancelled }) => {
       if (selectedMonth !== 'all' && event.competenceDate.slice(0, 7) !== selectedMonth) return false;
-      const categoryName = categories.get(event.categoryId ?? '') ?? '';
-      const category = state.categories.find(item => item.id === event.categoryId);
+      const category = categories.get(event.categoryId ?? '');
+      const categoryName = category?.name ?? '';
       const label = eventStatusLabel(event, category);
       if (statusFilter === 'realized' && (event.status !== 'confirmed' || cancelled)) return false;
       if (statusFilter === 'pending' && (label !== 'Pendente' || cancelled)) return false;
@@ -207,7 +207,7 @@ export function MovementsView({ state, onAdd, onEdit, onReverse, integration=fal
       }
       return true;
     });
-  }, [groups, selectedMonth, statusFilter, deferredQuery, categories, accounts, state.categories]);
+  }, [groups, selectedMonth, statusFilter, deferredQuery, categories, accounts]);
   const visibleGroups = filteredGroups.slice(0, visibleCount);
   const hasMore = filteredGroups.length > visibleCount;
   return (
