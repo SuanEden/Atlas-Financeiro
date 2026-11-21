@@ -30,7 +30,7 @@ function AccessGate({controller}:{controller:RemoteController}) {
   const [dark]=useState(()=>localStorage.getItem('atlas-financeiro:theme:v2')!=='light');
   const canAssociate=snapshot.session.onlineVerified&&snapshot.session.canTransmit;
   const canInspectAssociation=snapshot.session.onlineVerified;
-  const [association,setAssociation]=useState<{binding:string;pending:number;conflicts:number}|null>(null);
+  const [association,setAssociation]=useState<{binding:string;pending:number;conflicts:number;receipts:number;revision:string}|null>(null);
   const [associationReadError,setAssociationReadError]=useState(false);
   const associationReadSequence=useRef(0);
   async function refreshAssociation() {
@@ -40,7 +40,7 @@ function AccessGate({controller}:{controller:RemoteController}) {
     try {
       const state=await store.read();
       if(controller.getSnapshot().store!==store||associationReadSequence.current!==sequence)return;
-      setAssociation({binding:state.meta.binding,pending:state.pending.filter(row=>row.status==='pending').length,conflicts:state.pending.filter(row=>row.status==='conflict'||row.status==='blocked').length});
+      setAssociation({binding:state.meta.binding,pending:state.pending.filter(row=>row.status==='pending').length,conflicts:state.pending.filter(row=>row.status==='conflict'||row.status==='blocked').length,receipts:state.receipts.length,revision:state.meta.cursor});
       setAssociationReadError(false);
     }catch{if(controller.getSnapshot().store===store&&associationReadSequence.current===sequence){setAssociation(null);setAssociationReadError(true);}}
   }
@@ -73,6 +73,7 @@ function AccessGate({controller}:{controller:RemoteController}) {
       {association&&association.binding!=='unbound'?<>
         <p role="status">{association.binding==='bootstrap'?'A cópia inicial está preparada e aguarda confirmação do servidor.':association.binding==='verifying_source'?'O servidor recebeu a associação; falta confirmar que a origem local não mudou.':association.binding==='join'?'Este navegador está recebendo a base já associada.':'A associação local está ativa; confira a sessão antes de qualquer nova tentativa.'}</p>
         <p>{association.pending} operações pendentes; {association.conflicts} alterações com conflito ou dependência.</p>
+        <p className="warning-copy">Diagnóstico local: revisão {association.revision}, {association.receipts} recibos confirmados neste navegador. Esses números não comprovam que os dados pessoais estejam na nuvem.</p>
         {association.conflicts>0?<p role="alert">Existem alterações bloqueadas ou conflitantes. Preserve o backup I3 e não tente iniciar outra base neste navegador.</p>:null}
         {canAssociate?<button className="text-button" disabled={busy||snapshot.syncing} onClick={()=>void run(()=>controller.sync())}>Retomar associação pendente</button>:<p role="status">Envio bloqueado pelo servidor. A associação está preservada neste navegador e não pode ser retomada até a liberação da escrita.</p>}
       </>:null}
