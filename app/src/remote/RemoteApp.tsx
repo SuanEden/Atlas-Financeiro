@@ -124,12 +124,17 @@ function RemoteWorkspace({controller}:{controller:RemoteController}) {
     return () => { active = false; };
   }, [snapshot.store, snapshot.dataRevision, snapshot.syncing]);
   const pendingCount = Math.max(finance.state.outbox.length, pendingInStore);
+  // A zero-length outbox is not proof of server confirmation.
   const cloudStatus = !snapshot.session.onlineVerified ? 'Acesso offline'
-    : snapshot.syncing ? 'Sincronizando'
     : !snapshot.session.canTransmit ? 'Envio indisponível'
-    : pendingCount > 0 ? 'Alterações pendentes' : 'Sincronizado';
+    : snapshot.syncing ? 'Sincronizando'
+    : pendingCount > 0 ? 'Alterações pendentes'
+    : snapshot.lastSyncResult === 'synced' ? 'Sincronizado'
+    : snapshot.lastSyncResult === null ? 'Aguardando conferência'
+    : 'Conferência necessária';
   const cloudTone = !snapshot.session.onlineVerified || !snapshot.session.canTransmit ? 'offline'
-    : snapshot.syncing || pendingCount > 0 ? 'pending' : 'synced';
+    : snapshot.lastSyncResult === 'synced' && !snapshot.syncing && pendingCount === 0 ? 'synced'
+    : 'pending';
   const cloudControls = <section className="cloud-control-card" aria-label="Sincronização">
     <div className="cloud-control-heading"><span className="cloud-control-mark" aria-hidden="true">☁</span><div><h2>Modo nuvem</h2><p>Cópia local ativa</p></div></div>
     <div className="cloud-control-state" data-status={cloudTone}><span className="cloud-control-dot" aria-hidden="true" /><strong>{cloudStatus}</strong></div>
