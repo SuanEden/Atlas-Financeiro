@@ -1846,3 +1846,25 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .app-shell .button:active:not(:disabled),
   .app-shell .icon-button:active:not(:disabled) {transform: none !important;}
 }
+
+/* Subtle native-dialog opening, retaining focus/keyboard handling in DialogFrame. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes atlas-dialog-enter {
+    from {opacity: 0;transform: translate3d(0, 12px, 0) scale(.985);}
+    to {opacity: 1;transform: translate3d(0, 0, 0) scale(1);}
+  }
+  @keyframes atlas-dialog-backdrop {
+    from {opacity: 0;}
+    to {opacity: 1;}
+  }
+  .app-shell .dialog-sheet[open] {
+    animation: atlas-dialog-enter 230ms cubic-bezier(.22, 1, .36, 1) both;
+  }
+  .app-shell .dialog-sheet[open]::backdrop {
+    animation: atlas-dialog-backdrop 210ms ease-out both;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .dialog-sheet[open],
+  .app-shell .dialog-sheet[open]::backdrop {animation: none !important;}
+}
