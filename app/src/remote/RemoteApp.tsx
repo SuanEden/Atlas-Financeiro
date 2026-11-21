@@ -32,12 +32,14 @@ function AccessGate({controller}:{controller:RemoteController}) {
   const [association,setAssociation]=useState<{binding:string;pending:number;conflicts:number}|null>(null);
   const [associationReadError,setAssociationReadError]=useState(false);
   async function refreshAssociation() {
-    if(!snapshot.store){setAssociation(null);return;}
+    const store=snapshot.store;
+    if(!store){setAssociation(null);setAssociationReadError(false);return;}
     try {
-      const state=await snapshot.store.read();
+      const state=await store.read();
+      if(controller.getSnapshot().store!==store)return;
       setAssociation({binding:state.meta.binding,pending:state.pending.filter(row=>row.status==='pending').length,conflicts:state.pending.filter(row=>row.status==='conflict'||row.status==='blocked').length});
       setAssociationReadError(false);
-    }catch{setAssociation(null);setAssociationReadError(true);}
+    }catch{if(controller.getSnapshot().store===store){setAssociation(null);setAssociationReadError(true);}}
   }
   useEffect(()=>{void refreshAssociation();},[snapshot.store,snapshot.dataRevision,snapshot.syncing]);
   async function run(action:()=>Promise<unknown>) {
