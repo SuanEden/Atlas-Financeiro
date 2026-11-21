@@ -156,7 +156,7 @@ export class RemoteController {
         if(result==='access_denied')this.policy.deny();
         const latestState=await store.read();
         const incompatiblePending=latestState.pending.some((row)=>row.status==='pending'&&!isI3SchemaCompatible(row.envelope,this.policy.snapshot.serverSchemaVersion));
-        const notice=incompatiblePending?'A cópia local contém recorrências ou conciliações ainda não suportadas pelo esquema remoto. A sincronização permanece pendente até uma migração versionada do servidor; não considere estes dados replicados. A cópia local e as pendências continuam preservadas.':syncMessage(result,latestState.meta.binding==='active');
+        const notice=incompatiblePending?'A cópia local contém recorrências ou conciliações ainda não suportadas pelo esquema remoto. A sincronização permanece pendente até uma migração versionada do servidor; não considere estes dados replicados. A cópia local e as pendências continuam preservadas.':result==='retry_later'&&this.#engine.lastFailureStage?syncStageMessage(this.#engine.lastFailureStage):syncMessage(result,latestState.meta.binding==='active');
         this.publish({dataRevision:this.#snapshot.dataRevision+1,notice});
         return result;
       } catch {this.publish({notice:'A sincronização precisa de conferência. Os registros, a origem e as pendências foram preservados.'});return 'retry_later';}
@@ -260,4 +260,13 @@ function syncMessage(result:SyncResult,active:boolean):string {
   return result==='synced'||(result==='unassociated'&&active)?'Alterações confirmadas até a última revisão recebida.':{
     offline:'Sem conexão. Os registros locais e as pendências foram preservados.',login_required:'Entre novamente antes de sincronizar.',access_denied:'O acesso remoto foi bloqueado. Dados locais preservados.',quota:'O serviço atingiu um limite. As pendências foram preservadas; não ative plano pago.',retry_later:'Não foi possível confirmar tudo. Tente novamente mais tarde.',conflict:'Há alterações para revisar antes de continuar.',unassociated:'A associação inicial ainda não foi concluída.',synced:'',
   }[result];
+}
+
+/** Do not display raw server exceptions or identifiers in the financial UI. */
+function syncStageMessage(stage:'read'|'validate'|'send'):string {
+  return {
+    read:'A consulta das revisões no servidor falhou. A base local e o cursor foram preservados. Confira a conexão antes de retomar.',
+    validate:'A conferência de uma revisão ou recibo não foi concluída. Nenhum dado incompatível foi aceito; preserve a cópia e confira a associação.',
+    send:'O envio não pôde ser confirmado. A operação original foi preservada para retomada sem gerar uma nova associação.',
+  }[stage];
 }
