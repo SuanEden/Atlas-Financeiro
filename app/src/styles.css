@@ -1805,3 +1805,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .app-shell .dashboard-quick-actions .quick-action-icon { width:32px; height:32px; flex:0 0 32px; }
   .app-shell .forecast-grid { grid-template-columns:minmax(0,1fr); }
 }
+
+
+.movement-filters .movement-filter-reset { min-height:44px; }

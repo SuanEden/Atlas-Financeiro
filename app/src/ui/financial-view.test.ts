@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { eventStatusLabel, financialMonthPeriod } from './financial-view';
+import { eventStatusLabel, financialMonthPeriod, matchesMovementSearch } from './financial-view';
 import { serializeMonthlyRecurrenceRule } from '../domain';
 import { calculateCashTotals } from '../domain';
 
@@ -36,4 +36,11 @@ describe('rótulos financeiros', () => {
       }),
     })).toBe('Recorrência pausada');
   });
+});
+
+it('encontra lançamentos por termos em qualquer ordem e sem acentos', () => {
+  const labels = ['Transferência mensal', 'Poupança', 'Conta digital'];
+  expect(matchesMovementSearch('  digital transferencia ', labels)).toBe(true);
+  expect(matchesMovementSearch('poupanca mensal', labels)).toBe(true);
+  expect(matchesMovementSearch('digital cancelada', labels)).toBe(false);
 });

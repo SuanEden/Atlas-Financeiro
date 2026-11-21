@@ -127,3 +127,10 @@ export function groupMovementHistory(events: readonly FinancialEvent[]): Movemen
     };
   }).sort((a, b) => b.current.competenceDate.localeCompare(a.current.competenceDate));
 }
+
+/** Match search terms across current and historical movement labels. */
+export function matchesMovementSearch(query: string, labels: readonly string[]): boolean {
+  const normalize = (value: string) => value.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('pt-BR');
+  const haystack = normalize(labels.join(' '));
+  return normalize(query).trim().split(/\s+/).every(term => haystack.includes(term));
+}

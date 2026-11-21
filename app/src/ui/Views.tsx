@@ -32,7 +32,7 @@ import {
   type LocalFinancialState,
 } from '../domain';
 import { backupFilename, serializeLocalBackup } from '../backup';
-import { groupMovementHistory, activeEventIds, accountKindLabels, availabilityLabels, eventAmountSign, eventLabel, eventStatusLabel, formatFinancialDate, financialMonthPeriod, isRecurringTemplate } from './financial-view';
+import { groupMovementHistory, activeEventIds, accountKindLabels, availabilityLabels, eventAmountSign, eventLabel, eventStatusLabel, formatFinancialDate, financialMonthPeriod, isRecurringTemplate, matchesMovementSearch } from './financial-view';
 
 type Page = 'dashboard' | 'movements' | 'accounts' | 'categories' | 'backup';
 
@@ -201,6 +201,15 @@ export function MovementsView({ state, onAdd, onEdit, onReverse, integration=fal
   const [statusFilter, setStatusFilter] = useState('all');
   const [query, setQuery] = useState('');
   const groups = groupMovementHistory(state.events);
+  const accountNames = new Map(state.accounts.map(account => [account.id, account.name]));
+  const categoryNames = new Map(state.categories.map(category => [category.id, category.name]));
+  const hasFilters = selectedMonth !== 'all' || statusFilter !== 'all' || query.trim() !== '';
+
+  function clearFilters() {
+    setSelectedMonth('all');
+    setStatusFilter('all');
+    setQuery('');
+  }
   const filteredGroups = groups.filter(({ current: event, history, cancelled }) => {
     if (selectedMonth !== 'all' && event.competenceDate.slice(0, 7) !== selectedMonth) return false;
     const category = state.categories.find(item => item.id === event.categoryId);
@@ -212,11 +221,13 @@ export function MovementsView({ state, onAdd, onEdit, onReverse, integration=fal
     if (statusFilter === 'cancelled' && !cancelled) return false;
     if (statusFilter === 'superseded' && history.length === 0) return false;
     if (query.trim()) {
-      const account = state.accounts.find(item => item.id === event.accountId)?.name ?? '';
-      const categoryName = category?.name ?? '';
-      const searchable = [event.description, account, categoryName,
-        ...history.map(item => item.description)].join(' ').toLocaleLowerCase('pt-BR');
-      if (!searchable.includes(query.trim().toLocaleLowerCase('pt-BR'))) return false;
+      const labels = [event, ...history].flatMap(item => [
+        item.description,
+        accountNames.get(item.accountId) ?? '',
+        item.transferAccountId ? accountNames.get(item.transferAccountId) ?? '' : '',
+        item.categoryId ? categoryNames.get(item.categoryId) ?? '' : '',
+      ]);
+      if (!matchesMovementSearch(query, labels)) return false;
     }
     return true;
   });
@@ -228,7 +239,7 @@ export function MovementsView({ state, onAdd, onEdit, onReverse, integration=fal
         <label>Período <input aria-label="Filtrar movimentações por mês" type="month" value={selectedMonth === 'all' ? '' : selectedMonth} onChange={(event) => setSelectedMonth(event.target.value || 'all')} /></label>
         <label>Status<select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">Todos</option><option value="realized">Realizados</option><option value="pending">Obrigações pendentes</option><option value="planned">Previstos</option><option value="recurring">Regras recorrentes</option><option value="cancelled">Cancelados</option><option value="superseded">Versões substituídas</option></select></label>
         <label className="movement-search">Buscar<input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Descrição, conta ou categoria" /></label>
-        {selectedMonth !== 'all' ? <button className="text-button" onClick={() => setSelectedMonth('all')}>Todos os meses</button> : null}
+        {hasFilters ? <button type="button" className="text-button movement-filter-reset" onClick={clearFilters}>Limpar filtros</button> : null}
       </div>
       {groups.length === 0 ? <EmptyPanel icon={<ArrowLeftRight />} title="Ainda não há movimentações" description="Crie uma conta e registre sua primeira receita, despesa ou transferência." action="Novo lançamento" onAction={onAdd} disabled={state.accounts.length === 0} /> : filteredGroups.length === 0 ? <CompactEmpty text="Nenhuma movimentação corresponde aos filtros selecionados." /> : (
         <div className="history-list">{filteredGroups.map(({ current: event, history, cancelled }) => (
