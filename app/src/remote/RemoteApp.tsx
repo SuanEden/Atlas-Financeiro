@@ -29,6 +29,7 @@ function AccessGate({controller}:{controller:RemoteController}) {
   const [failure,setFailure]=useState('');
   const [dark]=useState(()=>localStorage.getItem('atlas-financeiro:theme:v2')!=='light');
   const canAssociate=snapshot.session.onlineVerified&&snapshot.session.canTransmit;
+  const canInspectAssociation=snapshot.session.onlineVerified;
   const [association,setAssociation]=useState<{binding:string;pending:number;conflicts:number}|null>(null);
   const [associationReadError,setAssociationReadError]=useState(false);
   async function refreshAssociation() {
@@ -54,11 +55,12 @@ function AccessGate({controller}:{controller:RemoteController}) {
     {!snapshot.session.onlineVerified?<button className="button button--primary" disabled={busy} onClick={()=>void controller.login()}>Entrar com Google</button>:null}
     {snapshot.session.onlineVerified?<button className="button button--ghost" disabled={busy} onClick={()=>void controller.logout()}>Sair e bloquear acesso local</button>:null}
     {snapshot.session.onlineVerified&&!snapshot.session.canTransmit?<section className="association-panel"><p>O servidor ainda não liberou gravações financeiras. Nenhum envio será executado.</p><button className="text-button" disabled={busy} onClick={()=>void run(async()=>{setPreview(await controller.previewLocalSource());})}>Conferir base local sem enviar</button>{preview?<p>Base local: {preview.accounts} contas, {preview.events} lançamentos e {preview.pending} operações pendentes. A origem permanece neste dispositivo.</p>:null}</section>:null}
-    {canAssociate?<section className="association-panel" aria-label="Associação inicial">
+    {canInspectAssociation?<section className="association-panel" aria-label="Associação inicial">
       <h2>{association?.binding==='unbound'?'Escolha como começar neste navegador':'Conferência da associação'}</h2>
       {associationReadError?<p role="alert">Não foi possível conferir o estado local. Nenhuma nova associação está liberada. Preserve este navegador e suas cópias.</p>:null}
       {!association&&!associationReadError?<p role="status">Conferindo a associação local antes de liberar opções…</p>:null}
-      {association?.binding==='unbound'?<>
+      {association?.binding==='unbound'&&!canAssociate?<p role="status">A associação ainda não começou. O servidor mantém o envio bloqueado; nenhuma nova base será iniciada.</p>:null}
+      {association?.binding==='unbound'&&canAssociate?<>
         <p>Confirme a conta Google antes de continuar. Dados de teste não devem ser usados como sua base pessoal.</p>
         <label><input type="checkbox" checked={confirmed} onChange={(event)=>setConfirmed(event.target.checked)} />Conferi a conta e autorizo somente a opção que escolher abaixo.</label>
         <button className="button button--secondary" disabled={busy||!confirmed} onClick={()=>void run(()=>controller.associateEmpty())}>Iniciar uma base vazia</button>
@@ -70,7 +72,7 @@ function AccessGate({controller}:{controller:RemoteController}) {
         <p role="status">{association.binding==='bootstrap'?'A cópia inicial está preparada e aguarda confirmação do servidor.':association.binding==='verifying_source'?'O servidor recebeu a associação; falta confirmar que a origem local não mudou.':association.binding==='join'?'Este navegador está recebendo a base já associada.':'A associação local está ativa; confira a sessão antes de qualquer nova tentativa.'}</p>
         <p>{association.pending} operações pendentes; {association.conflicts} alterações com conflito ou dependência.</p>
         {association.conflicts>0?<p role="alert">Existem alterações bloqueadas ou conflitantes. Preserve o backup I3 e não tente iniciar outra base neste navegador.</p>:null}
-        <button className="text-button" disabled={busy||snapshot.syncing} onClick={()=>void run(()=>controller.sync())}>Retomar associação pendente</button>
+        {canAssociate?<button className="text-button" disabled={busy||snapshot.syncing} onClick={()=>void run(()=>controller.sync())}>Retomar associação pendente</button>:<p role="status">Envio bloqueado pelo servidor. A associação está preservada neste navegador e não pode ser retomada até a liberação da escrita.</p>}
       </>:null}
     </section>:null}
     {snapshot.session.onlineVerified ? <PluggyReadPanel controller={controller} /> : null}
