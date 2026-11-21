@@ -53,6 +53,21 @@ describe('controlador local de sessão com SQL e identidades simuladas',()=>{
     await reopened.enqueue(command);expect(await reopened.sync()).toBe('login_required');
     expect((await reopened.getSnapshot().store!.read()).pending).toHaveLength(1);
   });
+  it('informa a etapa de leitura sem expor erro remoto nem alterar a associação',async()=>{
+    const f=await setup();
+    f.controller.dispose();
+    const failing=f.make({...f.transport,pull:async()=>{throw new Error('sensitive-provider-details-do-not-show');}});
+    await failing.start();
+    await failing.joinExisting();
+    const snapshot=failing.getSnapshot();
+    expect(snapshot.notice).toMatch(/consulta das revisões no servidor falhou/);
+    expect(snapshot.notice).not.toContain('sensitive-provider-details-do-not-show');
+    const state=await snapshot.store!.read();
+    expect(state.meta.binding).toBe('join');
+    expect(state.meta.cursor).toBe('0');
+    expect(state.confirmed.accounts).toEqual([]);
+    expect(state.pending).toEqual([]);
+  });
   it('retoma associação depois de perder resposta e memória do controlador',async()=>{
     const f=await setup();f.controller.dispose();
     const lost=f.make({...f.transport,apply:async(envelope)=>{await f.transport.apply(envelope);throw new SyncFailure('offline','SYNTHETIC_LOST_RESPONSE');}});
