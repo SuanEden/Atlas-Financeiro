@@ -1,5 +1,11 @@
 # Validação — I3 local e histórico de I1/I2
 
+## Disponibilidade e proteção do arquivamento
+
+A suíte local registrou 346 testes aprovados e 1 ignorado. O build com checagem de tipos passou. Os novos casos cobrem a janela de 30 dias, liquidação parcial, cobertura pela conta reservada escolhida, saldo restrito e bloqueio de arquivamento com saldo ou planejamento pendente.
+
+Na tentativa com Chromium local, dois testes HTTP passaram e os demais cenários não iniciaram porque o ambiente bloqueou a criação de socket pelo navegador. A validação deste lote em staging e em dispositivos físicos permanece pendente.
+
 ## Recuperação JSON I3 neste ambiente — 28/10/2026
 
 `npm run test -- --maxWorkers=2`: **269 aprovados, 1 ignorado, 20 arquivos**; `npm run build` incluindo typecheck: aprovado. O ignorado continua sendo o manifesto privado original ausente. São 17 casos unitários adicionais (16 de recuperação/arquivo e um de controle de acesso) em relação à base de 252. Configurações e dependências do projeto preservadas. Rodada anterior concorrente teve SIGKILL de worker e não foi aprovada; a rodada final acima concluiu sem erro.

@@ -14,6 +14,8 @@ import {
   parseMonthlyRecurrenceRule,
   getAccountReconciliation,
   currentLifecycle,
+  calculateAccountBalance,
+  calculateOpenCommitments,
   type LifecycleChange,
 } from '../domain';
 import type { FinancialAggregate } from '../persistence';
@@ -175,6 +177,17 @@ export function manageEntityCommand(
   if(action==='archive'&&current.state==='archived')throw new TypeError('Esta entidade já está arquivada.');
   if(action==='restore'&&current.state==='active')throw new TypeError('Esta entidade já está ativa.');
   if(action==='edit'&&current.state==='archived')throw new TypeError('Reative a entidade antes de editar seus dados.');
+  if (action === 'archive' && account) {
+    const today = context.today();
+    if (calculateAccountBalance(dataset, id) !== 0n || calculateAccountBalance(dataset, id, today) !== 0n)
+      throw new TypeError('Zere o saldo da conta antes de arquivar.');
+    const superseded = new Set(dataset.events.flatMap(event => [event.replacesEventId, event.reversesEventId]));
+    const hasPlan = dataset.events.some(event => !superseded.has(event.id) && event.status === 'planned'
+      && (event.accountId === id || event.transferAccountId === id)
+      && (event.recurrenceJson === undefined || parseMonthlyRecurrenceRule(event.recurrenceJson)?.status === 'active'));
+    if (hasPlan || calculateOpenCommitments(dataset, today).some(item => item.accountId === id))
+      throw new TypeError('Resolva os compromissos e recorrências vinculados antes de arquivar a conta.');
+  }
   const metadata=account
     ? {name:changes?.name.trim()??account.name,kind:(changes?.kind??account.kind) as Account['kind'],
        availability:((changes?.kind??account.kind)==='transport'?'restricted':changes?.availability??account.availability) as Account['availability']}

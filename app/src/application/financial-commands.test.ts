@@ -5,6 +5,7 @@ import {
   createCategoryCommand,
   createTransactionCommand,
   reconcileAccountCommand,
+  manageEntityCommand,
   replaceEventCommand,
   reverseEventCommand,
   type CommandContext,
@@ -51,6 +52,25 @@ describe('comandos financeiros locais', () => {
     expect(command.operation.kind).toBe('create_account');
     expect(JSON.parse(command.operation.payloadJson).events[0].amountCents).toBe('12345');
     expect(dataset.accountReconciliations).toHaveLength(1);
+  });
+
+  it('protege saldo e compromissos antes do arquivamento da conta', () => {
+    const ctx = context();
+    let dataset = apply(empty(), createAccountCommand({
+      name: 'Conta com saldo', kind: 'checking', availability: 'free', openingBalanceCents: 1000n,
+      openingBalanceSource: 'Extrato de teste', openingDate: '2026-10-01',
+    }, ctx));
+    dataset = apply(dataset, createAccountCommand({ name: 'Conta vazia', kind: 'cash', availability: 'free', openingDate: '2026-10-26' }, ctx));
+    const funded = dataset.accounts[0]!.id;
+    const unfunded = dataset.accounts[1]!.id;
+    expect(() => manageEntityCommand(dataset, 'account', funded, 'archive', undefined, ctx)).toThrow(/Zere o saldo/);
+    expect(manageEntityCommand(dataset, 'account', unfunded, 'archive', undefined, ctx).operation.kind).toBe('manage_entity');
+
+    dataset = apply(dataset, createTransactionCommand({
+      kind: 'expense', amountCents: 200n, accountId: unfunded, description: 'Pagamento futuro',
+      date: '2026-11-01', realized: false,
+    }, ctx));
+    expect(() => manageEntityCommand(dataset, 'account', unfunded, 'archive', undefined, ctx)).toThrow(/compromissos/);
   });
 
   it('registra, estorna e substitui despesa sem apagar o histórico', () => {

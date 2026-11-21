@@ -36,6 +36,61 @@ export function calculateAvailabilityBalances(dataset: FinancialDataset, asOf?: 
   return balances;
 }
 
+/** Outstanding confirmed expenses, in settlement terms, including overdue items. */
+export function calculateOpenCommitments(dataset: FinancialDataset, asOf: IsoDate, through?: IsoDate) {
+  assertIsoDate(asOf);
+  if (through !== undefined) assertIsoDate(through);
+  const superseded = new Set(dataset.events.flatMap(event => [event.reversesEventId, event.replacesEventId]));
+  const paid = new Map<string, bigint>();
+  for (const settlement of dataset.settlements) {
+    if (settlement.settlementDate > asOf) continue;
+    paid.set(settlement.eventId, (paid.get(settlement.eventId) ?? 0n) + settlement.amountCents);
+  }
+  return dataset.events.flatMap(event => {
+    if (event.kind !== 'expense' || event.status === 'cancelled' || event.certainty !== 'confirmed'
+      || event.recurrenceJson !== undefined || event.reversesEventId !== undefined || superseded.has(event.id)) return [];
+    const date = event.dueDate ?? event.competenceDate;
+    const amountCents = event.amountCents - (paid.get(event.id) ?? 0n);
+    if (amountCents <= 0n || (through !== undefined && date > through)) return [];
+    return [{ eventId: event.id, description: event.description, accountId: event.accountId, date, amountCents }];
+  }).sort((left, right) => left.date.localeCompare(right.date));
+}
+
+export function calculateSpendingAvailability(dataset: FinancialDataset, today: IsoDate) {
+  assertIsoDate(today);
+  const horizon = new Date(today + 'T00:00:00Z');
+  horizon.setUTCDate(horizon.getUTCDate() + 30);
+  const through = horizon.toISOString().slice(0, 10);
+  const commitments = calculateOpenCommitments(dataset, today, through);
+  const exposure = new Map<string, bigint>();
+  for (const commitment of commitments) {
+    exposure.set(commitment.accountId, (exposure.get(commitment.accountId) ?? 0n) + commitment.amountCents);
+  }
+  let immediatelyAvailableCents = 0n;
+  let coveredCents = 0n;
+  let totalCents = 0n;
+  let restrictedCents = 0n;
+  for (const account of dataset.accounts) {
+    const balance = calculateAccountBalance(dataset, account.id, today);
+    totalCents += balance;
+    if (account.availability === 'restricted') restrictedCents += balance;
+    if (account.availability === 'free' && (account.kind !== 'investment' || balance < 0n)) {
+      immediatelyAvailableCents += balance;
+    }
+    // Only the reserved account explicitly selected for payment can cover a commitment.
+    if (account.availability === 'reserved' && account.kind !== 'investment' && balance > 0n) {
+      const owed = exposure.get(account.id) ?? 0n;
+      coveredCents += owed < balance ? owed : balance;
+    }
+  }
+  const committedCents = sumCents(commitments.map(item => item.amountCents));
+  return {
+    through, commitments, committedCents, coveredCents, totalCents, restrictedCents,
+    immediatelyAvailableCents,
+    spendableCents: immediatelyAvailableCents - (committedCents - coveredCents),
+  };
+}
+
 /** Cash income/expenses use settlement dates; transfers and adjustments are excluded. */
 export function calculateCashTotals(dataset: FinancialDataset, period: DatePeriod): FinancialTotals {
   assertPeriod(period);

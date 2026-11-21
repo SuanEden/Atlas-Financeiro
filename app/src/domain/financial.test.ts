@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateAccountBalance, calculateAccrualTotals, calculateAvailabilityBalances, calculateCashTotals, calculateFinancialForecast, hasReconciledOpeningBalance } from './calculations';
+import { calculateAccountBalance, calculateAccrualTotals, calculateAvailabilityBalances, calculateCashTotals, calculateFinancialForecast, calculateSpendingAvailability, hasReconciledOpeningBalance } from './calculations';
 import type { FinancialDataset } from './models';
 import { assertEntityId, assertFinancialDataset, assertIsoDate } from './validation';
 import { serializeMonthlyRecurrenceRule } from './recurrence';
@@ -39,6 +39,24 @@ function example(): FinancialDataset {
 }
 
 describe('agregados e cálculos financeiros', () => {
+  it('desconta o saldo a pagar em 30 dias e cobre compromissos somente com a reserva indicada', () => {
+    const data = example();
+    const expense = data.events[1]!;
+    data.settlements[1]!.amountCents = 600n;
+    data.postings[1]!.amountCents = -600n;
+    data.events.push(
+      { ...expense, id: uuid(60), accountId: uuid(11), amountCents: 800n, status: 'planned', dueDate: '2026-03-04' },
+      { ...expense, id: uuid(61), amountCents: 900n, status: 'planned', dueDate: '2026-03-05' },
+      { ...expense, id: uuid(62), amountCents: 1000n, status: 'planned', certainty: 'estimated' },
+    );
+    const result = calculateSpendingAvailability(data, '2026-02-02');
+    expect(result.through).toBe('2026-03-04');
+    expect(result.committedCents).toBe(2000n);
+    expect(result.coveredCents).toBe(500n);
+    expect(result.restrictedCents).toBe(1000n);
+    expect(result.spendableCents).toBe(2400n);
+  });
+
   it('aceita o agregado consistente e mantém dinheiro livre, reservado e restrito separados', () => {
     const data = example();
     expect(() => assertFinancialDataset(data, userId)).not.toThrow();
