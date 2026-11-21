@@ -310,14 +310,15 @@ export function AccountsView({state,onAdd,onReconcile,onTransfer,onEdit,onDelete
   </div>;
 }
 
-export function CategoriesView({state,onAdd,onEdit,onDelete,onRestore,canManage=true,integration=false}:{
-  state:LocalFinancialState;onAdd:()=>void;onEdit?:(category:LocalFinancialState['categories'][number])=>void;
+export function CategoriesView({state,onAdd,onTemplate,onEdit,onDelete,onRestore,canManage=true,integration=false}:{
+  state:LocalFinancialState;onAdd:()=>void;onTemplate:()=>void;onEdit?:(category:LocalFinancialState['categories'][number])=>void;
   onDelete?:(category:LocalFinancialState['categories'][number])=>void;onRestore?:(category:LocalFinancialState['categories'][number])=>void;
   canManage?:boolean;integration?:boolean;
 }) {
   const parents=new Map(state.categories.map(category=>[category.id,category.name]));
   return <div className="page-content">
     <PageHeading title="Categorias" subtitle="Organize receitas e despesas sem alterar o histórico financeiro." action={<button className="button button--primary" onClick={onAdd}><Plus size={18}/>Nova categoria</button>}/>
+    <button type="button" className="button button--secondary" onClick={onTemplate}>Revisar modelo de categorias</button>
     {state.categories.length===0?<EmptyPanel icon={<FolderOpen/>} title="Nenhuma categoria criada" description="Categorias são opcionais e ficam somente neste dispositivo." action="Criar categoria" onAction={onAdd}/>:<div className="category-list">{state.categories.map(category=>{
       const archived=!isEntitySelectable(state.entityLifecycles??[],category.userId,'category',category.id);
       return <article key={category.id} className={archived?'category-row--archived':''}>

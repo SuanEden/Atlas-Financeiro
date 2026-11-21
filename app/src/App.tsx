@@ -25,6 +25,7 @@ import {
   type CreateCategoryInput,
   type TransactionInput,
 } from './application';
+import { categoryTemplatePreview } from './application/category-template';
 import { isEntitySelectable, type Account, type Category, type FinancialEvent } from './domain';
 import { AccountForm, AccountReconciliationForm, CategoryForm, DialogFrame, MetadataEditForm, TransactionForm } from './ui/Forms';
 import { AccountsView, BackupView, CategoriesView, Dashboard, MovementsView, type Page } from './ui/Views';
@@ -34,6 +35,7 @@ type Modal =
   | { type: 'account' }
   | { type: 'reconcile'; account: Account }
   | { type: 'category' }
+  | { type: 'category_template' }
   | { type: 'edit_account'; account: Account }
   | { type: 'edit_category'; category: Category }
   | { type: 'delete_entity'; entity: Account | Category; kind: 'account' | 'category' }
@@ -85,6 +87,21 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
   async function saveCategory(input: CreateCategoryInput) {
     await execute(createCategoryCommand(input, context));
     setNotice('Categoria salva neste dispositivo.');
+    setModal(undefined);
+  }
+
+  async function applyCategoryTemplate() {
+    let created = 0;
+    while (true) {
+      const current = await readState();
+      const row = categoryTemplatePreview(current, userId).find(item => item.status === 'create');
+      if (!row) break;
+      await execute(createCategoryCommand({
+        kind: row.kind, name: row.name, ...(row.parentId ? { parentId: row.parentId } : {}),
+      }, context));
+      created += 1;
+    }
+    setNotice(created === 1 ? '1 categoria criada.' : `${created} categorias criadas.`);
     setModal(undefined);
   }
 
@@ -175,7 +192,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
             {page === 'movements' ? <MovementsView integration={integration} state={state} onAdd={openTransaction} onEdit={(event) => setModal({ type: 'transaction', initial: event })} onReverse={(event) => setModal({ type: 'reverse', event })} /> : null}
             {page === 'accounts' ? <AccountsView state={state} integration={integration} canManage={entityManagementEnabled} onAdd={() => setModal({ type: 'account' })} onEdit={(account)=>setModal({type:'edit_account',account})} onDelete={(account)=>{setDeleteFailure('');setModal({type:'delete_entity',entity:account,kind:'account'});}} onRestore={(account)=>void restoreEntity('account',account.id).catch(()=>setDeleteFailure('Não foi possível reativar a conta.'))} onReconcile={(account) => setModal({ type: 'reconcile', account })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
             {page === 'categories' || page === 'backup' ? <div className="mobile-settings-tabs"><button className={page === 'categories' ? 'is-active' : ''} onClick={() => setPage('categories')}>Categorias</button><button className={page === 'backup' ? 'is-active' : ''} onClick={() => setPage('backup')}>Modo nuvem</button></div> : null}
-            {page === 'categories' ? <CategoriesView state={state} integration={integration} canManage={entityManagementEnabled} onAdd={() => setModal({ type: 'category' })} onEdit={(category)=>setModal({type:'edit_category',category})} onDelete={(category)=>{setDeleteFailure('');setModal({type:'delete_entity',entity:category,kind:'category'});}} onRestore={(category)=>void restoreEntity('category',category.id).catch(()=>setDeleteFailure('Não foi possível reativar a categoria.'))} /> : null}
+            {page === 'categories' ? <CategoriesView state={state} integration={integration} canManage={entityManagementEnabled} onAdd={() => setModal({ type: 'category' })} onTemplate={() => setModal({ type: 'category_template' })} onEdit={(category)=>setModal({type:'edit_category',category})} onDelete={(category)=>{setDeleteFailure('');setModal({type:'delete_entity',entity:category,kind:'category'});}} onRestore={(category)=>void restoreEntity('category',category.id).catch(()=>setDeleteFailure('Não foi possível reativar a categoria.'))} /> : null}
             {page === 'backup' ? <div className="cloud-hub" aria-label="Modo nuvem">
               <section className="cloud-hub-header" aria-labelledby="cloud-hub-heading">
                 <span className="cloud-hub-symbol" aria-hidden="true"><Cloud size={23}/></span>
@@ -203,6 +220,8 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
 
       {modal?.type === 'account' ? <DialogFrame title="Nova conta" onClose={() => setModal(undefined)}><AccountForm today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveAccount} /></DialogFrame> : null}
       {modal?.type === 'reconcile' ? <DialogFrame title="Conciliar saldo inicial" onClose={() => setModal(undefined)}><AccountReconciliationForm account={modal.account} today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveReconciliation} /></DialogFrame> : null}
+      {modal?.type === 'category_template' ? <CategoryTemplateDialog state={state} userId={userId}
+        onClose={() => setModal(undefined)} onApply={applyCategoryTemplate} busy={busy} /> : null}
       {modal?.type === 'category' ? <DialogFrame title="Nova categoria" onClose={() => setModal(undefined)}><CategoryForm categories={state.categories.filter(row=>isEntitySelectable(state.entityLifecycles??[],userId,'category',row.id))} busy={busy} onCancel={() => setModal(undefined)} onSave={saveCategory} /></DialogFrame> : null}
       {modal?.type === 'edit_account' ? <DialogFrame title="Editar conta" onClose={()=>setModal(undefined)}><MetadataEditForm entity={modal.account} accounts={state.accounts} busy={busy} onCancel={()=>setModal(undefined)} onSave={saveMetadata}/></DialogFrame> : null}
       {modal?.type === 'edit_category' ? <DialogFrame title="Editar categoria" onClose={()=>setModal(undefined)}><MetadataEditForm entity={modal.category} categories={state.categories.filter(row=>isEntitySelectable(state.entityLifecycles??[],userId,'category',row.id))} busy={busy} onCancel={()=>setModal(undefined)} onSave={saveMetadata}/></DialogFrame> : null}
@@ -255,4 +274,39 @@ function ReverseDialog({ event, today, busy, onClose, onSave }: {
       </form>
     </DialogFrame>
   );
+}
+
+
+function CategoryTemplateDialog({ state, userId, onClose, onApply, busy }: {
+  state: import('./domain').LocalFinancialState;
+  userId: string;
+  onClose: () => void;
+  onApply: () => Promise<void>;
+  busy: boolean;
+}) {
+  const rows = categoryTemplatePreview(state, userId);
+  const [applying, setApplying] = useState(false);
+  const [error, setError] = useState('');
+  const labels = { create: 'Criar', keep: 'Manter', review: 'Revisar manualmente' };
+  return <DialogFrame title="Modelo de categorias" wide onClose={() => { if (!applying) onClose(); }}>
+    <div className="confirm-dialog">
+      <p>Confira o que será criado. Categorias existentes mantêm seus vínculos e casos ambíguos ficam para revisão.</p>
+      <ul>{rows.map(row => <li key={`${row.kind}:${row.group ?? ''}:${row.name}`}>
+        {row.group ? `${row.group} › ` : ''}{row.name} · {labels[row.status]}
+      </li>)}</ul>
+      {error ? <p role="alert">{error}</p> : null}
+      <div className="dialog-actions">
+        <button type="button" className="button button--secondary" disabled={applying} onClick={onClose}>Fechar</button>
+        <button type="button" className="button button--primary"
+          disabled={busy || applying || !rows.some(row => row.status === 'create')} onClick={async () => {
+            setApplying(true);
+            setError('');
+            try { await onApply(); } catch (reason) {
+              setError(reason instanceof Error ? reason.message : 'Configuração interrompida.');
+              setApplying(false);
+            }
+          }}>{applying ? 'Salvando…' : 'Criar categorias ausentes'}</button>
+      </div>
+    </div>
+  </DialogFrame>;
 }
