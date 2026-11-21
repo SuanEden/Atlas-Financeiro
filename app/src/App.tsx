@@ -163,7 +163,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
 
         {error === undefined ? null : <div className="error-banner" role="alert"><span>{error}</span><button onClick={clearError}>Fechar</button></div>}
         <div className="sr-only" role="status">{notice}</div>
-        {loading ? <div className="loading-state"><span className="spinner" />Carregando dados locais…</div> : (
+        {loading ? <div className="atlas-loading-shell" role="status" aria-label="Carregando dados locais"><div className="atlas-loading-heading"><span className="spinner" aria-hidden="true" />Carregando dados locais…</div><div className="atlas-loading-hero atlas-skeleton" aria-hidden="true" /><div className="atlas-loading-cards" aria-hidden="true"><span className="atlas-skeleton" /><span className="atlas-skeleton" /><span className="atlas-skeleton" /></div></div> : (
           <>
             {page === 'banks' ? <section className="page-content banks-page" aria-label="Bancos"><div className="page-heading"><div><p className="section-kicker">Instituições e conexões</p><h1>Bancos conectados</h1><p>Suas conexões financeiras em um só lugar.</p></div></div>{bankPanel ?? <p>Entre com Google para consultar seus bancos.</p>}</section> : null}
             {page === 'more' ? <section className="page-content more-page" aria-labelledby="more-title"><div className="page-heading"><div><p className="section-kicker">Seu espaço</p><h1 id="more-title">Mais opções</h1><p>Organize e proteja seus dados financeiros.</p></div></div><div className="more-menu">
