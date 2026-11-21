@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { bankImportEventId, prepareUniqueBankImportCommand, prepareBankImportCommand } from './pluggy-bridge';
-import type { FinancialDataset } from '../domain';
+import { createTransactionCommand } from './financial-commands';
+import { assertFinancialDataset, calculateAccountBalance, type FinancialDataset } from '../domain';
 
 const userId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const accountId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
@@ -24,6 +25,31 @@ describe('Pluggy to Atlas command bridge', () => {
     expect(() => prepareBankImportCommand(candidate, { pluggyAccountId: 'other', atlasAccountId: accountId }, dataset, context)).toThrow();
     expect(() => prepareBankImportCommand(candidate, { pluggyAccountId: 'external-1', atlasAccountId: crypto.randomUUID() }, dataset, context)).toThrow();
   });
+  it.each([false, true])('reconciles a manual entry once and preserves its history (realized=%s)', async realized => {
+    const original = createTransactionCommand({
+      kind: 'expense', accountId, amountCents: 1500n, date: candidate.date,
+      description: 'Compra manual', realized,
+    }, context).aggregate;
+    const before: FinancialDataset = {
+      ...dataset, events: original.events!, settlements: original.settlements ?? [], postings: original.postings ?? [],
+    };
+    const manualId = before.events[0]!.id;
+    const mapping = { pluggyAccountId: 'external-1', atlasAccountId: accountId };
+    const reconciled = await prepareUniqueBankImportCommand(candidate, mapping, before, context, manualId);
+    const aggregate = reconciled!.aggregate;
+    const after: FinancialDataset = {
+      ...before, events: [...before.events, ...aggregate.events!],
+      settlements: [...before.settlements, ...aggregate.settlements!], postings: [...before.postings, ...aggregate.postings!],
+    };
+    expect(reconciled?.operation.kind).toBe('replace_event');
+    expect(after.events.find(event => event.source === 'import')?.replacesEventId).toBe(manualId);
+    expect(calculateAccountBalance(after, accountId, candidate.date)).toBe(-1500n);
+    expect(() => assertFinancialDataset(after, userId)).not.toThrow();
+    expect(await prepareUniqueBankImportCommand(candidate, mapping, after, context, manualId)).toBeNull();
+    await expect(prepareUniqueBankImportCommand({ ...candidate, externalKey: 'pluggy:item-1:external-1:tx-2' },
+      mapping, after, context, manualId)).rejects.toThrow(/mudou/);
+  });
+
   it('refuses a reused imported event ID whose amount, date or target account differs',async()=>{
     const first=await prepareUniqueBankImportCommand(candidate,{pluggyAccountId:'external-1',atlasAccountId:accountId},dataset,context);
     const stored={...dataset,events:[first!.aggregate.events![0]!]};

@@ -1,4 +1,4 @@
-import { bankImportEventId, prepareUniqueBankImportCommand, previewPluggyImport, type PluggyTransaction, type BankImportCandidate, type CommandContext, type LocalCommand } from '../application';
+import { bankImportEventId, findManualBankMatches, prepareUniqueBankImportCommand, previewPluggyImport, type PluggyTransaction, type BankImportCandidate, type CommandContext, type LocalCommand } from '../application';
 import type { LocalFinancialState } from '../domain';
 
 /** One approved bank-account-to-Atlas-account mapping. No financial writes occur without it. */
@@ -135,6 +135,10 @@ export interface BankImportPreflight {
   existingInDestination:number;
   existingInOtherAccount:number;
   otherAccountNames:string[];
+  manualMatches?: {
+    candidate: BankImportCandidate;
+    events: ReturnType<typeof findManualBankMatches>;
+  }[];
 }
 export async function classifyBankImportCandidates(
   candidates:readonly BankImportCandidate[],state:LocalFinancialState,
@@ -142,27 +146,34 @@ export async function classifyBankImportCandidates(
 ):Promise<BankImportPreflight>{
   const events=new Map(state.events.map(event=>[event.id,event]));
   const otherAccountIds=new Set<string>();
+  const manualMatches: NonNullable<BankImportPreflight['manualMatches']> = [];
   let newCount=0,existingInDestination=0,existingInOtherAccount=0;
   for(const candidate of candidates){
     const id=await bankImportEventId(ownerId,candidate.externalKey);
     const existing=events.get(id);
-    if(!existing){newCount++;continue;}
+    if (!existing) {
+      newCount++;
+      const matches = findManualBankMatches(state, candidate, destinationAccountId, ownerId);
+      if (matches.length > 0) manualMatches.push({ candidate, events: matches });
+      continue;
+    }
     if(existing.accountId===destinationAccountId){existingInDestination++;continue;}
     existingInOtherAccount++;
     otherAccountIds.add(existing.accountId);
   }
   return {
     newCount,existingInDestination,existingInOtherAccount,
+    ...(manualMatches.length === 0 ? {} : { manualMatches }),
     otherAccountNames:[...otherAccountIds].map(id=>state.accounts.find(account=>account.id===id)?.name||'Conta não identificada'),
   };
 }
 /** Run only after a complete validated preview and explicit user approval. */
-export async function commitBankImportPreview(link:BankLink,candidates:BankImportCandidate[],source:ImportSource):Promise<number>{
+export async function commitBankImportPreview(link:BankLink,candidates:BankImportCandidate[],source:ImportSource, matches: ReadonlyMap<string, string> = new Map()):Promise<number>{
   let count=0;
   for(const candidate of candidates){
     const current=await source.readState();
     const prepared=await prepareUniqueBankImportCommand(
-      candidate,{pluggyAccountId:link.pluggyAccountId,atlasAccountId:link.atlasAccountId},current,source.context,
+      candidate,{pluggyAccountId:link.pluggyAccountId,atlasAccountId:link.atlasAccountId},current,source.context,matches.get(candidate.externalKey),
     );
     if(!prepared)continue;
     try{await source.execute(prepared);}

@@ -1,5 +1,5 @@
 import type { FinancialDataset } from '../domain';
-import { createTransactionCommand, type CommandContext, type LocalCommand } from './financial-commands';
+import { createTransactionCommand, replaceEventCommand, type CommandContext, type LocalCommand } from './financial-commands';
 import type { BankImportCandidate } from './pluggy-import';
 import { serializeOperationPayload } from '../serialization';
 
@@ -51,12 +51,29 @@ export async function bankImportEventId(ownerId: string, externalKey: string): P
   return [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join('-');
 }
 
+export function findManualBankMatches(
+  dataset: FinancialDataset, candidate: BankImportCandidate, accountId: string, ownerId: string,
+) {
+  const inactive = new Set(dataset.events.flatMap(event => [event.replacesEventId, event.reversesEventId]));
+  return dataset.events.filter(event => {
+    if (event.userId !== ownerId || event.accountId !== accountId || event.source !== 'manual'
+      || event.kind !== candidate.kind || event.amountCents !== candidate.amountCents
+      || event.status === 'cancelled' || event.recurrenceJson !== undefined
+      || event.reversesEventId !== undefined || inactive.has(event.id)) return false;
+    if (event.status === 'planned') return (event.dueDate ?? event.competenceDate) === candidate.date;
+    const settlements = dataset.settlements.filter(item => item.eventId === event.id);
+    return event.competenceDate === candidate.date && settlements.length === 1
+      && settlements[0]?.settlementDate === candidate.date && settlements[0]?.amountCents === event.amountCents;
+  });
+}
+
 /** Null means already present; no second financial event or outbox operation. */
 export async function prepareUniqueBankImportCommand(
   candidate: BankImportCandidate,
   mapping: BankImportMapping,
   dataset: FinancialDataset,
   context: CommandContext,
+  manualEventId?: string,
 ): Promise<LocalCommand | null> {
   const eventId = await bankImportEventId(context.userId, candidate.externalKey);
   const existing = dataset.events.find(event => event.id === eventId);
@@ -73,8 +90,23 @@ export async function prepareUniqueBankImportCommand(
     return null;
   }
   let calls = 0;
-  return prepareBankImportCommand(candidate, mapping, dataset, {
-    ...context,
-    nextId: () => calls++ === 0 ? eventId : context.nextId(),
-  });
+  const bankContext = { ...context, nextId: () => calls++ === 0 ? eventId : context.nextId() };
+  if (manualEventId === undefined) return prepareBankImportCommand(candidate, mapping, dataset, bankContext);
+  if (candidate.accountId !== mapping.pluggyAccountId) throw new TypeError('Conta externa não corresponde ao vínculo selecionado.');
+  const original = findManualBankMatches(dataset, candidate, mapping.atlasAccountId, context.userId)
+    .find(event => event.id === manualEventId);
+  if (!original) throw new TypeError('O lançamento selecionado mudou. Confira a importação novamente.');
+
+  const result = replaceEventCommand(dataset, original.id, {
+    kind: candidate.kind, accountId: original.accountId, amountCents: candidate.amountCents,
+    description: candidate.description, date: candidate.date, realized: true,
+    ...(original.categoryId === undefined ? {} : { categoryId: original.categoryId }),
+    ...(original.dueDate === undefined ? {} : { dueDate: original.dueDate }),
+    ...(original.recurrenceRuleId === undefined ? {} : {
+      recurrenceRuleId: original.recurrenceRuleId, recurrenceMonth: original.recurrenceMonth!,
+    }),
+  }, { ...bankContext, today: () => candidate.date });
+  result.aggregate.events!.find(event => event.id === eventId)!.source = 'import';
+  result.operation.payloadJson = serializeOperationPayload(result.aggregate, context.userId);
+  return result;
 }

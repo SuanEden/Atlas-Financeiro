@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AlertTriangle, ArrowRight, CheckCircle2, Landmark, LoaderCircle, RefreshCw } from 'lucide-react';
 import type { CommandContext, LocalCommand } from '../application';
-import type { LocalFinancialState } from '../domain';
+import { formatBRL, type LocalFinancialState } from '../domain';
 import { classifyBankImportCandidates, commitBankImportPreview, previewLinkedBankAccount, type BankImportPreflight, type BankImportPreview, type BankLink } from './bank-auto-import';
 
 type BankReader = { readBank(resource:'item'|'accounts'|'transactions',id?:string,after?:string,dateFrom?:string,continuation?:string):Promise<unknown> };
@@ -44,6 +44,7 @@ export function PluggyReadPanel({controller,importTarget}:{controller:BankReader
   const [mapping,setMapping]=useState('');
   const [fromDate,setFromDate]=useState(()=>thirtyDaysAgo(importTarget?.context.today()??new Date().toISOString().slice(0,10)));
   const [review,setReview]=useState<Review|null>(null);
+  const [matches,setMatches]=useState(new Map<string, string>());
   const [confirmed,setConfirmed]=useState(false);
   const [busy,setBusy]=useState<'bank'|'account'|'review'|'commit'|null>(null);
   const [progress,setProgress]=useState('');
@@ -51,7 +52,7 @@ export function PluggyReadPanel({controller,importTarget}:{controller:BankReader
   const [notice,setNotice]=useState('');
 
   function invalidate(){
-    setReview(null);setConfirmed(false);setError('');setNotice('');setProgress('');
+    setMatches(new Map());setReview(null);setConfirmed(false);setError('');setNotice('');setProgress('');
   }
   async function run(kind:NonNullable<typeof busy>,operation:()=>Promise<void>){
     if(busy)return;
@@ -108,7 +109,7 @@ export function PluggyReadPanel({controller,importTarget}:{controller:BankReader
       const count=await commitBankImportPreview(review.link,review.preview.candidates,{
         readPage:(id,after,from,continuation)=>controller.readBank('transactions',id,after,from,continuation),
         readState:importTarget.readState,execute:importTarget.execute,context:importTarget.context,
-      });
+      }, matches);
       setReview(null);setConfirmed(false);
       setNotice(count
         ? count+' movimentação(ões) salva(s) na base local do Atlas. Confira a aba Movimentações e o status da nuvem.'
@@ -146,6 +147,24 @@ export function PluggyReadPanel({controller,importTarget}:{controller:BankReader
           <p className="bank-import-preflight">Das {review.preview.candidates.length} movimentações elegíveis: <strong>{review.preflight.newCount} novas</strong>, {review.preflight.existingInDestination} já importadas nesta conta e {review.preflight.existingInOtherAccount} já importadas em outra conta.</p>
           {review.preflight.existingInOtherAccount>0?<p role="alert" className="bank-import-caution"><AlertTriangle size={17} aria-hidden="true"/> Algumas movimentações já estão vinculadas a {review.preflight.otherAccountNames.join(', ')}. O Atlas não as duplicará nesta conta. Confira em Movimentações antes de qualquer ajuste.</p>:null}
           {review.preflight.newCount===0?<p role="status"><CheckCircle2 size={17} aria-hidden="true"/> Não há lançamentos novos neste extrato. Você pode conferir os registros já importados em Movimentações, na conta de destino e no período selecionado.</p>:null}
+          {review.preflight.manualMatches?.map(({ candidate, events }) => (
+            <label key={candidate.externalKey}>
+              <span>{candidate.date} · {candidate.description} · {formatBRL(candidate.amountCents)}</span>
+              <select disabled={!!busy} value={matches.get(candidate.externalKey) ?? ''} onChange={event => {
+                const next = new Map(matches);
+                if (event.target.value) next.set(candidate.externalKey, event.target.value);
+                else next.delete(candidate.externalKey);
+                setMatches(next);
+                setConfirmed(false);
+              }}>
+                <option value="">Importar como novo lançamento</option>
+                {events.map(event => <option key={event.id} value={event.id}
+                  disabled={[...matches].some(([key, id]) => key !== candidate.externalKey && id === event.id)}>
+                  Conciliar com {event.description} ({event.status === 'planned' ? 'previsto' : 'realizado'})
+                </option>)}
+              </select>
+            </label>
+          ))}
           <label className="bank-import-consent"><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/> Conferi a conta, a data e o saldo inicial. Autorizo gravar essas movimentações na minha base.</label>
           <button type="button" className="button button--primary" disabled={!confirmed||!importTarget.canWrite||!!busy||review.preflight.newCount===0} onClick={()=>void commit()}>{busy==='commit'?'Gravando…':'Importar '+review.preflight.newCount+' nova(s) movimentação(ões)'}</button>
           {!importTarget.canWrite?<p role="alert">A nuvem não autorizou novas gravações nesta sessão; confira o acesso.</p>:null}
