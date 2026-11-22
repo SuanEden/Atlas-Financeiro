@@ -6,7 +6,7 @@ export type GoalStatus = 'active' | 'paused' | 'completed';
 export type Importance = 'essential' | 'important' | 'optional';
 export type PlanFrequency = 'once'|'weekly'|'biweekly'|'monthly'|'quarterly'|'semiannual'|'annual'|'custom';
 export type DueState = 'historical'|'needs_confirmation'|'planned';
-export interface Allocation { id:string; accountId:string; cents:number; on:string; }
+export interface Allocation { id:string; accountId:string; cents:number; on:string; canceledAt?:string; }
 export interface Goal { id:string; name:string; targetCents:number|null; deadline:string|null; priority:'high'|'medium'|'low'; status:GoalStatus; allocations:Allocation[]; }
 export interface PlannedRecurrence {
   id:string; name:string; direction:'income'|'expense'; cents:number|null;
@@ -18,7 +18,7 @@ export interface PlannedObligation {
   id:string; name:string; cents:number|null; status:DueState;
   dueDate:string|null; linkedEventId:string|null; notes:string;
 }
-export interface Contribution { id:string; participant:string; cents:number; on:string; }
+export interface Contribution { id:string; participant:string; cents:number; on:string; canceledAt?:string; }
 export interface SharedExpense {
   id:string; name:string; totalCents:number; personalCents:number;
   participants:string[]; contributions:Contribution[]; carriedCreditCents:number; status:'active'|'paused';
@@ -100,7 +100,7 @@ export function validatePlan(input:unknown,ownerId?:string):asserts input is Fin
       throw new TypeError('Prioridade ou estado da meta inválido.');
     const a=arrayOf(row.allocations,'Aportes da meta');
     if(a.some(x=>!uuid(x.id)||!uuid(x.accountId)||!validMoney(x.cents)||x.cents===0))throw new TypeError('Aporte inválido.');
-    a.forEach(x=>nullableDate(x.on,'Data do aporte'));
+    a.forEach(x=>{nullableDate(x.on,'Data do aporte');if(x.canceledAt!==undefined)nullableDate(x.canceledAt,'Data do cancelamento');});
     idsUnique(a as {id:string}[],'aportes');
     if(a.some(x=>x.on===null))throw new TypeError('Data do aporte obrigatória.');
   }
@@ -138,7 +138,7 @@ export function validatePlan(input:unknown,ownerId?:string):asserts input is Fin
     for(const c of contributions){
       if(!uuid(c.id)||typeof c.participant!=='string'||!row.participants.includes(c.participant)||
         !validMoney(c.cents)||c.cents===0)throw new TypeError('Contribuição inválida.');
-      nullableDate(c.on,'Data da contribuição');
+      nullableDate(c.on,'Data da contribuição');if(c.canceledAt!==undefined)nullableDate(c.canceledAt,'Data do cancelamento');
       if(c.on===null)throw new TypeError('Data da contribuição obrigatória.');
     }
     idsUnique(contributions as {id:string}[],'contribuições');
@@ -159,17 +159,17 @@ export function validatePlan(input:unknown,ownerId?:string):asserts input is Fin
   if(new Set(prefs.map(row=>row.accountId)).size!==prefs.length)throw new TypeError('Preferências de conta duplicadas.');
 }
 export function sumGoalAllocations(goal:Goal):number {
-  return goal.allocations.reduce((sum,x)=>sum+x.cents,0);
+  return goal.allocations.reduce((sum,x)=>sum+(x.canceledAt?0:x.cents),0);
 }
 export function reservedForAccount(plan:FinancialPlan,accountId:string):number {
-  return plan.goals.reduce((sum,goal)=>sum+goal.allocations.filter(a=>a.accountId===accountId).reduce((n,a)=>n+a.cents,0),0);
+  return plan.goals.reduce((sum,goal)=>sum+goal.allocations.filter(a=>a.accountId===accountId&&!a.canceledAt).reduce((n,a)=>n+a.cents,0),0);
 }
 export function canReserve(plan:FinancialPlan,accountId:string,cents:number,confirmedFreeBalanceCents:number):boolean {
   return Number.isSafeInteger(cents)&&cents>0&&confirmedFreeBalanceCents>=0&&
     reservedForAccount(plan,accountId)+cents<=confirmedFreeBalanceCents;
 }
 export function sharedSummary(expense:SharedExpense){
-  const received=expense.contributions.reduce((sum,row)=>sum+row.cents,0);
+  const received=expense.contributions.reduce((sum,row)=>sum+(row.canceledAt?0:row.cents),0);
   const covered=received+expense.carriedCreditCents;
   const expected=Math.max(0,expense.totalCents-expense.personalCents);
   return {receivedCents:received,coveredCents:covered,pendingCents:Math.max(0,expected-covered),surplusCents:Math.max(0,covered-expected)};
