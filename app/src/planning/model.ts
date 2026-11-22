@@ -31,14 +31,17 @@ export interface AccountPreference {
   accountId:string; institution:string;
   liquidity:'immediate'|'restricted'|'unknown'; usageRestriction:string;
 }
+export interface EventNecessity { eventId:string; necessity:Importance; }
 export interface FinancialPlan {
   schemaVersion:1; ownerId:string; revision:number;
   goals:Goal[]; recurrences:PlannedRecurrence[]; obligations:PlannedObligation[];
   shared:SharedExpense[]; rules:ApprovedRule[]; accountPreferences:AccountPreference[];
+  /** Local note for an individual expense, not a rewrite of the ledger event. */
+  eventNecessities?:EventNecessity[];
 }
 export const emptyPlan=(ownerId:string):FinancialPlan=>({
   schemaVersion:1,ownerId,revision:0,goals:[],recurrences:[],obligations:[],
-  shared:[],rules:[],accountPreferences:[]
+  shared:[],rules:[],accountPreferences:[],eventNecessities:[]
 });
 export const proposedGoals = [
   'Reserva de emergência','Casamento','Quitação de dívidas','Faculdade',
@@ -88,6 +91,7 @@ export function validatePlan(input:unknown,ownerId?:string):asserts input is Fin
   const shared=arrayOf(input.shared,'Despesas compartilhadas');
   const rules=arrayOf(input.rules,'Regras');
   const prefs=arrayOf(input.accountPreferences,'Contas');
+  const needs=input.eventNecessities===undefined?[]:arrayOf(input.eventNecessities,'Necessidades individuais');
   for(const [label,arr] of [['metas',goals],['recorrências',recurrences],['obrigações',obligations],['compartilhamentos',shared],['regras',rules]] as const){
     if(arr.some(row=>!uuid(row.id)))throw new TypeError('ID inválido em '+label);
     idsUnique(arr as {id:string}[],label);
@@ -157,6 +161,8 @@ export function validatePlan(input:unknown,ownerId?:string):asserts input is Fin
       !['immediate','restricted','unknown'].includes(String(row.liquidity)))throw new TypeError('Preferências de conta inválidas.');
   }
   if(new Set(prefs.map(row=>row.accountId)).size!==prefs.length)throw new TypeError('Preferências de conta duplicadas.');
+  for(const row of needs){if(!uuid(row.eventId)||!['essential','important','optional'].includes(String(row.necessity)))throw new TypeError('Necessidade individual inválida.');}
+  if(new Set(needs.map(row=>row.eventId)).size!==needs.length)throw new TypeError('Necessidade individual duplicada.');
 }
 export function sumGoalAllocations(goal:Goal):number {
   return goal.allocations.reduce((sum,x)=>sum+(x.canceledAt?0:x.cents),0);
@@ -201,7 +207,8 @@ export function mergeImportedPlan(current:FinancialPlan,imported:FinancialPlan):
     recurrences:unique(current.recurrences,imported.recurrences),
     obligations:unique(current.obligations,imported.obligations),
     shared:unique(current.shared,imported.shared),rules:unique(current.rules,imported.rules),
-    accountPreferences:[...prefs.values()]
+    accountPreferences:[...prefs.values()],
+    eventNecessities:(()=>{const map=new Map((current.eventNecessities??[]).map(row=>[row.eventId,row]));for(const row of imported.eventNecessities??[]){const existing=map.get(row.eventId);if(existing&&existing.necessity!==row.necessity)throw new TypeError('Classificações de necessidade conflitantes.');map.set(row.eventId,row);}return [...map.values()];})()
   };
   validatePlan(merged,current.ownerId);
   return merged;
