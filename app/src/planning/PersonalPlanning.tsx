@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import type { Account, Category, LocalFinancialState } from '../domain';
 import { calculateAccountBalance, hasReconciledOpeningBalance, formatBRL, parseBRL } from '../domain';
 import {
@@ -6,7 +6,8 @@ import {
   sharedSummary, type FinancialPlan, type Goal, type PlannedRecurrence, type PlannedObligation,
   type SharedExpense, type ApprovedRule, type AccountPreference, type PlanFrequency, type Importance,
 } from './model';
-import { readPlanning, mutatePlanning, exportPlanning, importPlanning } from './store';
+import { readPlanning, mutatePlanning, exportPlanning, importPlanning, readPlanningCloudEnabled, setPlanningCloudEnabled, syncPlanningCloud } from './store';
+import type { PlanningCloudPort } from './cloud-model';
 import { encryptPlanningBackup, decryptPlanningBackup, isEncryptedPlanningBackup } from './encrypted-backup';
 import { searchExpenseEvents, NECESSITY_PAGE_SIZE } from './event-needs';
 
@@ -25,7 +26,7 @@ const frequencyLabel:Record<PlanFrequency,string>={
 };
 const necessityLabel:Record<Importance,string>={essential:'Essencial',important:'Importante',optional:'Opcional'};
 
-export function PersonalPlanning({ownerId,accounts,categories,ledger}:{ownerId:string;accounts:Account[];categories:Category[];ledger:LocalFinancialState}) {
+export function PersonalPlanning({ownerId,accounts,categories,ledger,cloud}:{ownerId:string;accounts:Account[];categories:Category[];ledger:LocalFinancialState;cloud?:PlanningCloudPort}) {
   const [plan,setPlan]=useState<FinancialPlan>(()=>emptyPlan(ownerId));
   const [tab,setTab]=useState<Tab>('goals');
   const [loading,setLoading]=useState(true);
@@ -33,14 +34,77 @@ export function PersonalPlanning({ownerId,accounts,categories,ledger}:{ownerId:s
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
   const [backupPassword,setBackupPassword]=useState('');
+  const [cloudEnabled,setCloudEnabled]=useState(false);
+  const [cloudBusy,setCloudBusy]=useState(false);
+  const [cloudNotice,setCloudNotice]=useState('');
+  const [cloudError,setCloudError]=useState('');
+  const syncPromise=useRef<Promise<void>|null>(null);
+  const currentOwner=useRef(ownerId);
+  currentOwner.current=ownerId;
   useEffect(()=>{
     let active=true;
     setLoading(true);setPlan(emptyPlan(ownerId));setError('');
-    void readPlanning(ownerId).then(next=>{if(active)setPlan(next);})
+    setCloudEnabled(false);setCloudNotice('');setCloudError('');
+    void Promise.all([readPlanning(ownerId),readPlanningCloudEnabled(ownerId)])
+      .then(([next,enabled])=>{if(active){setPlan(next);setCloudEnabled(enabled);}})
       .catch(reason=>{if(active)setError(reason instanceof Error?reason.message:'Erro ao abrir planejamento.');})
       .finally(()=>{if(active)setLoading(false);});
     return()=>{active=false;};
   },[ownerId]);
+  async function synchronize(force=false){
+    if(!cloud||(!cloudEnabled&&!force))return;
+    if(syncPromise.current)return syncPromise.current;
+    setCloudBusy(true);setCloudError('');
+    const startedOwner=ownerId;
+    const task=(async()=>{
+      try{
+        if(typeof navigator!=='undefined'&&navigator.onLine===false)
+          throw new Error('Sem conexão. O Planejamento continua salvo neste navegador.');
+        const result=await syncPlanningCloud(startedOwner,cloud);
+        if(currentOwner.current!==startedOwner)return;
+        setPlan(result.plan);
+        setCloudNotice('Planejamento conferido na nuvem (versão '+result.cloudRevision+').');
+      }catch(error){
+        if(currentOwner.current===startedOwner)
+          setCloudError(error instanceof Error?error.message:'Falha na sincronização; dados locais preservados.');
+      }finally{
+        if(currentOwner.current===startedOwner)setCloudBusy(false);
+      }
+    })();
+    syncPromise.current=task;
+    try{await task;}finally{if(syncPromise.current===task)syncPromise.current=null;}
+  }
+  async function enableCloud(){
+    if(!cloud||busy||loading)return;
+    if(!window.confirm('Sincronizar metas e anotações pessoais com sua conta Atlas? Os dados serão enviados ao Supabase autorizado; não são criptografados ponta a ponta. O livro-caixa e os saldos não serão modificados. Faça uma cópia de segurança antes de continuar.'))return;
+    try{
+      await setPlanningCloudEnabled(ownerId,true);
+      setCloudEnabled(true);
+      await synchronize(true);
+    }catch(error){setCloudError(error instanceof Error?error.message:'Não foi possível ativar a sincronização.');}
+  }
+  async function disableCloud(){
+    try{
+      await setPlanningCloudEnabled(ownerId,false);
+      setCloudEnabled(false);
+      setCloudNotice('Sincronização pausada neste navegador. A cópia já enviada ao servidor não foi apagada.');
+    }catch(error){setCloudError(error instanceof Error?error.message:'Não foi possível pausar.');}
+  }
+  useEffect(()=>{
+    if(!cloud||!cloudEnabled||loading)return;
+    const sync=()=>{if(document.visibilityState==='visible'&&navigator.onLine!==false)void synchronize();};
+    sync();
+    const interval=window.setInterval(sync,60_000);
+    window.addEventListener('online',sync);
+    window.addEventListener('focus',sync);
+    document.addEventListener('visibilitychange',sync);
+    return()=>{
+      window.clearInterval(interval);
+      window.removeEventListener('online',sync);
+      window.removeEventListener('focus',sync);
+      document.removeEventListener('visibilitychange',sync);
+    };
+  },[cloud,cloudEnabled,loading,ownerId]);
   const change:Editor=async(transform)=>{
     if(busy)throw new Error('Aguarde a operação em andamento.');
     setBusy(true);setError('');setNotice('');
@@ -49,7 +113,8 @@ export function PersonalPlanning({ownerId,accounts,categories,ledger}:{ownerId:s
         const next=transform(previous);
         return {...next,revision:previous.revision+1};
       });
-      setPlan(updated);setNotice('Planejamento salvo somente neste navegador.');
+      setPlan(updated);setNotice('Planejamento salvo neste navegador.'+(cloudEnabled?' Sincronização em andamento, quando conectado.':''));
+      if(cloud&&cloudEnabled)void synchronize();
     }catch(e){
       const message=e instanceof Error?e.message:'Não foi possível salvar.';
       setError(message);throw e;
@@ -69,6 +134,7 @@ export function PersonalPlanning({ownerId,accounts,categories,ledger}:{ownerId:s
         : contents;
       const updated=await importPlanning(ownerId,source);
       setPlan(updated);setBackupPassword('');setNotice('Planejamento importado sem substituir registros conflitantes.');
+      if(cloud&&cloudEnabled)void synchronize();
     }catch(e){setError(e instanceof Error?e.message:'Importação inválida.');}
     finally{setBusy(false);}
   }
@@ -103,7 +169,17 @@ export function PersonalPlanning({ownerId,accounts,categories,ledger}:{ownerId:s
   ];
   return <section className="page-content planning-page" aria-label="Planejamento pessoal">
     <div className="page-heading"><div><p className="section-kicker">ORGANIZAÇÃO PESSOAL</p><h1>Planejamento financeiro</h1><p>Metas, compromissos e regras — sem lançar ou movimentar dinheiro automaticamente.</p></div></div>
-    <p className="form-note" role="status"><strong>Salvo somente neste navegador.</strong> Não há sincronização automática destas informações entre dispositivos nem inclusão no backup do extrato. Exporte uma cópia antes de trocar de aparelho.</p>
+    <p className="form-note" role="status"><strong>${cloud&&cloudEnabled?'Sincronização do Planejamento autorizada.':'Planejamento salvo neste navegador.'}</strong> ${cloud&&cloudEnabled?'As alterações são conferidas ao conectar, abrir ou editar. Conflitos não são sobrescritos.':'O Planejamento não acompanha automaticamente outros aparelhos sem ativar a opção de nuvem.'} Não está incluído no backup financeiro do extrato.</p>
+    {cloud?<section className="planning-cloud-panel" aria-label="Sincronização do Planejamento">
+      <h2>Planejamento entre dispositivos</h2>
+      <p>Somente metas, recorrências e anotações. Nenhuma movimentação financeira será criada. O Supabase protege o acesso por conta, mas este recurso não oferece criptografia ponta a ponta.</p>
+      {cloudEnabled?<div className="planning-backup">
+        <button className="button button--primary" type="button" disabled={cloudBusy||loading} onClick={()=>void synchronize(true)}>{cloudBusy?'Conferindo…':'Sincronizar planejamento agora'}</button>
+        <button className="button button--secondary" type="button" onClick={()=>void disableCloud()}>Pausar sincronização neste navegador</button>
+      </div>:<button className="button button--secondary" type="button" disabled={loading} onClick={()=>void enableCloud()}>Ativar sincronização do Planejamento</button>}
+      {cloudNotice?<p role="status">{cloudNotice}</p>:null}
+      {cloudError?<p className="form-error" role="alert">{cloudError} Exporte o planejamento antes de tentar resolver conflitos.</p>:null}
+    </section>:null}
     <p className="form-note">A cópia protegida usa AES-GCM com senha e pode ser levada a outro aparelho. Isto <strong>não</strong> criptografa o IndexedDB deste navegador nem ativa sincronização automática. Guarde a senha: não é possível redefini-la pelo Atlas.</p>
     <label className="planning-backup-passphrase">Senha da cópia protegida (mínimo de 12 caracteres)
       <input type="password" autoComplete="new-password" value={backupPassword} maxLength={256} onChange={e=>setBackupPassword(e.target.value)} placeholder="Use uma senha forte; não será armazenada"/>
