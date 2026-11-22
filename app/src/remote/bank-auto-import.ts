@@ -10,12 +10,15 @@ export interface BankLink {
   /** Bank snapshot timestamp, when available; avoids missing same-day movements. */
   activatedAt?:string;
 }
+export const MAX_BANK_IMPORT_PAGES = 80;
+export const MAX_BANK_IMPORT_ROWS = 20_000;
 export interface ImportSource {
   readPage:(accountId:string,after?:string,dateFrom?:string,continuation?:string)=>Promise<unknown>;
   readState:()=>Promise<LocalFinancialState>;
   execute:(command:LocalCommand)=>Promise<void>;
   context:CommandContext;
   onProgress?:(pages:number,received:number)=>void;
+  onCommitProgress?:(applied:number,total:number)=>void;
 }
 /**
  * Recover a time boundary only for an account whose original local operation
@@ -102,7 +105,7 @@ export async function previewLinkedBankAccount(link:BankLink,source:ImportSource
   let continuation:string|undefined;
   const seen=new Set<string>();
   let received=0;
-  for(let i=0;i<30;i++){
+  for(let i=0;i<MAX_BANK_IMPORT_PAGES;i++){
     let payload:unknown;
     try{payload=await source.readPage(link.pluggyAccountId,after,link.activatedOn,continuation);}
     catch(error){throw new Error('Falha na consulta da página '+(i+1)+': '+(error instanceof Error?error.message:'serviço indisponível'));}
@@ -112,6 +115,8 @@ export async function previewLinkedBankAccount(link:BankLink,source:ImportSource
     const rows=page.results as PluggyTransaction[];
     if(rows.some(row=>!row||typeof row!=='object'||row.accountId!==link.pluggyAccountId))
       throw new Error('A página '+(i+1)+' contém uma transação de conta divergente.');
+    if(received+rows.length>MAX_BANK_IMPORT_ROWS)
+      throw new Error('Extrato excede '+MAX_BANK_IMPORT_ROWS+' transações nesta conferência. Nenhum lançamento foi gravado. Reduza o período de consulta.');
     received+=rows.length;
     collected.push(...rows.filter(row=>occurredAfterBaseline(row,effectiveLink)));
     source.onProgress?.(i+1,received);
@@ -127,7 +132,7 @@ export async function previewLinkedBankAccount(link:BankLink,source:ImportSource
     // its account and forwards it unchanged to avoid cursor/filter mismatch.
     continuation=typeof page.next==='string'&&page.next.startsWith('?')?page.next:undefined;
   }
-  throw new Error('Extrato muito extenso (mais de 30 páginas). Escolha um período mais recente; nenhum lançamento foi gravado.');
+  throw new Error('Extrato muito extenso (mais de '+MAX_BANK_IMPORT_PAGES+' páginas). Escolha um período mais recente; nenhum lançamento foi gravado.');
 }
 /** Preflight categorization reads the actual financial ledger before asking the user to import. */
 export interface BankImportPreflight {
@@ -168,6 +173,7 @@ export async function commitBankImportPreview(link:BankLink,candidates:BankImpor
     try{await source.execute(prepared);}
     catch(error){throw new Error('Importação interrompida após '+count+' lançamento(s). Os itens anteriores foram preservados, e a repetição é protegida por ID bancário. '+(error instanceof Error?error.message:''));}
     count++;
+    source.onCommitProgress?.(count,candidates.length);
   }
   return count;
 }
