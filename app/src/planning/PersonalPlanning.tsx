@@ -7,6 +7,7 @@ import {
   type SharedExpense, type ApprovedRule, type AccountPreference, type PlanFrequency, type Importance,
 } from './model';
 import { readPlanning, mutatePlanning, exportPlanning, importPlanning } from './store';
+import { searchExpenseEvents, NECESSITY_PAGE_SIZE } from './event-needs';
 
 type Tab='goals'|'recurrences'|'shared'|'obligations'|'rules'|'accounts'|'necessities';
 type Editor=(change:(plan:FinancialPlan)=>FinancialPlan)=>Promise<void>;
@@ -345,9 +346,16 @@ function Rules({plan,categories,change,busy,onFailure}:{plan:FinancialPlan;categ
 }
 
 function EventNeeds({plan,ledger,change,busy,onFailure}:{plan:FinancialPlan;ledger:LocalFinancialState;change:Editor;busy:boolean;onFailure:(reason:unknown)=>void}){
-  const expenses=ledger.events.filter(e=>e.kind==='expense'&&!e.reversesEventId).slice().sort((a,b)=>b.competenceDate.localeCompare(a.competenceDate)).slice(0,120);
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const result = searchExpenseEvents(ledger.events, query, page);
+  const expenses = result.matches;
   return <section className="planning-section"><h2>Necessidade de cada despesa</h2>
     <p className="form-note">A natureza essencial/importante/opcional pode variar em lançamentos da mesma categoria. Estas etiquetas são anotações locais, não modificações no extrato e não sincronizam com outro dispositivo.</p>
+    <label>Buscar em todo o histórico por descrição ou data
+      <input type="search" value={query} maxLength={200} placeholder="Ex.: farmácia ou 2026-11" onChange={e=>{setQuery(e.target.value);setPage(0);}} />
+    </label>
+    <p role="status">{result.total} despesa(s) encontrada(s) · página {result.page+1} de {result.pages} · {NECESSITY_PAGE_SIZE} por página</p>
     {expenses.length===0?<p>Nenhuma despesa disponível para classificar.</p>:<div className="planning-records">{expenses.map(event=>{
       const current=(plan.eventNecessities??[]).find(row=>row.eventId===event.id);
       return <article key={event.id} className="planning-record">
@@ -360,6 +368,11 @@ function EventNeeds({plan,ledger,change,busy,onFailure}:{plan:FinancialPlan;ledg
         })).catch(onFailure)}><option value="">A definir</option><option value="essential">Essencial</option><option value="important">Importante</option><option value="optional">Opcional</option></select></label>
       </article>;
     })}</div>}
+    {result.pages>1?<nav className="planning-pagination" aria-label="Paginação do histórico">
+      <button className="button button--secondary" type="button" disabled={result.page===0} onClick={()=>setPage(result.page-1)}>Anterior</button>
+      <span>Página {result.page+1} de {result.pages}</span>
+      <button className="button button--secondary" type="button" disabled={result.page>=result.pages-1} onClick={()=>setPage(result.page+1)}>Próxima</button>
+    </nav>:null}
   </section>;
 }
 
