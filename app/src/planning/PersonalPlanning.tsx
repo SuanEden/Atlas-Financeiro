@@ -7,6 +7,7 @@ import {
   type SharedExpense, type ApprovedRule, type AccountPreference, type PlanFrequency, type Importance,
 } from './model';
 import { readPlanning, mutatePlanning, exportPlanning, importPlanning } from './store';
+import { encryptPlanningBackup, decryptPlanningBackup, isEncryptedPlanningBackup } from './encrypted-backup';
 import { searchExpenseEvents, NECESSITY_PAGE_SIZE } from './event-needs';
 
 type Tab='goals'|'recurrences'|'shared'|'obligations'|'rules'|'accounts'|'necessities';
@@ -31,6 +32,7 @@ export function PersonalPlanning({ownerId,accounts,categories,ledger}:{ownerId:s
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
+  const [backupPassword,setBackupPassword]=useState('');
   useEffect(()=>{
     let active=true;
     setLoading(true);setPlan(emptyPlan(ownerId));setError('');
@@ -57,24 +59,41 @@ export function PersonalPlanning({ownerId,accounts,categories,ledger}:{ownerId:s
     const file=event.currentTarget.files?.[0];
     event.currentTarget.value='';
     if(!file)return;
-    if(file.size>1_000_000){setError('Cópia excede 1 MB.');return;}
+    if(file.size>1_500_000){setError('Cópia excede 1,5 MB.');return;}
     if(!window.confirm('Importar planejamento? Novos registros serão acrescentados; conflitos serão bloqueados. Isto não importa lançamentos bancários.'))return;
     setBusy(true);setError('');
     try{
-      const updated=await importPlanning(ownerId,await file.text());
-      setPlan(updated);setNotice('Planejamento importado sem substituir registros conflitantes.');
+      const contents=await file.text();
+      const source=isEncryptedPlanningBackup(contents)
+        ? JSON.stringify(await decryptPlanningBackup(contents,backupPassword))
+        : contents;
+      const updated=await importPlanning(ownerId,source);
+      setPlan(updated);setBackupPassword('');setNotice('Planejamento importado sem substituir registros conflitantes.');
     }catch(e){setError(e instanceof Error?e.message:'Importação inválida.');}
     finally{setBusy(false);}
   }
+  function downloadFile(json:string,filename:string){
+    const url=URL.createObjectURL(new Blob([json],{type:'application/json;charset=utf-8'}));
+    const anchor=document.createElement('a');anchor.href=url;anchor.download=filename;
+    document.body.append(anchor);anchor.click();anchor.remove();
+    window.setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }
   function download(){
     try{
-      const json=exportPlanning(plan);
-      const url=URL.createObjectURL(new Blob([json],{type:'application/json;charset=utf-8'}));
-      const anchor=document.createElement('a');anchor.href=url;
-      anchor.download='atlas-planejamento-'+new Date().toISOString().slice(0,10)+'.json';
-      document.body.append(anchor);anchor.click();anchor.remove();window.setTimeout(()=>URL.revokeObjectURL(url),1500);
-      setNotice('Cópia exportada. Guarde o arquivo em local privado.');
+      downloadFile(exportPlanning(plan),'atlas-planejamento-sem-senha-'+new Date().toISOString().slice(0,10)+'.json');
+      setNotice('Cópia sem senha exportada: o arquivo contém informações sensíveis. Guarde em local privado.');
     }catch(e){setError(e instanceof Error?e.message:'Não foi possível exportar.');}
+  }
+  async function downloadProtected(){
+    if(busy||loading)return;
+    setBusy(true);setError('');setNotice('');
+    try{
+      const encrypted=await encryptPlanningBackup(plan,backupPassword);
+      downloadFile(encrypted,'atlas-planejamento-protegido-'+new Date().toISOString().slice(0,10)+'.json');
+      setBackupPassword('');
+      setNotice('Cópia criptografada exportada. Guarde a senha separadamente: sem ela não é possível recuperar o arquivo.');
+    }catch(e){setError(e instanceof Error?e.message:'Não foi possível proteger a cópia.');}
+    finally{setBusy(false);}
   }
   const onFailure=(reason:unknown)=>setError(reason instanceof Error?reason.message:'Não foi possível validar o formulário.');
   const tabs:{id:Tab;label:string}[]=[
@@ -85,7 +104,15 @@ export function PersonalPlanning({ownerId,accounts,categories,ledger}:{ownerId:s
   return <section className="page-content planning-page" aria-label="Planejamento pessoal">
     <div className="page-heading"><div><p className="section-kicker">ORGANIZAÇÃO PESSOAL</p><h1>Planejamento financeiro</h1><p>Metas, compromissos e regras — sem lançar ou movimentar dinheiro automaticamente.</p></div></div>
     <p className="form-note" role="status"><strong>Salvo somente neste navegador.</strong> Não há sincronização automática destas informações entre dispositivos nem inclusão no backup do extrato. Exporte uma cópia antes de trocar de aparelho.</p>
-    <div className="planning-backup"><button type="button" className="button button--secondary" disabled={busy||loading} onClick={download}>Exportar planejamento</button><label className="button button--ghost">Importar cópia JSON <input type="file" accept=".json,application/json" onChange={event=>void loadBackup(event)} disabled={busy||loading} /></label></div>
+    <p className="form-note">A cópia protegida usa AES-GCM com senha e pode ser levada a outro aparelho. Isto <strong>não</strong> criptografa o IndexedDB deste navegador nem ativa sincronização automática. Guarde a senha: não é possível redefini-la pelo Atlas.</p>
+    <label className="planning-backup-passphrase">Senha da cópia protegida (mínimo de 12 caracteres)
+      <input type="password" autoComplete="new-password" value={backupPassword} maxLength={256} onChange={e=>setBackupPassword(e.target.value)} placeholder="Use uma senha forte; não será armazenada"/>
+    </label>
+    <div className="planning-backup">
+      <button type="button" className="button button--primary" disabled={busy||loading||backupPassword.length<12} onClick={()=>void downloadProtected()}>Exportar cópia criptografada</button>
+      <label className="button button--ghost">Importar cópia (com ou sem senha)<input type="file" accept=".json,application/json" onChange={event=>void loadBackup(event)} disabled={busy||loading} /></label>
+      <button type="button" className="button button--secondary" disabled={busy||loading} onClick={download}>Exportar sem senha</button>
+    </div>
     {error?<p className="form-error" role="alert">{error}</p>:null}
     {notice?<p role="status">{notice}</p>:null}
     {loading?<p role="status">Carregando planejamento local…</p>:<><div className="planning-tabs" role="tablist" aria-label="Áreas do planejamento">
