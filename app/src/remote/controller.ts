@@ -121,6 +121,9 @@ export class RemoteController {
     this.#syncing=(async()=>{
       if(!this.policy.snapshot.canTransmit||!this.#engine)return 'login_required';
       const epoch=this.policy.snapshot.epoch;const store=this.#store!;
+      // Only notify finance projections when the confirmed revision or the durable outbox changes.
+      const previousData=syncProjectionVersion(await store.read());
+      if(this.policy.snapshot.epoch!==epoch||store!==this.#store)return 'login_required';
       this.publish({syncing:true,notice:'',lastSyncResult:null});
       try {
         // Each engine round deliberately transmits at most 50 operations.
@@ -159,7 +162,8 @@ export class RemoteController {
         const notice=incompatiblePending?'A cópia local contém recorrências ou conciliações ainda não suportadas pelo esquema remoto. A sincronização permanece pendente até uma migração versionada do servidor; não considere estes dados replicados. A cópia local e as pendências continuam preservadas.':result==='retry_later'&&this.#engine.lastFailureStage?syncStageMessage(this.#engine.lastFailureStage):syncMessage(result,latestState.meta.binding==='active');
         // No pending rows alone is insufficient evidence that the server confirmed the state.
         const confirmed=active && latestState.pending.every(row=>row.status==='resolved') && (result==='synced'||result==='unassociated');
-        this.publish({dataRevision:this.#snapshot.dataRevision+1,notice,lastSyncResult:confirmed?'synced':result==='synced'?'retry_later':result});
+        const changed=syncProjectionVersion(latestState)!==previousData;
+        this.publish({dataRevision:this.#snapshot.dataRevision+(changed?1:0),notice,lastSyncResult:confirmed?'synced':result==='synced'?'retry_later':result});
         return result;
       } catch(reason) {this.publish({lastSyncResult:'retry_later',notice:safeAssociationFailureMessage(reason)});return 'retry_later';}
       finally {this.publish({syncing:false});}
@@ -281,4 +285,10 @@ function safeAssociationFailureMessage(reason:unknown):string {
     if(reason.message==='A origem ativa mudou.'||reason.message.startsWith('A origem mudou ou o recibo ainda não foi conferido.')) return 'A origem local não corresponde à cópia que iniciou a associação. O vínculo não será ativado nem substituído. Preserve as duas bases para conferência.';
   }
   return 'A sincronização precisa de conferência. Os registros, a origem e as pendências foram preservados.';
+}
+
+/** Only metadata that can change the local projection; never hashes financial descriptions or amounts. */
+function syncProjectionVersion(state:Awaited<ReturnType<LocalSyncStore['read']>>):string {
+  return JSON.stringify([state.meta.cursor,state.meta.binding,state.receipts.length,
+    state.pending.map(row=>[row.id,row.status,row.digest])]);
 }
