@@ -53,6 +53,16 @@ describe('controlador local de sessão com SQL e identidades simuladas',()=>{
     await reopened.enqueue(command);expect(await reopened.sync()).toBe('login_required');
     expect((await reopened.getSnapshot().store!.read()).pending).toHaveLength(1);
   });
+  it('não força leitura de toda projeção quando a consulta do servidor não traz novidades',async()=>{
+    const f=await setup();await associate(f);
+    const revision=f.controller.getSnapshot().dataRevision;
+    expect(f.controller.getSnapshot().lastSyncResult).toBe('synced');
+    expect(await f.controller.sync()).toBe('synced');
+    expect(f.controller.getSnapshot().dataRevision).toBe(revision);
+    expect(await f.controller.sync()).toBe('synced');
+    expect(f.controller.getSnapshot().dataRevision).toBe(revision);
+  });
+
   it('não declara sincronizado apenas porque a fila local está vazia',async()=>{
     const f=await setup();
     expect(f.controller.getSnapshot().lastSyncResult).toBeNull();
