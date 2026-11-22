@@ -54,7 +54,19 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
       workspace:{position:wsStyle?.position,zIndex:wsStyle?.zIndex},hit:hit?.outerHTML.slice(0,160)};
   })));
   console.log('AUTH_STAGE_033_BEFORE_HOME_NAV');
-  await homeNav.getByRole('button',{name:'Início',exact:true}).click({timeout:8000});
+  const homeButton=homeNav.getByRole('button',{name:'Início',exact:true});
+  if((page.viewportSize()?.width??1280)<761){
+    const box=await homeButton.boundingBox();
+    if(!box)throw new Error('Botão Início não possui área de toque na navegação móvel.');
+    const point={x:box.x+box.width/2,y:box.y+box.height/2};
+    const hit=await page.evaluate(({x,y})=>{
+      const element=document.elementFromPoint(x,y);
+      return element?.closest('button')?.textContent?.trim()??null;
+    },point);
+    expect(hit).toContain('Início');
+    await page.mouse.click(point.x,point.y);
+  }else await homeButton.click({timeout:8000});
+  await expect(page.getByRole('heading',{name:'Visão geral'})).toBeVisible();
   console.log('AUTH_STAGE_034_HOME_NAV_OK');
   // Hold the transport offline: a financial write must stay pending while
   // authentication remains valid and the foreground timer is enabled.
