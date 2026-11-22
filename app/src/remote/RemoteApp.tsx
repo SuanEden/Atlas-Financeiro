@@ -92,13 +92,21 @@ function RemoteWorkspace({controller}:{controller:RemoteController}) {
   // out, or while server writes remain disabled. The engine is idempotent.
   const canTransmit=snapshot.session.canTransmit;
   const canView=snapshot.session.canView;
+  const [networkOnline,setNetworkOnline]=useState(()=>typeof navigator==='undefined'||navigator.onLine!==false);
+  useEffect(()=>{
+    const update=()=>setNetworkOnline(navigator.onLine!==false);
+    window.addEventListener('online',update);window.addEventListener('offline',update);
+    return()=>{window.removeEventListener('online',update);window.removeEventListener('offline',update);};
+  },[]);
   useEffect(()=>{
     if(!canView||!canTransmit)return;
     const sync=()=>{if(document.visibilityState==='visible'&&navigator.onLine!==false)void controller.sync();};
     sync();
     // Keep remote updates visible without a hard reload. Only poll in the
     // foreground; the controller coalesces overlapping sync attempts.
-    const timer=window.setInterval(sync,10_000);
+    // Foreground polling remains a fallback; focus/online events give immediate updates.
+    // Avoid needless full-application refreshes every ten seconds on slow phones.
+    const timer=window.setInterval(sync,30_000);
     const focus=()=>sync();
     window.addEventListener('online',focus);
     window.addEventListener('focus',focus);
@@ -125,14 +133,15 @@ function RemoteWorkspace({controller}:{controller:RemoteController}) {
   }, [snapshot.store, snapshot.dataRevision, snapshot.syncing]);
   const pendingCount = Math.max(finance.state.outbox.length, pendingInStore);
   // A zero-length outbox is not proof of server confirmation.
-  const cloudStatus = !snapshot.session.onlineVerified ? 'Acesso offline'
+  const cloudStatus = !networkOnline ? 'Sem conexão · dados locais preservados'
+    : !snapshot.session.onlineVerified ? 'Acesso offline'
     : !snapshot.session.canTransmit ? 'Envio indisponível'
     : snapshot.syncing ? 'Sincronizando'
     : pendingCount > 0 ? 'Alterações pendentes'
     : snapshot.lastSyncResult === 'synced' ? 'Sincronizado'
     : snapshot.lastSyncResult === null ? 'Aguardando conferência'
     : 'Conferência necessária';
-  const cloudTone = !snapshot.session.onlineVerified || !snapshot.session.canTransmit ? 'offline'
+  const cloudTone = !networkOnline || !snapshot.session.onlineVerified || !snapshot.session.canTransmit ? 'offline'
     : snapshot.lastSyncResult === 'synced' && !snapshot.syncing && pendingCount === 0 ? 'synced'
     : 'pending';
   const cloudControls = <section className="cloud-control-card" aria-label="Sincronização">
@@ -141,7 +150,7 @@ function RemoteWorkspace({controller}:{controller:RemoteController}) {
     <p className="cloud-control-description" role="status">{snapshot.notice || snapshot.session.message}</p>
     <p className="cloud-control-pending">{pendingCount} {pendingCount === 1 ? 'operação pendente' : 'operações pendentes'}</p>
     <div className="cloud-control-actions">
-      {pendingCount > 0 ? <button className="button button--secondary" disabled={!snapshot.session.canTransmit || snapshot.syncing} onClick={() => void controller.sync()}>{snapshot.syncing ? 'Conferindo envio…' : 'Sincronizar agora'}</button> : null}
+      {(pendingCount > 0 || snapshot.lastSyncResult !== 'synced') ? <button className="button button--secondary" disabled={!networkOnline || !snapshot.session.canTransmit || snapshot.syncing} onClick={() => void controller.sync()}>{snapshot.syncing ? 'Conferindo envio…' : pendingCount > 0 ? 'Sincronizar agora' : 'Conferir com servidor'}</button> : null}
       {!snapshot.session.onlineVerified ? <button className="text-button" onClick={() => void controller.login()}>Entrar novamente</button> : null}
       <button className="text-button" onClick={() => void controller.logout()}>Sair e bloquear</button>
     </div>
