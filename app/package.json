@@ -15,7 +15,10 @@
     "test:pwa": "npm run build && playwright test --config playwright.preview.config.ts",
     "build": "npm run typecheck && vite build && node scripts/verify-pluggy-items.mjs",
     "preview": "vite preview",
-    "check": "npm run test && npm run build && npm run test:browser && npm run test:pwa"
+    "check": "npm run test && npm run build && npm run test:browser && npm run test:pwa",
+    "preflight:local": "node scripts/release-preflight.mjs --target=local",
+    "preflight:staging": "node scripts/release-preflight.mjs --target=staging",
+    "preflight:production": "node scripts/release-preflight.mjs --target=production"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.118.0",
