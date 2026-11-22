@@ -7,7 +7,7 @@ export type Importance = 'essential' | 'important' | 'optional';
 export type PlanFrequency = 'once'|'weekly'|'biweekly'|'monthly'|'quarterly'|'semiannual'|'annual'|'custom';
 export type DueState = 'historical'|'needs_confirmation'|'planned';
 export interface Allocation { id:string; accountId:string; cents:number; on:string; canceledAt?:string; }
-export interface Goal { id:string; name:string; targetCents:number|null; deadline:string|null; priority:'high'|'medium'|'low'; status:GoalStatus; allocations:Allocation[]; }
+export interface Goal { id:string; name:string; targetCents:number|null; deadline:string|null; priority:'high'|'medium'|'low'|'unset'; status:GoalStatus; allocations:Allocation[]; }
 export interface PlannedRecurrence {
   id:string; name:string; direction:'income'|'expense'; cents:number|null;
   frequency:PlanFrequency; customIntervalDays:number|null; dueDay:number|null;
@@ -96,7 +96,7 @@ export function validatePlan(input:unknown,ownerId?:string):asserts input is Fin
     text(row.name,'Nome da meta');
     if(!validMoney(row.targetCents,true))throw new TypeError('Valor-alvo inválido.');
     nullableDate(row.deadline,'Prazo da meta');
-    if(!['high','medium','low'].includes(String(row.priority))||!['active','paused','completed'].includes(String(row.status)))
+    if(!['high','medium','low','unset'].includes(String(row.priority))||!['active','paused','completed'].includes(String(row.status)))
       throw new TypeError('Prioridade ou estado da meta inválido.');
     const a=arrayOf(row.allocations,'Aportes da meta');
     if(a.some(x=>!uuid(x.id)||!uuid(x.accountId)||!validMoney(x.cents)||x.cents===0))throw new TypeError('Aporte inválido.');
