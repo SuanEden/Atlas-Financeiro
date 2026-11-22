@@ -15,11 +15,11 @@ test('arquivo de planejamento entra na área correta, sem importar como backup f
   const input=page.locator('.planning-backup input[type="file"]');
   page.once('dialog',dialog=>dialog.accept());
   await input.setInputFiles({name:'planejamento-test.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(template))});
-  await expect(page.getByText('Meta de teste importada')).toBeVisible();
+  await expect(page.locator('.planning-record strong').getByText('Meta de teste importada', { exact: true })).toBeVisible();
   page.once('dialog',dialog=>dialog.accept());
   await input.setInputFiles({name:'planejamento-test.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(template))});
-  await expect(page.getByText('Meta de teste importada')).toHaveCount(1);
+  await expect(page.locator('.planning-record strong').getByText('Meta de teste importada', { exact: true })).toHaveCount(1);
   await page.reload();
   await page.locator('.sidebar').getByRole('button',{name:'Planejamento'}).click();
-  await expect(page.getByText('Meta de teste importada')).toBeVisible();
+  await expect(page.locator('.planning-record strong').getByText('Meta de teste importada', { exact: true })).toBeVisible();
 });
