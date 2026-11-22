@@ -30,6 +30,7 @@ jobs:
           cache-dependency-path: app/package-lock.json
       - run: npm ci
       - run: npm run preflight:local
+      - run: npm run audit:guards
       - run: npm run test -- --maxWorkers=2
       - run: npm run build
       # Build artifact is intentionally offline-only. It contains no bank tokens,
