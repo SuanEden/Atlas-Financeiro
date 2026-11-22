@@ -32,6 +32,7 @@ import { AccountsView, BackupView, CategoriesView, Dashboard, MovementsView, typ
 import { useLocalFinance } from './ui/use-local-finance';
 import { planPersonalizedCategories, resolveCatalogParent } from './ui/personalized-categories';
 import { PersonalPlanning } from './planning/PersonalPlanning';
+import type { PlanningCloudPort } from './planning/cloud-model';
 
 type Modal =
   | { type: 'account' }
@@ -55,7 +56,7 @@ export function App({bankPanel}:{bankPanel?:ReactNode}={}) {
   return <FinancialWorkspace finance={useLocalFinance()} bankPanel={bankPanel} />;
 }
 
-export function FinancialWorkspace({finance,sessionControls,integration=false,entityManagementEnabled=true,exportJson,importJson,serverId,bankPanel,testMode=false}:{finance:ReturnType<typeof useLocalFinance>;sessionControls?:ReactNode;integration?:boolean;entityManagementEnabled?:boolean;exportJson?:()=>Promise<string>;importJson?:(json:string)=>Promise<number>;serverId?:string;bankPanel?:ReactNode;testMode?:boolean}) {
+export function FinancialWorkspace({finance,sessionControls,integration=false,entityManagementEnabled=true,exportJson,importJson,serverId,bankPanel,planningCloud,testMode=false}:{finance:ReturnType<typeof useLocalFinance>;sessionControls?:ReactNode;integration?:boolean;entityManagementEnabled?:boolean;exportJson?:()=>Promise<string>;importJson?:(json:string)=>Promise<number>;serverId?:string;bankPanel?:ReactNode;planningCloud?:PlanningCloudPort;testMode?:boolean}) {
   const { state, loading, busy, error, clearError, execute, modifyEntity, recover, readState, context, userId } = finance;
   const [page, setPage] = useState<Page | 'banks' | 'more' | 'planning'>('dashboard');
   const [modal, setModal] = useState<Modal>();
@@ -213,7 +214,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
               <button type="button" aria-label="Modo nuvem" onClick={()=>setPage('backup')}><span className="more-menu-icon"><Cloud size={20}/></span><span><strong>Modo nuvem</strong><small>Sincronização, backups e recuperação</small></span><ChevronRight size={20}/></button>
               <button type="button" onClick={toggleTheme}><span className="more-menu-icon">{dark?<Sun size={20}/>:<Moon size={20}/>}</span><span><strong>Aparência</strong><small>{dark?'Mudar para tema claro':'Mudar para tema escuro'}</small></span><ChevronRight size={20}/></button>
             </div></section> : null}
-            {page === 'planning' ? <PersonalPlanning ownerId={userId} accounts={state.accounts} categories={state.categories} ledger={state} /> : null}
+            {page === 'planning' ? <PersonalPlanning ownerId={userId} accounts={state.accounts} categories={state.categories} ledger={state} cloud={planningCloud} /> : null}
             {page === 'dashboard' ? <Dashboard integration={integration} state={state} today={today} userId={userId} onAddAccount={() => setModal({ type: 'account' })} onAddTransaction={openTransaction} onNavigate={(next)=>setPage(next)} /> : null}
             {page === 'movements' ? <MovementsView integration={integration} state={state} onAdd={openTransaction} onEdit={(event) => setModal({ type: 'transaction', initial: event })} onReverse={(event) => setModal({ type: 'reverse', event })} /> : null}
             {page === 'accounts' ? <AccountsView state={state} integration={integration} canManage={entityManagementEnabled} onAdd={() => setModal({ type: 'account' })} onEdit={(account)=>setModal({type:'edit_account',account})} onDelete={(account)=>{setDeleteFailure('');setModal({type:'delete_entity',entity:account,kind:'account'});}} onRestore={(account)=>void restoreEntity('account',account.id).catch(()=>setDeleteFailure('Não foi possível reativar a conta.'))} onReconcile={(account) => setModal({ type: 'reconcile', account })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
