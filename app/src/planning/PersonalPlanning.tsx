@@ -343,8 +343,6 @@ function AccountPreferences({plan,accounts,change,busy}:{plan:FinancialPlan;acco
       <label>Restrição de uso<input value={restriction} maxLength={240} onChange={e=>setRestriction(e.target.value)} placeholder="Ex.: transporte, prazo de resgate"/></label>
     </div>
     <button type="button" className="button button--primary" disabled={busy||!accountId} onClick={()=>void save().catch(()=>{})}>Salvar anotação</button>
-    <div className="planning-records">{accounts.map(a=><article key={a.id} className="planning-record"><div><strong>{a.name}</strong><p>{a.availability==='restricted'?'Uso restrito':a.availability==='reserved'?'Reservada':'Livre'} · {hasReconciledOpeningBalance(ledgerStub(),a.id)?'':''}{plan.accountPreferences.find(p=>p.accountId===a.id)?.institution||'Instituição não informada'}</p><small>{plan.accountPreferences.find(p=>p.accountId===a.id)?.usageRestriction||'Sem observações adicionais'}</small></div></article>)}</div>
+    <div className="planning-records">{accounts.map(a=><article key={a.id} className="planning-record"><div><strong>{a.name}</strong><p>{a.availability==='restricted'?'Uso restrito':a.availability==='reserved'?'Reservada':'Livre'} · {plan.accountPreferences.find(p=>p.accountId===a.id)?.institution||'Instituição não informada'}</p><small>{plan.accountPreferences.find(p=>p.accountId===a.id)?.usageRestriction||'Sem observações adicionais'}</small></div></article>)}</div>
   </section>;
 }
-// Do not attempt to infer a financial balance from preferences or a synthetic dataset.
-function ledgerStub():LocalFinancialState{return {accounts:[],categories:[],events:[],settlements:[],postings:[],outbox:[]};}
