@@ -20,6 +20,8 @@ async function expandCloudControls(page:Page) {
   await expect(page.getByRole('heading',{name:'Sincronização',exact:true})).toBeVisible();
 }
 test('Auth sintético: associação explícita, expiração offline, exportação I3 e logout bloqueiam sem apagar',async({page},info)=>{
+  // Comprehensive multi-stage device/auth/backup test; mobile CI can exceed the default 30s.
+  test.setTimeout(90_000);
   const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
   page.on('console',message=>{if(['error','warning'].includes(message.type()))errors.push(message.text());});
   await syntheticApp(page);
