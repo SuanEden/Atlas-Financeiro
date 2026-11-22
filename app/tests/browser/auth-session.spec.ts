@@ -35,18 +35,27 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   await page.getByRole('button',{name:'Iniciar uma base vazia'}).click();
   console.log('AUTH_STAGE_03_ASSOCIATED');
   await expect(page.getByRole('heading',{name:'Visão geral'})).toBeVisible();
+  console.log('AUTH_STAGE_031_BEFORE_CLOUD_NAV');
   await expandCloudControls(page);
+  console.log('AUTH_STAGE_032_CLOUD_NAV_OK');
   await expect(page.locator('.cloud-hub')).toContainText('Cópia local ativa');
   await expect(page.locator('.device-status')).toContainText('Modo nuvem');
   await expect(page.getByRole('button',{name:'Sincronizar agora'})).toHaveCount(0);
   const homeNav=page.getByRole('navigation',{name:(page.viewportSize()?.width??1280)<761?'Navegação móvel':'Navegação principal'});
-  await homeNav.getByRole('button',{name:'Início',exact:true}).click();
+  console.log('AUTH_STAGE_033_BEFORE_HOME_NAV');
+  await homeNav.getByRole('button',{name:'Início',exact:true}).click({timeout:8000});
+  console.log('AUTH_STAGE_034_HOME_NAV_OK');
   // Hold the transport offline: a financial write must stay pending while
   // authentication remains valid and the foreground timer is enabled.
   await page.evaluate(()=>localStorage.setItem('synthetic-transport-offline','yes'));
-  await page.getByRole('button',{name:'Criar minha primeira conta'}).click();
-  await page.getByLabel('Nome da conta').fill('Conta sintética de sessão');
-  await page.getByRole('dialog').getByRole('button',{name:'Criar conta',exact:true}).click();
+  console.log('AUTH_STAGE_035_OFFLINE_SET');
+  await page.getByRole('button',{name:'Criar minha primeira conta'}).click({timeout:8000});
+  console.log('AUTH_STAGE_036_ACCOUNT_DIALOG_OPEN');
+  await page.getByLabel('Nome da conta').fill('Conta sintética de sessão',{timeout:8000});
+  console.log('AUTH_STAGE_037_ACCOUNT_NAME_FILLED');
+  console.log('AUTH_STAGE_038_BEFORE_SAVE_ACCOUNT');
+  await page.getByRole('dialog').getByRole('button',{name:'Criar conta',exact:true}).click({timeout:8000});
+  console.log('AUTH_STAGE_039_SAVE_CLICKED');
   console.log('AUTH_STAGE_04_ACCOUNT_CREATED');
   await expect(page.getByRole('heading',{name:'Nova conta'})).toHaveCount(0);
   console.log('AUTH_STAGE_05_EXPIRING');
