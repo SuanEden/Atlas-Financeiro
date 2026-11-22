@@ -78,7 +78,7 @@ export async function decryptPlanningBackup(raw:string,passphrase:string):Promis
   if(ciphertext.length<16)throw new TypeError('Conteúdo criptografado inválido.');
   try{
     const key=await derive(passphrase,salt,['decrypt']);
-    const plaintext=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ciphertext);
+    const plaintext=await crypto.subtle.decrypt({name:'AES-GCM',iv:new Uint8Array(iv)},key,new Uint8Array(ciphertext));
     const decoded=new TextDecoder('utf-8',{fatal:true}).decode(plaintext);
     const plan:unknown=JSON.parse(decoded);
     validatePlan(plan);
