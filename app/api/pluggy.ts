@@ -14,7 +14,7 @@ const accountPermissions = new Map<string,number>();
 /** Atomic per-owner, per-item claim in Supabase. Fail closed if the RPC is not deployed. */
 async function claimRefresh(req: IncomingMessage,itemId:string):Promise<'claimed'|'cooldown'|'unavailable'>{
   if(process.env.ATLAS_PLUGGY_REFRESH_LOCK!=='supabase')return 'unavailable';
-  const token=/^Bearer (\\S+)$/.exec(String(req.headers.authorization??''))?.[1];
+  const token=/^Bearer (\S+)$/.exec(String(req.headers.authorization??''))?.[1];
   const url=process.env.VITE_SUPABASE_URL,publishable=process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   if(!token||!url||!publishable)return 'unavailable';
   try{
