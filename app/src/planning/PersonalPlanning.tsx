@@ -8,7 +8,7 @@ import {
 } from './model';
 import { readPlanning, mutatePlanning, exportPlanning, importPlanning } from './store';
 
-type Tab='goals'|'recurrences'|'shared'|'obligations'|'rules'|'accounts';
+type Tab='goals'|'recurrences'|'shared'|'obligations'|'rules'|'accounts'|'necessities';
 type Editor=(change:(plan:FinancialPlan)=>FinancialPlan)=>Promise<void>;
 const money=(cents:number|null|undefined)=>cents==null?'Não informado':formatBRL(BigInt(cents));
 const cents=(value:string,optional=false):number|null=>{
@@ -79,7 +79,7 @@ export function PersonalPlanning({ownerId,accounts,categories,ledger}:{ownerId:s
   const tabs:{id:Tab;label:string}[]=[
     {id:'goals',label:'Metas'}, {id:'recurrences',label:'Recorrências'},
     {id:'shared',label:'Compartilhadas'}, {id:'obligations',label:'Obrigações'},
-    {id:'rules',label:'Classificação'}, {id:'accounts',label:'Contas'}
+    {id:'rules',label:'Classificação'}, {id:'necessities',label:'Necessidade'}, {id:'accounts',label:'Contas'}
   ];
   return <section className="page-content planning-page" aria-label="Planejamento pessoal">
     <div className="page-heading"><div><p className="section-kicker">ORGANIZAÇÃO PESSOAL</p><h1>Planejamento financeiro</h1><p>Metas, compromissos e regras — sem lançar ou movimentar dinheiro automaticamente.</p></div></div>
@@ -95,6 +95,7 @@ export function PersonalPlanning({ownerId,accounts,categories,ledger}:{ownerId:s
     {tab==='shared'?<Shared plan={plan} change={change} busy={busy} onFailure={onFailure}/>:null}
     {tab==='obligations'?<Obligations plan={plan} change={change} busy={busy} onFailure={onFailure}/>:null}
     {tab==='rules'?<Rules plan={plan} categories={categories} change={change} busy={busy} onFailure={onFailure}/>:null}
+    {tab==='necessities'?<EventNeeds plan={plan} ledger={ledger} change={change} busy={busy} onFailure={onFailure}/>:null}
     {tab==='accounts'?<AccountPreferences plan={plan} accounts={accounts} change={change} busy={busy} onFailure={onFailure}/>:null}
     </>}
   </section>;
@@ -340,6 +341,25 @@ function Rules({plan,categories,change,busy,onFailure}:{plan:FinancialPlan;categ
     <button type="button" className="button button--primary" disabled={busy||!ack||!identifier.trim()||!categoryId} onClick={()=>void add().catch(onFailure)}>Memorizar regra</button>
     <div className="planning-records">{plan.rules.map(row=><article className="planning-record" key={row.id}><div><strong>{row.identifierType==='merchant_id'?'Estabelecimento':'Destinatário'}: {row.identifier}</strong><p>{categories.find(c=>c.id===row.categoryId)?.name??'Categoria não encontrada'} · autorizado em {row.approvedAt}</p></div>
       <label>Regra<select value={row.enabled?'enabled':'disabled'} disabled={busy} onChange={e=>void change(prev=>({...prev,rules:updateItem(prev.rules,row.id,item=>({...item,enabled:e.target.value==='enabled'}))})).catch(onFailure)}><option value="enabled">Guardada</option><option value="disabled">Desativada</option></select></label></article>)}</div>
+  </section>;
+}
+
+function EventNeeds({plan,ledger,change,busy,onFailure}:{plan:FinancialPlan;ledger:LocalFinancialState;change:Editor;busy:boolean;onFailure:(reason:unknown)=>void}){
+  const expenses=ledger.events.filter(e=>e.kind==='expense'&&!e.reversesEventId).slice().sort((a,b)=>b.competenceDate.localeCompare(a.competenceDate)).slice(0,120);
+  return <section className="planning-section"><h2>Necessidade de cada despesa</h2>
+    <p className="form-note">A natureza essencial/importante/opcional pode variar em lançamentos da mesma categoria. Estas etiquetas são anotações locais, não modificações no extrato e não sincronizam com outro dispositivo.</p>
+    {expenses.length===0?<p>Nenhuma despesa disponível para classificar.</p>:<div className="planning-records">{expenses.map(event=>{
+      const current=(plan.eventNecessities??[]).find(row=>row.eventId===event.id);
+      return <article key={event.id} className="planning-record">
+        <div><strong>{event.description}</strong><p>{event.competenceDate} · {money(Number(event.amountCents))}</p></div>
+        <label>Necessidade<select disabled={busy} value={current?.necessity??''} onChange={e=>void change(prev=>({
+          ...prev,eventNecessities:e.target.value===''?
+            (prev.eventNecessities??[]).filter(row=>row.eventId!==event.id):
+            [...(prev.eventNecessities??[]).filter(row=>row.eventId!==event.id),
+              {eventId:event.id,necessity:e.target.value as Importance}]
+        })).catch(onFailure)}><option value="">A definir</option><option value="essential">Essencial</option><option value="important">Importante</option><option value="optional">Opcional</option></select></label>
+      </article>;
+    })}</div>}
   </section>;
 }
 
