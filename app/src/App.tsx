@@ -239,6 +239,11 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
                 <div className="cloud-hub-section-heading"><Cloud size={19}/><h2 id="cloud-hub-sync-heading">Sincronização</h2></div>
                 {sessionControls ?? <div className="cloud-hub-local"><HardDrive size={20}/><div><strong>Dados armazenados neste dispositivo</strong><p>A sincronização remota não está ativa. Você ainda pode exportar e restaurar cópias locais abaixo.</p></div></div>}
               </section>
+              <section className="cloud-hub-section" aria-label="Importação do planejamento pessoal">
+                <div className="cloud-hub-section-heading"><Target size={19}/><h2>Arquivo de metas e planejamento</h2></div>
+                <p>Recebeu um arquivo chamado <strong>atlas_planejamento_personalizado_privado.json</strong>? Ele não é um backup financeiro I2/I3. Use a importação própria para evitar erro ou confusão entre as bases.</p>
+                <button type="button" className="button button--secondary" onClick={()=>setPage('planning')}>Abrir importação de Planejamento</button>
+              </section>
               <section className="cloud-hub-section cloud-hub-section--backup" aria-label="Backup e recuperação">
                 <BackupView testMode={testMode} integration={integration} {...(serverId?{serverId}:{})} {...(exportJson?{exportJson}:{})} {...(importJson?{importJson}:{})} onRecover={recover} busy={busy} readState={readState} state={state} userId={userId} today={today} />
               </section>
