@@ -3,6 +3,8 @@ import { assertEntityId } from '../domain';
 import { SyncFailure, type SyncTransport } from '../sync/engine';
 import type { ChangePage, Receipt, SyncEnvelope } from '../sync/protocol';
 import { assertEnvelope } from '../sync/protocol';
+import { verifyPlanningCloudSnapshot, type PlanningCloudSnapshot, type PlanningCloudWriteResult } from '../planning/cloud-model';
+import { validatePlan, type FinancialPlan } from '../planning/model';
 
 export interface AuthIdentity { userId:string; expiresAt:number; writesEnabled:boolean; financialSchemaVersion?:number }
 export interface AuthPort {
@@ -14,6 +16,8 @@ export interface AuthPort {
   onChange(callback:(userId?:string)=>void):()=>void;
   readBank?(resource:'item'|'accounts'|'transactions'|'balance', id?:string, after?:string, dateFrom?:string, continuation?:string):Promise<unknown>;
   refreshBank?(itemId:string):Promise<{started:boolean;status?:string;lastUpdatedAt?:string|null}>;
+  readPlanning?():Promise<PlanningCloudSnapshot>;
+  writePlanning?(expectedRevision:number,document:FinancialPlan):Promise<PlanningCloudWriteResult>;
 }
 export interface RemoteConfig { url:string; publishableKey:string; serverId:string }
 
@@ -50,6 +54,26 @@ export function adapterFromClient(client:ApiClient,origin:string,clearLocalSessi
     return data as T;
   };
   const auth:AuthPort={
+    async readPlanning() {
+      const {data,error}=await client.auth.getUser();
+      if(error||!data.user)throw new SyncFailure('login_required','NO_SESSION');
+      const response=await rpc<PlanningCloudSnapshot>('planning_read');
+      verifyPlanningCloudSnapshot(data.user.id,response);
+      return response;
+    },
+    async writePlanning(expectedRevision,document) {
+      const {data,error}=await client.auth.getUser();
+      if(error||!data.user)throw new SyncFailure('login_required','NO_SESSION');
+      validatePlan(document,data.user.id);
+      if(!Number.isSafeInteger(expectedRevision)||expectedRevision<0)
+        throw new Error('Revisão de planejamento inválida.');
+      const response=await rpc<PlanningCloudWriteResult>('planning_compare_swap',{
+        p_expected_revision:expectedRevision,p_document:document
+      });
+      if(typeof response.applied!=='boolean')throw new Error('Resposta de sincronização inválida.');
+      verifyPlanningCloudSnapshot(data.user.id,response);
+      return response;
+    },
     async verifyBankLogin() {
       const {data,error}=await client.auth.getUser();
       const isGoogle=!error && Boolean(data.user && !data.user.is_anonymous && data.user.identities?.some(identity=>identity.provider==='google'));
