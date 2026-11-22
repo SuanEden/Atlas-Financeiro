@@ -1,7 +1,7 @@
 /** Explicitly opt-in, read-only deployment diagnostic. Never print tokens, IDs or bank data. */
 const raw=(process.env.ATLAS_PLUGGY_ALLOWED_ITEM_IDS??'').trim();
 const ids=raw?raw.split(',').map(x=>x.trim()):[];
-const valid=/^[\\da-f]{8}-(?:[\\da-f]{4}-){3}[\\da-f]{12}$/i;
+const valid=/^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i;
 const banks=ids.map((id,index)=>['connection-'+(index+1),id]);
 
 if (process.env.ATLAS_BANK_DIAGNOSE !== '1') {
