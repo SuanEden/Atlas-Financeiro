@@ -5,12 +5,29 @@
  * VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in Production.
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { approvedPluggyItems, pluggyReady } from '../src/server/pluggy-policy';
 
 let cachedKey: { value: string; expires: number } | undefined;
-// Only two owner-approved Pluggy items may be read or explicitly refreshed.
-const bankItems = new Set(['71c06153-0d24-45ac-81f6-9de6f0d04282','1c91ee97-e614-494f-b41a-5e203d5fa7ee']);
+// No connection identifiers in public source. An empty configuration denies all bank access.
+const bankItems = approvedPluggyItems(process.env.ATLAS_PLUGGY_ALLOWED_ITEM_IDS);
 const accountPermissions = new Map<string,number>();
-const refreshCooldowns = new Map<string,number>(); // Best-effort per-function guard; Pluggy also enforces its limits.
+/** Atomic per-owner, per-item claim in Supabase. Fail closed if the RPC is not deployed. */
+async function claimRefresh(req: IncomingMessage,itemId:string):Promise<'claimed'|'cooldown'|'unavailable'>{
+  if(process.env.ATLAS_PLUGGY_REFRESH_LOCK!=='supabase')return 'unavailable';
+  const token=/^Bearer (\\S+)$/.exec(String(req.headers.authorization??''))?.[1];
+  const url=process.env.VITE_SUPABASE_URL,publishable=process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if(!token||!url||!publishable)return 'unavailable';
+  try{
+    const response=await fetch(new URL('/rest/v1/rpc/pluggy_claim_refresh',url),{
+      method:'POST',headers:{Authorization:'Bearer '+token,apikey:publishable,
+        'Content-Type':'application/json','Content-Profile':'api','Accept-Profile':'api'},
+      body:JSON.stringify({p_item_id:itemId}),signal:AbortSignal.timeout(10000),
+    });
+    if(!response.ok)return 'unavailable';
+    const granted:unknown=await response.json();
+    return granted===true?'claimed':granted===false?'cooldown':'unavailable';
+  }catch{return 'unavailable';}
+}
 const reply = (res: ServerResponse, status: number, body: unknown) => {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -62,12 +79,12 @@ async function accountBelongsToOwner(id: string): Promise<boolean> {
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== 'GET' && req.method !== 'POST') return reply(res, 405, { error: 'Method not allowed' });
   try {
-    // Diagnostic endpoint: no Google session needed and no banking records returned.
-    // Intentionally expose only a generic readiness flag, never credentials or upstream details.
+    // A public health check must never call upstream authentication or spend Pluggy quota.
     const diagnostic = new URL(req.url ?? '/', 'http://localhost');
     if (req.method === 'GET' && diagnostic.searchParams.get('resource') === 'health' && diagnostic.searchParams.size === 1) {
-      try { await key(); return reply(res, 200, { service: 'pluggy', authentication: 'ok' }); }
-      catch { return reply(res, 503, { service: 'pluggy', authentication: 'unavailable' }); }
+      return pluggyReady(process.env)
+        ? reply(res,200,{service:'pluggy',configuration:'ready'})
+        : reply(res,503,{service:'pluggy',configuration:'unavailable'});
     }
     if (!await authorize(req)) return reply(res, 403, { error: 'Acesso não autorizado ou configuração incompleta.' });
     const original = new URL(req.url ?? '/', 'http://localhost');
@@ -84,9 +101,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       if (resource !== 'refresh' || !itemId || !bankItems.has(itemId) ||
           original.searchParams.size !== 2 || !uuid(itemId))
         return reply(res, 400, { error: 'Parâmetros de atualização inválidos.' });
-      const until = refreshCooldowns.get(itemId) || 0;
-      if (until > Date.now()) return reply(res, 429, { error: 'Atualização solicitada recentemente. Aguarde.' });
-      refreshCooldowns.set(itemId, Date.now() + 60*60*1000);
+      const claim=await claimRefresh(req,itemId);
+      if(claim==='unavailable')return reply(res,503,{error:'Atualização bancária indisponível até habilitar a trava distribuída segura.'});
+      if(claim==='cooldown')return reply(res,429,{error:'Atualização solicitada recentemente. Aguarde.'});
       const response = await fetch('https://api.pluggy.ai/items/' + itemId, {
         method: 'PATCH',
         headers: { 'X-API-KEY': await key(), 'Content-Type': 'application/json' },
@@ -94,7 +111,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         signal: AbortSignal.timeout(15000),
       });
       if (!response.ok) {
-        refreshCooldowns.delete(itemId);
+        // Do not release a distributed claim on errors: a failed upstream call
+        // should not permit uncontrolled retries from other server instances.
         return reply(res, 502, { error: 'A Pluggy não iniciou a atualização.', upstreamStatus: response.status });
       }
       const result = await response.json() as {status?:string;lastUpdatedAt?:string};
