@@ -103,7 +103,7 @@ function Goals({plan,accounts,ledger,change,busy}:{plan:FinancialPlan;accounts:A
   const [name,setName]=useState('');
   const [target,setTarget]=useState('');
   const [deadline,setDeadline]=useState('');
-  const [priority,setPriority]=useState<Goal['priority']>('medium');
+  const [priority,setPriority]=useState<Goal['priority']>('unset');
   const [selected,setSelected]=useState('');
   const [accountId,setAccountId]=useState('');
   const [allocation,setAllocation]=useState('');
@@ -142,12 +142,12 @@ function Goals({plan,accounts,ledger,change,busy}:{plan:FinancialPlan;accounts:A
       <label>Nome da meta<input value={name} onChange={e=>setName(e.target.value)} maxLength={200}/></label>
       <label>Valor-alvo (opcional)<input inputMode="decimal" placeholder="Desconhecido" value={target} onChange={e=>setTarget(e.target.value)}/></label>
       <label>Prazo (opcional)<input type="date" value={deadline} onChange={e=>setDeadline(e.target.value)}/></label>
-      <label>Prioridade<select value={priority} onChange={e=>setPriority(e.target.value as Goal['priority'])}><option value="high">Alta</option><option value="medium">Média</option><option value="low">Baixa</option></select></label>
+      <label>Prioridade<select value={priority} onChange={e=>setPriority(e.target.value as Goal['priority'])}><option value="unset">A definir</option><option value="high">Alta</option><option value="medium">Média</option><option value="low">Baixa</option></select></label>
     </div>
     <button type="button" className="button button--primary" disabled={busy||!name.trim()} onClick={()=>void addGoal().catch(()=>{})}>Adicionar meta</button>
     <div className="planning-records">{plan.goals.map(goal=>{
       const allocated=sumGoalAllocations(goal);
-      return <article className="planning-record" key={goal.id}><div><strong>{goal.name}</strong><p>Reservado: {money(allocated)} · Alvo: {money(goal.targetCents)} · {goal.deadline??'Sem prazo'}</p><small>{goal.allocations.length} registro(s) de reserva · prioridade {goal.priority}</small><div className="planning-history">{goal.allocations.map(a=><div key={a.id}><small>{a.on}: {money(a.cents)} · {accounts.find(account=>account.id===a.accountId)?.name??'Conta não encontrada'} {a.canceledAt?'· Cancelada em '+a.canceledAt:''}</small>{!a.canceledAt?<button type="button" className="text-button" disabled={busy} onClick={()=>void change(prev=>({...prev,goals:updateItem(prev.goals,goal.id,g=>({...g,allocations:updateItem(g.allocations,a.id,old=>({...old,canceledAt:new Date().toISOString().slice(0,10)}))}))})).catch(()=>{})}>Cancelar reserva</button>:null}</div>)}</div></div>
+      return <article className="planning-record" key={goal.id}><div><strong>{goal.name}</strong><p>Reservado: {money(allocated)} · Alvo: {money(goal.targetCents)} · {goal.deadline??'Sem prazo'}</p><small>{goal.allocations.length} registro(s) de reserva · prioridade {goal.priority==='unset'?'não definida':goal.priority}</small><div className="planning-history">{goal.allocations.map(a=><div key={a.id}><small>{a.on}: {money(a.cents)} · {accounts.find(account=>account.id===a.accountId)?.name??'Conta não encontrada'} {a.canceledAt?'· Cancelada em '+a.canceledAt:''}</small>{!a.canceledAt?<button type="button" className="text-button" disabled={busy} onClick={()=>void change(prev=>({...prev,goals:updateItem(prev.goals,goal.id,g=>({...g,allocations:updateItem(g.allocations,a.id,old=>({...old,canceledAt:new Date().toISOString().slice(0,10)}))}))})).catch(()=>{})}>Cancelar reserva</button>:null}</div>)}</div></div>
         <label>Estado<select aria-label={'Estado '+goal.name} value={goal.status} disabled={busy} onChange={e=>void change(prev=>({...prev,goals:updateItem(prev.goals,goal.id,g=>({...g,status:e.target.value as Goal['status']}))})).catch(()=>{})}><option value="active">Ativa</option><option value="paused">Pausada</option><option value="completed">Concluída</option></select></label>
       </article>;
     })}</div>
