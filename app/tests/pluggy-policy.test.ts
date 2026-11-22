@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { approvedPluggyItems, pluggyReady } from '../src/server/pluggy-policy';
+import { approvedPluggyItems, pluggyReady } from '../api/pluggy';
 
 const a='71c06153-0d24-45ac-81f6-9de6f0d04282';
 const b='1c91ee97-e614-494f-b41a-5e203d5fa7ee';
