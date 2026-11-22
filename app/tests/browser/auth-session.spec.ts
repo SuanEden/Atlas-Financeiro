@@ -42,6 +42,17 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   await expect(page.locator('.device-status')).toContainText('Modo nuvem');
   await expect(page.getByRole('button',{name:'Sincronizar agora'})).toHaveCount(0);
   const homeNav=page.getByRole('navigation',{name:(page.viewportSize()?.width??1280)<761?'Navegação móvel':'Navegação principal'});
+  console.log('AUTH_NAV_HIT_TEST',JSON.stringify(await page.evaluate(()=>{
+    const nav=document.querySelector<HTMLElement>('.bottom-nav');
+    const ws=document.querySelector<HTMLElement>('.workspace');
+    const button=Array.from(nav?.querySelectorAll('button')??[]).find(b=>b.textContent?.includes('Início'));
+    const rect=button?.getBoundingClientRect();
+    const hit=rect?document.elementFromPoint(rect.left+rect.width/2,rect.top+rect.height/2):null;
+    const ns=nav?getComputedStyle(nav):null,wsStyle=ws?getComputedStyle(ws):null;
+    return {viewport:{w:innerWidth,h:innerHeight,scrollY},button:rect?{x:rect.x,y:rect.y,w:rect.width,h:rect.height}:null,
+      nav:nav?{position:ns?.position,zIndex:ns?.zIndex,display:ns?.display,top:nav.getBoundingClientRect().top,bottom:nav.getBoundingClientRect().bottom,backdrop:ns?.backdropFilter}:null,
+      workspace:{position:wsStyle?.position,zIndex:wsStyle?.zIndex},hit:hit?.outerHTML.slice(0,160)};
+  })));
   console.log('AUTH_STAGE_033_BEFORE_HOME_NAV');
   await homeNav.getByRole('button',{name:'Início',exact:true}).click({timeout:8000});
   console.log('AUTH_STAGE_034_HOME_NAV_OK');
