@@ -105,7 +105,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
           setCatalogConfirmed(false);
           return;
         }
-        const next=missing[0];
+        const next=missing[0]!;
         const parentId=resolveCatalogParent(current.categories,next);
         await execute(createCategoryCommand({
           name:next.name,kind:next.kind,...(parentId?{parentId}:{})
