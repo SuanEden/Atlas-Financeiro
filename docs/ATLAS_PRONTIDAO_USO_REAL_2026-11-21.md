@@ -4,9 +4,12 @@
 - Base: `codex/atlas-fluidez-ux-20261121`; interface, extrato, skeleton, animações e testes já aprovados na execução anterior do GitHub Actions.
 - Nova proteção: o painel em modo nuvem não chama o estado de `Sincronizado` quando o servidor não confirmou a revisão. `Sem pendências` e `Sincronizado` são estados diferentes. O resultado é invalidado em novo login, perda de sessão, mudança de origem/namespace, escrita local, recuperação e importação.
 - Supabase conectado pela integração: projeto de staging e projeto I3 existentes; ambos com schema privado `atlas_private` e API `api.i3_*`; não foram executadas migrações, DML nem alterações em credenciais.
-- Staging: existe um recibo e um lote sintéticos conhecidos; nenhuma conta/lançamento bancário confirmado por esta auditoria. O projeto I3 apresenta tabelas financeiras sem registros estimados. Essas informações **não demonstram que os dados financeiros do usuário estejam vazios**.
+- Staging: existe um recibo e um lote sintéticos conhecidos; nenhuma conta/lançamento bancário confirmado por esta auditoria. O projeto I3 principal **contém 4 contas, 163 eventos e 168 recibos confirmados por COUNT(*) em 21/11/2026**. O staging contém 0 contas, 0 eventos e 1 recibo. Contagens estimadas de pg_stat_user_tables eram imprecisas; jamais utilizá-las para inferir base vazia. Preservar todos os dados e o projeto de origem.
 - `api.i3_readiness` de staging declara protocolo 1 e versão financeira 4; consulta read-only confirmou `integration_control.writes_enabled=true` no **staging** e `false` no **projeto I3 principal**. Não alterar a autorização sem homologação nem supor que staging contenha os dados reais.
 - A conexão Vercel acessível no contexto não apresenta projeto Git vinculado a `SuanEden/Atlas-Financeiro`; nenhuma publicação foi possível/realizada.
+
+## Correção factual obrigatória
+Consulta SQL exata confirmou registros existentes no I3 principal. A estimativa de zero linhas reportada anteriormente era imprecisa e não pode fundamentar associação, migração ou reset. Não há evidência de que a base de staging seja substituta da principal.
 
 ## Prioridades para liberar operação diária
 ### P0 — obrigatório
