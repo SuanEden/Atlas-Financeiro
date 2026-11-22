@@ -8,12 +8,14 @@ import { commandEnvelope, isI3SchemaCompatible, prepareBootstrap, type Bootstrap
 import { canonicalLocalState } from '../backup/validate-i2-backup';
 import { jsonDigest } from '../sync/protocol';
 import type { LocalFinancialState } from '../domain';
+import type { PlanningCloudPort } from '../planning/cloud-model';
 
 export interface SourcePort {read():Promise<{ownerId:string;state:LocalFinancialState}>}
 export interface RemoteSnapshot {session:SessionView;loading:boolean;dataRevision:number;notice:string;syncing:boolean;lastSyncResult:SyncResult|null;store:LocalSyncStore|undefined}
 
 export class RemoteController {
   readonly policy:SessionPolicy;
+  readonly planningCloud:PlanningCloudPort|undefined;
   #snapshot:RemoteSnapshot;
   #listeners=new Set<()=>void>();
   #store:LocalSyncStore|undefined;
@@ -27,6 +29,31 @@ export class RemoteController {
   readonly #unsubscribeAuth:()=>void;
   constructor(readonly serverId:string,private readonly auth:AuthPort,private readonly transport:SyncTransport,storage:Storage,private readonly source:SourcePort,private readonly deviceNamespace='default',private readonly now=()=>Date.now()) {
     this.policy=new SessionPolicy(serverId,storage,now);
+    // Independent planning RPCs never call i3_apply or change any financial gate.
+    if(auth.readPlanning&&auth.writePlanning){
+      this.planningCloud={
+        read:async()=>{
+          const identity=this.policy.snapshot;
+          if(!identity.onlineVerified||!identity.canView)throw new Error('Confirme sua sessão antes de sincronizar o Planejamento.');
+          const result=await auth.readPlanning!();
+          const current=this.policy.snapshot;
+          if(current.epoch!==identity.epoch||current.userId!==identity.userId||!current.onlineVerified)
+            throw new Error('A sessão mudou durante a leitura do Planejamento.');
+          return result;
+        },
+        write:async(expectedRevision,document)=>{
+          const identity=this.policy.snapshot;
+          if(!identity.onlineVerified||!identity.canView||document.ownerId!==identity.userId)
+            throw new Error('Confirme a conta correta antes de enviar Planejamento.');
+          const result=await auth.writePlanning!(expectedRevision,document);
+          const current=this.policy.snapshot;
+          if(current.epoch!==identity.epoch||current.userId!==identity.userId||!current.onlineVerified)
+            throw new Error('A sessão mudou durante o envio do Planejamento. Preserve a cópia local.');
+          return result;
+        }
+      };
+    }
+
     this.#snapshot={session:this.policy.snapshot,loading:true,dataRevision:0,notice:'',syncing:false,lastSyncResult:null,store:undefined};
     this.#unsubscribeAuth=auth.onChange((userId)=>{
       if(this.#disposed||this.policy.snapshot.blocked)return;
