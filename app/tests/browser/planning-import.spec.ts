@@ -23,3 +23,16 @@ test('arquivo de planejamento entra na área correta, sem importar como backup f
   await page.locator('.sidebar').getByRole('button',{name:'Planejamento'}).click();
   await expect(page.locator('.planning-record strong').getByText('Meta de teste importada', { exact: true })).toBeVisible();
 });
+
+test('backup I2 rejeita arquivo de planejamento com orientação específica',async({page})=>{
+  await page.setViewportSize({width:1440,height:960});
+  await page.goto('/');
+  await page.locator('.sidebar').getByRole('button',{name:'Modo nuvem'}).click();
+  const plan={schemaVersion:1,ownerId:'import-template',revision:0,
+    goals:[],recurrences:[],obligations:[],shared:[],rules:[],accountPreferences:[]};
+  await page.getByLabel('Arquivo JSON de I2').setInputFiles({
+    name:'atlas-planejamento.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(plan))
+  });
+  await expect(page.getByRole('alert')).toContainText('Mais → Planejamento → Importar cópia JSON');
+  await expect(page.getByRole('button',{name:'Confirmar recuperação'})).toHaveCount(0);
+});
