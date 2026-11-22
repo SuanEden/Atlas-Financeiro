@@ -13,3 +13,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env:ImportMetaEnv;
 }
+
+/** Vite CSS side-effect imports are intentionally typed without vite/client. */
+declare module '*.css';
