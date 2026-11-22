@@ -29,6 +29,7 @@ import { isEntitySelectable, type Account, type Category, type FinancialEvent } 
 import { AccountForm, AccountReconciliationForm, CategoryForm, DialogFrame, MetadataEditForm, TransactionForm } from './ui/Forms';
 import { AccountsView, BackupView, CategoriesView, Dashboard, MovementsView, type Page } from './ui/Views';
 import { useLocalFinance } from './ui/use-local-finance';
+import { planPersonalizedCategories, resolveCatalogParent } from './ui/personalized-categories';
 
 type Modal =
   | { type: 'account' }
@@ -57,6 +58,13 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
   const [modal, setModal] = useState<Modal>();
   const [notice, setNotice] = useState('');
   const [deleteFailure, setDeleteFailure] = useState('');
+  const [catalogOpen,setCatalogOpen]=useState(false);
+  const [catalogConfirmed,setCatalogConfirmed]=useState(false);
+  const [catalogBusy,setCatalogBusy]=useState(false);
+  const [catalogError,setCatalogError]=useState('');
+  const [catalogResult,setCatalogResult]=useState('');
+  const categoryProposals=planPersonalizedCategories(state.categories);
+
   // Navigation is presentation-only; financial state remains unchanged.
   const [dark, setDark] = useState(() => localStorage.getItem('atlas-financeiro:theme:v2') !== 'light');
   const today = context.today();
@@ -80,6 +88,34 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
     await execute(reconcileAccountCommand(state, input, context));
     setNotice('Saldo inicial registrado. Confira a condição e a data de referência na conta.');
     setModal(undefined);
+  }
+
+  async function applyPersonalizedCatalog() {
+    if(!catalogConfirmed||catalogBusy||busy)return;
+    setCatalogBusy(true);setCatalogError('');setCatalogResult('');
+    let created=0;
+    try {
+      // Each successful operation is durable. A retry recomputes missing names
+      // against the current ledger so partial success never duplicates records.
+      for(let i=0;i<180;i++){
+        const current=await readState();
+        const missing=planPersonalizedCategories(current.categories);
+        if(missing.length===0){
+          setCatalogResult(created===0?'Seu catálogo já está completo.':created+' categorias adicionadas. Nenhum lançamento, saldo, conta ou obrigação foi criado.');
+          setCatalogConfirmed(false);
+          return;
+        }
+        const next=missing[0];
+        const parentId=resolveCatalogParent(current.categories,next);
+        await execute(createCategoryCommand({
+          name:next.name,kind:next.kind,...(parentId?{parentId}:{})
+        },context));
+        created++;
+      }
+      throw new Error('Limite de segurança da importação atingido. Confira as categorias antes de continuar.');
+    } catch(reason) {
+      setCatalogError('Foram criadas '+created+' categorias antes da interrupção. Os registros anteriores permanecem preservados. '+(reason instanceof Error?reason.message:'Verifique a sessão e o armazenamento.'));
+    } finally { setCatalogBusy(false); }
   }
 
   async function saveCategory(input: CreateCategoryInput) {
@@ -177,6 +213,18 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
             {page === 'movements' ? <MovementsView integration={integration} state={state} onAdd={openTransaction} onEdit={(event) => setModal({ type: 'transaction', initial: event })} onReverse={(event) => setModal({ type: 'reverse', event })} /> : null}
             {page === 'accounts' ? <AccountsView state={state} integration={integration} canManage={entityManagementEnabled} onAdd={() => setModal({ type: 'account' })} onEdit={(account)=>setModal({type:'edit_account',account})} onDelete={(account)=>{setDeleteFailure('');setModal({type:'delete_entity',entity:account,kind:'account'});}} onRestore={(account)=>void restoreEntity('account',account.id).catch(()=>setDeleteFailure('Não foi possível reativar a conta.'))} onReconcile={(account) => setModal({ type: 'reconcile', account })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
             {page === 'categories' || page === 'backup' ? <div className="mobile-settings-tabs"><button className={page === 'categories' ? 'is-active' : ''} onClick={() => setPage('categories')}>Categorias</button><button className={page === 'backup' ? 'is-active' : ''} onClick={() => setPage('backup')}>Modo nuvem</button></div> : null}
+            {page === 'categories' ? <section className="catalog-panel" aria-label="Personalização de categorias">
+              <div className="catalog-panel-heading"><div><strong>Organização personalizada</strong><p>Use o catálogo sugerido para suas despesas e receitas sem alterar o histórico.</p></div><button className="button button--secondary" type="button" onClick={()=>{setCatalogOpen(value=>!value);setCatalogError('');}}>{catalogOpen?'Ocultar conferência':'Conferir categorias'}</button></div>
+              {catalogOpen ? <div className="catalog-panel-review">
+                <p role="status"><strong>{categoryProposals.length} categoria(s) faltante(s)</strong> de acordo com os nomes, a natureza e a hierarquia propostos. {state.categories.length} registro(s) existentes serão preservados.</p>
+                {categoryProposals.length > 0 ? <details><summary>Ver categorias que serão adicionadas</summary><ul>{categoryProposals.map(item=><li key={item.key}>{item.parentKey ? '↳ ' : ''}{item.name} <small>({item.kind==='expense'?'despesa':'receita'})</small></li>)}</ul></details> : <p>Não há categorias faltantes neste catálogo.</p>}
+                <p className="form-note">O catálogo não cadastra contas, saldos, recorrências, pagamentos ou transações. Faça uma cópia em Modo nuvem antes de confirmar. A inclusão é gradual e poderá ser retomada sem duplicar nomes sob a mesma categoria.</p>
+                <label className="catalog-confirm"><input type="checkbox" checked={catalogConfirmed} onChange={event=>setCatalogConfirmed(event.target.checked)}/> Conferi a lista e salvei um backup antes de criar as categorias faltantes.</label>
+                {catalogError ? <p role="alert" className="form-error">{catalogError}</p> : null}
+                {catalogResult ? <p role="status">{catalogResult}</p> : null}
+                <button className="button button--primary" type="button" disabled={!catalogConfirmed||catalogBusy||busy||categoryProposals.length===0} onClick={()=>void applyPersonalizedCatalog()}>{catalogBusy?'Criando categorias…':'Criar apenas as categorias faltantes'}</button>
+              </div> : null}
+            </section> : null}
             {page === 'categories' ? <CategoriesView state={state} integration={integration} canManage={entityManagementEnabled} onAdd={() => setModal({ type: 'category' })} onEdit={(category)=>setModal({type:'edit_category',category})} onDelete={(category)=>{setDeleteFailure('');setModal({type:'delete_entity',entity:category,kind:'category'});}} onRestore={(category)=>void restoreEntity('category',category.id).catch(()=>setDeleteFailure('Não foi possível reativar a categoria.'))} /> : null}
             {page === 'backup' ? <div className="cloud-hub" aria-label="Modo nuvem">
               <section className="cloud-hub-header" aria-labelledby="cloud-hub-heading">
