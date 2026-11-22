@@ -1920,3 +1920,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .app-shell > .workspace { position:relative; z-index:0; }
   .app-shell > .bottom-nav { position:fixed; z-index:100; isolation:isolate; }
 }
+
+/* Planejamento: backup protegido e paginação acessíveis em telas menores. */
+.planning-backup-passphrase{display:flex;flex-direction:column;gap:.35rem;max-width:460px;font-size:.9rem;font-weight:600}
+.planning-backup-passphrase input{min-height:2.7rem;box-sizing:border-box;width:100%;border-radius:9px;border:1px solid rgba(130,145,170,.5);background:var(--surface,#202736);color:inherit;padding:.6rem}
+.planning-pagination{display:flex;flex-wrap:wrap;align-items:center;gap:.8rem;margin:1rem 0}
+.planning-pagination span{font-size:.88rem}
+@media(max-width:640px){.planning-pagination{justify-content:space-between}.planning-pagination .button{flex:1}}
