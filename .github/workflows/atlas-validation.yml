@@ -2,16 +2,22 @@ name: Atlas validation
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [codex/recuperacao-i3-chat, codex/auditoria-dashboard-recorrencias]
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: atlas-validation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   unit-and-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: 'true'
+      VITE_ATLAS_REMOTE_MODE: disabled
     defaults:
       run:
         working-directory: app
@@ -23,10 +29,25 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
       - run: npm ci
+      - run: npm run preflight:local
       - run: npm run test -- --maxWorkers=2
       - run: npm run build
+      # Build artifact is intentionally offline-only. It contains no bank tokens,
+      # secrets or remote-write configuration and never deploys automatically.
+      - name: Arquivar versão local para inspeção
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-financeiro-local-preview
+          path: app/dist/
+          if-no-files-found: error
+          retention-days: 14
   browser-and-pwa:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
+    needs: unit-and-build
+    env:
+      CI: 'true'
+      VITE_ATLAS_REMOTE_MODE: disabled
     defaults:
       run:
         working-directory: app
@@ -38,6 +59,6 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps msedge
       - run: npm run test:browser
       - run: npm run test:pwa

@@ -10,6 +10,7 @@ import {
   Plus,
   Sun,
   Tags,
+  Target,
   WalletCards,
 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
@@ -29,6 +30,8 @@ import { isEntitySelectable, type Account, type Category, type FinancialEvent } 
 import { AccountForm, AccountReconciliationForm, CategoryForm, DialogFrame, MetadataEditForm, TransactionForm } from './ui/Forms';
 import { AccountsView, BackupView, CategoriesView, Dashboard, MovementsView, type Page } from './ui/Views';
 import { useLocalFinance } from './ui/use-local-finance';
+import { planPersonalizedCategories, resolveCatalogParent } from './ui/personalized-categories';
+import { PersonalPlanning } from './planning/PersonalPlanning';
 
 type Modal =
   | { type: 'account' }
@@ -45,6 +48,7 @@ const desktopNavigation = [
   { page: 'movements' as const, label: 'Movimentações', Icon: ListRestart },
   { page: 'accounts' as const, label: 'Contas', Icon: WalletCards },
   { page: 'categories' as const, label: 'Categorias', Icon: Tags },
+  { page: 'planning' as const, label: 'Planejamento', Icon: Target },
 ];
 
 export function App({bankPanel}:{bankPanel?:ReactNode}={}) {
@@ -53,10 +57,17 @@ export function App({bankPanel}:{bankPanel?:ReactNode}={}) {
 
 export function FinancialWorkspace({finance,sessionControls,integration=false,entityManagementEnabled=true,exportJson,importJson,serverId,bankPanel,testMode=false}:{finance:ReturnType<typeof useLocalFinance>;sessionControls?:ReactNode;integration?:boolean;entityManagementEnabled?:boolean;exportJson?:()=>Promise<string>;importJson?:(json:string)=>Promise<number>;serverId?:string;bankPanel?:ReactNode;testMode?:boolean}) {
   const { state, loading, busy, error, clearError, execute, modifyEntity, recover, readState, context, userId } = finance;
-  const [page, setPage] = useState<Page | 'banks' | 'more'>('dashboard');
+  const [page, setPage] = useState<Page | 'banks' | 'more' | 'planning'>('dashboard');
   const [modal, setModal] = useState<Modal>();
   const [notice, setNotice] = useState('');
   const [deleteFailure, setDeleteFailure] = useState('');
+  const [catalogOpen,setCatalogOpen]=useState(false);
+  const [catalogConfirmed,setCatalogConfirmed]=useState(false);
+  const [catalogBusy,setCatalogBusy]=useState(false);
+  const [catalogError,setCatalogError]=useState('');
+  const [catalogResult,setCatalogResult]=useState('');
+  const categoryProposals=planPersonalizedCategories(state.categories);
+
   // Navigation is presentation-only; financial state remains unchanged.
   const [dark, setDark] = useState(() => localStorage.getItem('atlas-financeiro:theme:v2') !== 'light');
   const today = context.today();
@@ -80,6 +91,34 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
     await execute(reconcileAccountCommand(state, input, context));
     setNotice('Saldo inicial registrado. Confira a condição e a data de referência na conta.');
     setModal(undefined);
+  }
+
+  async function applyPersonalizedCatalog() {
+    if(!catalogConfirmed||catalogBusy||busy)return;
+    setCatalogBusy(true);setCatalogError('');setCatalogResult('');
+    let created=0;
+    try {
+      // Each successful operation is durable. A retry recomputes missing names
+      // against the current ledger so partial success never duplicates records.
+      for(let i=0;i<180;i++){
+        const current=await readState();
+        const missing=planPersonalizedCategories(current.categories);
+        if(missing.length===0){
+          setCatalogResult(created===0?'Seu catálogo já está completo.':created+' categorias adicionadas. Nenhum lançamento, saldo, conta ou obrigação foi criado.');
+          setCatalogConfirmed(false);
+          return;
+        }
+        const next=missing[0]!;
+        const parentId=resolveCatalogParent(current.categories,next);
+        await execute(createCategoryCommand({
+          name:next.name,kind:next.kind,...(parentId?{parentId}:{})
+        },context));
+        created++;
+      }
+      throw new Error('Limite de segurança da importação atingido. Confira as categorias antes de continuar.');
+    } catch(reason) {
+      setCatalogError('Foram criadas '+created+' categorias antes da interrupção. Os registros anteriores permanecem preservados. '+(reason instanceof Error?reason.message:'Verifique a sessão e o armazenamento.'));
+    } finally { setCatalogBusy(false); }
   }
 
   async function saveCategory(input: CreateCategoryInput) {
@@ -159,24 +198,38 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
       </aside>
 
       <section className="workspace">
-        <header className="topbar"><div className="mobile-brand"><Brand /></div><div className="topbar-context"><span>VISÃO FINANCEIRA</span><strong>{page === 'dashboard' ? 'Visão geral' : page === 'movements' ? 'Movimentações' : page === 'accounts' ? 'Minhas contas' : page === 'banks' ? 'Bancos' : page === 'categories' ? 'Categorias' : page === 'backup' ? 'Modo nuvem' : 'Mais opções'}</strong></div>{page === 'dashboard' ? null : <button className="button button--primary topbar-create" onClick={openTransaction} disabled={state.accounts.length === 0}><Plus size={17} />Novo lançamento</button>}<span className="device-status"><HardDrive size={16} />{testMode ? 'Modo de teste · local' : integration ? 'Modo nuvem · cópia local' : 'Salvo neste dispositivo'}</span><button className="icon-button" type="button" onClick={toggleTheme} aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'} aria-pressed={dark}>{dark ? <Sun size={19} /> : <Moon size={19} />}</button></header>
+        <header className="topbar"><div className="mobile-brand"><Brand /></div><div className="topbar-context"><span>VISÃO FINANCEIRA</span><strong>{page === 'dashboard' ? 'Visão geral' : page === 'movements' ? 'Movimentações' : page === 'accounts' ? 'Minhas contas' : page === 'banks' ? 'Bancos' : page === 'categories' ? 'Categorias' : page === 'backup' ? 'Modo nuvem' : page === 'planning' ? 'Planejamento' : 'Mais opções'}</strong></div>{page === 'dashboard' ? null : <button className="button button--primary topbar-create" onClick={openTransaction} disabled={state.accounts.length === 0}><Plus size={17} />Novo lançamento</button>}<span className="device-status"><HardDrive size={16} />{testMode ? 'Modo de teste · local' : integration ? 'Modo nuvem · cópia local' : 'Salvo neste dispositivo'}</span><button className="icon-button" type="button" onClick={toggleTheme} aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'} aria-pressed={dark}>{dark ? <Sun size={19} /> : <Moon size={19} />}</button></header>
 
         {error === undefined ? null : <div className="error-banner" role="alert"><span>{error}</span><button onClick={clearError}>Fechar</button></div>}
         <div className="sr-only" role="status">{notice}</div>
-        {loading ? <div className="loading-state"><span className="spinner" />Carregando dados locais…</div> : (
+        {loading ? <div className="atlas-loading-shell" role="status" aria-label="Carregando dados locais"><div className="atlas-loading-heading"><span className="spinner" aria-hidden="true" />Carregando dados locais…</div><div className="atlas-loading-hero atlas-skeleton" aria-hidden="true" /><div className="atlas-loading-cards" aria-hidden="true"><span className="atlas-skeleton" /><span className="atlas-skeleton" /><span className="atlas-skeleton" /></div></div> : (
           <>
             {page === 'banks' ? <section className="page-content banks-page" aria-label="Bancos"><div className="page-heading"><div><p className="section-kicker">Instituições e conexões</p><h1>Bancos conectados</h1><p>Suas conexões financeiras em um só lugar.</p></div></div>{bankPanel ?? <p>Entre com Google para consultar seus bancos.</p>}</section> : null}
             {page === 'more' ? <section className="page-content more-page" aria-labelledby="more-title"><div className="page-heading"><div><p className="section-kicker">Seu espaço</p><h1 id="more-title">Mais opções</h1><p>Organize e proteja seus dados financeiros.</p></div></div><div className="more-menu">
               {(integration || bankPanel !== undefined) ? <button type="button" aria-label="Bancos" onClick={()=>setPage('banks')}><span className="more-menu-icon"><Landmark size={20}/></span><span><strong>Bancos conectados</strong><small>Conexões e movimentações bancárias</small></span><ChevronRight size={20}/></button> : null}
               <button type="button" aria-label="Contas" onClick={()=>setPage('accounts')}><span className="more-menu-icon"><WalletCards size={20}/></span><span><strong>Minhas contas</strong><small>Saldos, reservas e conciliação</small></span><ChevronRight size={20}/></button>
+              <button type="button" aria-label="Planejamento" onClick={()=>setPage('planning')}><span className="more-menu-icon"><Target size={20}/></span><span><strong>Planejamento</strong><small>Metas, obrigações, recorrências e despesas compartilhadas</small></span><ChevronRight size={20}/></button>
               <button type="button" aria-label="Categorias" onClick={()=>setPage('categories')}><span className="more-menu-icon"><Tags size={20}/></span><span><strong>Categorias</strong><small>Organize entradas e despesas</small></span><ChevronRight size={20}/></button>
               <button type="button" aria-label="Modo nuvem" onClick={()=>setPage('backup')}><span className="more-menu-icon"><Cloud size={20}/></span><span><strong>Modo nuvem</strong><small>Sincronização, backups e recuperação</small></span><ChevronRight size={20}/></button>
               <button type="button" onClick={toggleTheme}><span className="more-menu-icon">{dark?<Sun size={20}/>:<Moon size={20}/>}</span><span><strong>Aparência</strong><small>{dark?'Mudar para tema claro':'Mudar para tema escuro'}</small></span><ChevronRight size={20}/></button>
             </div></section> : null}
+            {page === 'planning' ? <PersonalPlanning ownerId={userId} accounts={state.accounts} categories={state.categories} ledger={state} /> : null}
             {page === 'dashboard' ? <Dashboard integration={integration} state={state} today={today} userId={userId} onAddAccount={() => setModal({ type: 'account' })} onAddTransaction={openTransaction} onNavigate={(next)=>setPage(next)} /> : null}
             {page === 'movements' ? <MovementsView integration={integration} state={state} onAdd={openTransaction} onEdit={(event) => setModal({ type: 'transaction', initial: event })} onReverse={(event) => setModal({ type: 'reverse', event })} /> : null}
             {page === 'accounts' ? <AccountsView state={state} integration={integration} canManage={entityManagementEnabled} onAdd={() => setModal({ type: 'account' })} onEdit={(account)=>setModal({type:'edit_account',account})} onDelete={(account)=>{setDeleteFailure('');setModal({type:'delete_entity',entity:account,kind:'account'});}} onRestore={(account)=>void restoreEntity('account',account.id).catch(()=>setDeleteFailure('Não foi possível reativar a conta.'))} onReconcile={(account) => setModal({ type: 'reconcile', account })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
             {page === 'categories' || page === 'backup' ? <div className="mobile-settings-tabs"><button className={page === 'categories' ? 'is-active' : ''} onClick={() => setPage('categories')}>Categorias</button><button className={page === 'backup' ? 'is-active' : ''} onClick={() => setPage('backup')}>Modo nuvem</button></div> : null}
+            {page === 'categories' ? <section className="catalog-panel" aria-label="Personalização de categorias">
+              <div className="catalog-panel-heading"><div><strong>Organização personalizada</strong><p>Use o catálogo sugerido para suas despesas e receitas sem alterar o histórico.</p></div><button className="button button--secondary" type="button" onClick={()=>{setCatalogOpen(value=>!value);setCatalogError('');}}>{catalogOpen?'Ocultar conferência':'Conferir categorias'}</button></div>
+              {catalogOpen ? <div className="catalog-panel-review">
+                <p role="status"><strong>{categoryProposals.length} categoria(s) faltante(s)</strong> de acordo com os nomes, a natureza e a hierarquia propostos. {state.categories.length} registro(s) existentes serão preservados.</p>
+                {categoryProposals.length > 0 ? <details><summary>Ver categorias que serão adicionadas</summary><ul>{categoryProposals.map(item=><li key={item.key}>{item.parentKey ? '↳ ' : ''}{item.name} <small>({item.kind==='expense'?'despesa':'receita'})</small></li>)}</ul></details> : <p>Não há categorias faltantes neste catálogo.</p>}
+                <p className="form-note">O catálogo não cadastra contas, saldos, recorrências, pagamentos ou transações. Faça uma cópia em Modo nuvem antes de confirmar. A inclusão é gradual e poderá ser retomada sem duplicar nomes sob a mesma categoria.</p>
+                <label className="catalog-confirm"><input type="checkbox" checked={catalogConfirmed} onChange={event=>setCatalogConfirmed(event.target.checked)}/> Conferi a lista e salvei um backup antes de criar as categorias faltantes.</label>
+                {catalogError ? <p role="alert" className="form-error">{catalogError}</p> : null}
+                {catalogResult ? <p role="status">{catalogResult}</p> : null}
+                <button className="button button--primary" type="button" disabled={!catalogConfirmed||catalogBusy||busy||categoryProposals.length===0} onClick={()=>void applyPersonalizedCatalog()}>{catalogBusy?'Criando categorias…':'Criar apenas as categorias faltantes'}</button>
+              </div> : null}
+            </section> : null}
             {page === 'categories' ? <CategoriesView state={state} integration={integration} canManage={entityManagementEnabled} onAdd={() => setModal({ type: 'category' })} onEdit={(category)=>setModal({type:'edit_category',category})} onDelete={(category)=>{setDeleteFailure('');setModal({type:'delete_entity',entity:category,kind:'category'});}} onRestore={(category)=>void restoreEntity('category',category.id).catch(()=>setDeleteFailure('Não foi possível reativar a categoria.'))} /> : null}
             {page === 'backup' ? <div className="cloud-hub" aria-label="Modo nuvem">
               <section className="cloud-hub-header" aria-labelledby="cloud-hub-heading">
@@ -186,6 +239,11 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
               <section className="cloud-hub-section" aria-label="Acesso à nuvem">
                 <div className="cloud-hub-section-heading"><Cloud size={19}/><h2 id="cloud-hub-sync-heading">Sincronização</h2></div>
                 {sessionControls ?? <div className="cloud-hub-local"><HardDrive size={20}/><div><strong>Dados armazenados neste dispositivo</strong><p>A sincronização remota não está ativa. Você ainda pode exportar e restaurar cópias locais abaixo.</p></div></div>}
+              </section>
+              <section className="cloud-hub-section" aria-label="Importação do planejamento pessoal">
+                <div className="cloud-hub-section-heading"><Target size={19}/><h2>Arquivo de metas e planejamento</h2></div>
+                <p>Recebeu um arquivo chamado <strong>atlas_planejamento_personalizado_privado.json</strong>? Ele não é um backup financeiro I2/I3. Use a importação própria para evitar erro ou confusão entre as bases.</p>
+                <button type="button" className="button button--secondary" onClick={()=>setPage('planning')}>Abrir importação de Planejamento</button>
               </section>
               <section className="cloud-hub-section cloud-hub-section--backup" aria-label="Backup e recuperação">
                 <BackupView testMode={testMode} integration={integration} {...(serverId?{serverId}:{})} {...(exportJson?{exportJson}:{})} {...(importJson?{importJson}:{})} onRecover={recover} busy={busy} readState={readState} state={state} userId={userId} today={today} />
@@ -200,7 +258,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
         <MobileNavButton active={page === 'movements'} label="Extrato" Icon={ListRestart} onClick={() => setPage('movements')} />
         <button className="bottom-add" onClick={openTransaction} disabled={state.accounts.length === 0} aria-label="Novo lançamento"><Plus size={27} /><span>Adicionar</span></button>
         {(integration || bankPanel !== undefined) ? <MobileNavButton active={page === 'banks'} label="Bancos" Icon={Landmark} onClick={() => setPage('banks')} /> : <MobileNavButton active={page === 'accounts'} label="Contas" Icon={WalletCards} onClick={() => setPage('accounts')} />}
-        <MobileNavButton active={['more','categories','backup',...(integration || bankPanel !== undefined ? ['accounts'] : [])].includes(page)} label="Mais" Icon={MoreHorizontal} onClick={() => setPage('more')} />
+        <MobileNavButton active={['more','categories','backup','planning',...(integration || bankPanel !== undefined ? ['accounts'] : [])].includes(page)} label="Mais" Icon={MoreHorizontal} onClick={() => setPage('more')} />
       </nav>
 
       {modal?.type === 'account' ? <DialogFrame title="Nova conta" onClose={() => setModal(undefined)}><AccountForm today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveAccount} /></DialogFrame> : null}

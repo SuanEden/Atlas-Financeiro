@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import { parseBRL, type Account, type Category, type FinancialEvent } from '../domain';
 import type { AccountReconciliationInput, CreateAccountInput, CreateCategoryInput, TransactionInput } from '../application';
 import { accountKindLabels, availabilityLabels } from './financial-view';
+import { suggestExpenseCategory } from './category-suggestions';
 import { parseMonthlyRecurrenceRule, serializeMonthlyRecurrenceRule, type MonthlyRecurrenceRule } from '../domain';
 
 interface DialogFrameProps {
@@ -259,6 +260,7 @@ export function TransactionForm({ accounts, categories, recurrenceRules = [], in
   const [error, setError] = useState<string>();
 
   const compatibleCategories = categories.filter((category) => category.kind === 'both' || category.kind === kind);
+  const categorySuggestion = kind === 'expense' ? suggestExpenseCategory(description,categories) : undefined;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -311,6 +313,7 @@ export function TransactionForm({ accounts, categories, recurrenceRules = [], in
       </div>
       {kind === 'transfer' ? <p className="form-note">Pagamento de fatura de cartão deve ser registrado como transferência para a conta do cartão, não como uma segunda despesa. Assim, o pagamento não duplica as compras já lançadas.</p> : null}
       <label>Descrição <span className="field-hint">opcional</span><input value={description} onChange={(event) => setDescription(event.target.value)} maxLength={500} placeholder="Adicione uma descrição" /></label>
+      {categorySuggestion && categoryId !== categorySuggestion.categoryId ? <div className="form-note" role="status">Sugestão de classificação: <strong>{categorySuggestion.label}</strong>. <button type="button" className="text-button" onClick={()=>setCategoryId(categorySuggestion.categoryId)}>Usar esta categoria</button> (somente após sua confirmação)</div> : null}
       <label>Data<input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label>
       <details className="form-details"><summary>Mais detalhes</summary>
         <div className="form-grid">

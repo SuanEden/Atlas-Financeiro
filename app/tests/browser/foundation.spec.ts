@@ -87,3 +87,17 @@ test('documentos, cópias privadas e Git não são servidos', async ({ request }
   expect(manifest.status()).toBe(200);
   expect(await manifest.json()).toMatchObject({ name: 'Atlas Financeiro', display: 'standalone' });
 });
+
+
+test('movimento reduzido desativa animação de entrada sem ocultar a navegação',async({page},testInfo)=>{
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.goto('/');
+  await expect(page.getByRole('heading',{name:'Visão geral'})).toBeVisible();
+  const nav=testInfo.project.name==='mobile-edge'
+    ? page.getByRole('navigation',{name:'Navegação móvel'})
+    : page.getByRole('navigation',{name:'Navegação principal'});
+  await nav.getByRole('button',{name:testInfo.project.name==='mobile-edge'?'Extrato':'Movimentações',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Movimentações',exact:true,level:1})).toBeVisible();
+  await expect.poll(()=>page.locator('.app-shell .page-content').first().evaluate(element=>getComputedStyle(element).animationName)).toBe('none');
+  await expect(page.getByRole('searchbox',{name:'Buscar'})).toBeVisible();
+});

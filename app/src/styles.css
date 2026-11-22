@@ -1739,3 +1739,184 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .app-shell .cloud-hub-section--backup > .page-content {padding:16px;}
   .app-shell .cloud-hub-section .sync-panel button {min-height:42px;}
 }
+
+
+/* Atlas UX polish: compositor-friendly motion, no financial-data behavior changes. */
+.app-shell .movement-results {
+  margin: 12px 2px;
+  min-height: 1.2rem;
+  color: var(--muted);
+  font-size: .79rem;
+}
+.app-shell .movement-load-more {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 24px 16px 10px;
+  color: var(--muted);
+  font-size: .8rem;
+}
+.app-shell .movement-load-more .button {
+  min-width: min(100%, 265px);
+}
+.app-shell .atlas-loading-shell {
+  width: min(1160px, 100%);
+  margin-inline: auto;
+  padding: 38px clamp(18px, 4vw, 56px) 64px;
+}
+.app-shell .atlas-loading-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  color: var(--muted);
+  font-size: .9rem;
+}
+.app-shell .atlas-loading-hero {
+  height: clamp(170px, 26vw, 260px);
+  border-radius: 22px;
+  margin-bottom: 18px;
+}
+.app-shell .atlas-loading-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.app-shell .atlas-loading-cards > span {display: block;height: 130px;border-radius: 16px;}
+.app-shell .atlas-skeleton {
+  background: linear-gradient(105deg, var(--subtle) 20%, var(--line) 46%, var(--subtle) 70%);
+  background-size: 240% 100%;
+  border: 1px solid var(--line);
+}
+@media (max-width: 760px) {
+  .app-shell .atlas-loading-shell {padding: 22px 15px 98px;}
+  .app-shell .atlas-loading-cards {grid-template-columns: 1fr 1fr;gap: 10px;}
+  .app-shell .atlas-loading-cards > span {height: 104px;}
+  .app-shell .atlas-loading-cards > span:last-child {display: none;}
+}
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes atlas-enter {
+    from {opacity: .01; transform: translate3d(0, 9px, 0);}
+    to {opacity: 1;transform: translate3d(0, 0, 0);}
+  }
+  @keyframes atlas-skeleton-shimmer {
+    from {background-position: 115% 0;}
+    to {background-position: -115% 0;}
+  }
+  .app-shell .page-content,
+  .app-shell .cloud-hub {
+    animation: atlas-enter 245ms cubic-bezier(.22, 1, .36, 1) both;
+  }
+  .app-shell .atlas-skeleton {animation: atlas-skeleton-shimmer 1.9s linear infinite;}
+  .app-shell .account-card,
+  .app-shell .flow-band > div,
+  .app-shell .chart-studio-card {
+    transition: transform 180ms cubic-bezier(.22, 1, .36, 1), box-shadow 180ms ease, border-color 180ms ease;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .app-shell .account-card:hover,
+    .app-shell .flow-band > div:hover,
+    .app-shell .chart-studio-card:hover {
+      transform: translate3d(0, -3px, 0);
+      box-shadow: 0 14px 32px rgba(0, 0, 0, .09);
+    }
+  }
+  .app-shell .button:active:not(:disabled),
+  .app-shell .icon-button:active:not(:disabled),
+  .app-shell .more-menu > button:active:not(:disabled) {
+    transform: scale(.975);
+  }
+  .app-shell .bottom-nav > button:not(.bottom-add) svg,
+  .app-shell .sidebar nav button svg {
+    transition: transform 170ms cubic-bezier(.22, 1, .36, 1);
+  }
+  .app-shell .bottom-nav > button.is-active:not(.bottom-add) svg,
+  .app-shell .sidebar nav button.is-active svg {transform: scale(1.08);}
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .page-content,
+  .app-shell .cloud-hub,
+  .app-shell .atlas-skeleton {animation: none !important;}
+  .app-shell .account-card,
+  .app-shell .flow-band > div,
+  .app-shell .chart-studio-card,
+  .app-shell .bottom-nav > button svg,
+  .app-shell .sidebar nav button svg,
+  .app-shell .icon-button {transition: none !important;}
+  .app-shell .button:active:not(:disabled),
+  .app-shell .icon-button:active:not(:disabled) {transform: none !important;}
+}
+
+/* Subtle native-dialog opening, retaining focus/keyboard handling in DialogFrame. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes atlas-dialog-enter {
+    from {opacity: 0;transform: translate3d(0, 12px, 0) scale(.985);}
+    to {opacity: 1;transform: translate3d(0, 0, 0) scale(1);}
+  }
+  @keyframes atlas-dialog-backdrop {
+    from {opacity: 0;}
+    to {opacity: 1;}
+  }
+  .app-shell .dialog-sheet[open] {
+    animation: atlas-dialog-enter 230ms cubic-bezier(.22, 1, .36, 1) both;
+  }
+  .app-shell .dialog-sheet[open]::backdrop {
+    animation: atlas-dialog-backdrop 210ms ease-out both;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .dialog-sheet[open],
+  .app-shell .dialog-sheet[open]::backdrop {animation: none !important;}
+}
+
+/* Categorias personalizadas: painel contextual, sem alterar a navegação aprovada. */
+.catalog-panel{margin:1rem 1.4rem 0;padding:1rem 1.1rem;border:1px solid var(--border-color,rgba(126,146,169,.3));border-radius:16px;background:var(--surface,rgba(130,145,165,.06))}
+.catalog-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.catalog-panel-heading strong{font-size:1rem}
+.catalog-panel-heading p{margin:.25rem 0 0;color:var(--text-muted,#8b96a4);font-size:.88rem;max-width:48rem}
+.catalog-panel-review{display:grid;gap:.8rem;padding-top:1rem}
+.catalog-panel-review p{margin:0}
+.catalog-panel-review details{max-height:18rem;overflow:auto;border:1px solid rgba(130,145,165,.22);border-radius:10px;padding:.6rem .9rem}
+.catalog-panel-review summary{cursor:pointer;font-weight:600}
+.catalog-panel-review ul{columns:2;column-gap:1.5rem;padding-left:1.25rem;margin:.75rem 0}
+.catalog-panel-review li{break-inside:avoid;margin:.25rem 0}
+.catalog-panel-review small{opacity:.7}
+.catalog-confirm{display:flex;align-items:flex-start;gap:.55rem;font-size:.9rem}
+.catalog-confirm input{margin-top:.2rem}
+.catalog-panel-review>.button{justify-self:start}
+@media(max-width:650px){.catalog-panel{margin:.7rem;padding:.8rem}.catalog-panel-review ul{columns:1}.catalog-panel-review>.button{justify-self:stretch}}
+
+/* Planejamento: painel único em Mais, sem efeitos no livro-caixa. */
+.planning-page{max-width:1220px}
+.planning-backup{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;margin:1rem 0}
+.planning-backup label{cursor:pointer}
+.planning-backup input[type=file]{display:none}
+.planning-tabs{display:flex;gap:.35rem;flex-wrap:wrap;margin:1rem 0;padding:.35rem;border:1px solid rgba(129,145,170,.3);border-radius:14px}
+.planning-tabs button{border:0;background:transparent;color:inherit;padding:.65rem .9rem;border-radius:10px;cursor:pointer;font-weight:600}
+.planning-tabs button.is-active{background:var(--accent,#2363d7);color:white}
+.planning-section{display:grid;gap:1rem;margin-top:1rem}
+.planning-section h2{margin:.25rem 0 0;font-size:1.3rem}
+.planning-section h3{margin:.25rem 0;font-size:1rem}
+.planning-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}
+.planning-grid label{display:flex;flex-direction:column;gap:.3rem;min-width:0;font-size:.87rem;font-weight:600}
+.planning-grid input,.planning-grid select,.planning-record select{box-sizing:border-box;max-width:100%;width:100%;min-height:2.65rem;padding:.5rem;border:1px solid rgba(129,145,170,.5);border-radius:8px;background:var(--surface,#202736);color:inherit}
+.planning-presets{display:flex;gap:.4rem;flex-wrap:wrap}
+.planning-presets button{background:transparent;border:1px solid rgba(129,145,170,.5);padding:.45rem .7rem;border-radius:20px;color:inherit;cursor:pointer;font-size:.8rem}
+.planning-records{display:grid;gap:.6rem}
+.planning-record{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:1rem;border:1px solid rgba(129,145,170,.3);border-radius:12px;overflow-wrap:anywhere}
+.planning-record strong{display:block;margin-bottom:.3rem}
+.planning-record p{margin:.25rem 0}
+.planning-record small{opacity:.8}
+.planning-record label{min-width:140px;max-width:230px;font-size:.8rem}
+.planning-record .button{flex-shrink:0}
+.planning-contribution{padding:1rem;border:1px solid rgba(129,145,170,.3);border-radius:14px;display:grid;gap:.75rem}
+.planning-check{display:flex!important;flex-direction:row!important;gap:.5rem!important;align-items:center;font-weight:500!important}
+.planning-check input{width:auto!important;min-height:0!important}
+@media(max-width:720px){.planning-grid{grid-template-columns:1fr}.planning-record{align-items:stretch;flex-direction:column}.planning-record label{max-width:none}.planning-tabs{overflow-x:auto;flex-wrap:nowrap}.planning-tabs button{flex-shrink:0}.planning-backup{align-items:stretch}.planning-backup .button{width:100%;justify-content:center}}
+
+/* Prevent the cloud hub and other long mobile pages from intercepting
+   taps on the fixed bottom navigation. Both are direct app-shell siblings. */
+@media (max-width:760px) {
+  .app-shell > .workspace { position:relative; z-index:0; }
+  .app-shell > .bottom-nav { position:fixed; z-index:100; isolation:isolate; }
+}
