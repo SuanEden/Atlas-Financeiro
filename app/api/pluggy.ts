@@ -5,7 +5,20 @@
  * VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in Production.
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { approvedPluggyItems, pluggyReady } from '../src/server/pluggy-policy';
+/** Server-only policy, inlined in the function to avoid Node ESM cross-folder imports. */
+const uuidPattern=/^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i;
+export function approvedPluggyItems(config:string|undefined):Set<string>{
+  if(!config?.trim()) return new Set();
+  const values=config.split(',').map(value=>value.trim());
+  if(values.length>20 || values.some(value=>!uuidPattern.test(value)) || new Set(values).size!==values.length)
+    throw new TypeError('Configuração de itens Pluggy inválida.');
+  return new Set(values);
+}
+export function pluggyReady(env:NodeJS.ProcessEnv):boolean{
+  return Boolean(env.PLUGGY_CLIENT_ID&&env.PLUGGY_CLIENT_SECRET&&env.ATLAS_PLUGGY_OWNER_ID&&
+    env.VITE_SUPABASE_URL&&env.VITE_SUPABASE_PUBLISHABLE_KEY&&
+    approvedPluggyItems(env.ATLAS_PLUGGY_ALLOWED_ITEM_IDS).size>0);
+}
 
 let cachedKey: { value: string; expires: number } | undefined;
 // No connection identifiers in public source. An empty configuration denies all bank access.
