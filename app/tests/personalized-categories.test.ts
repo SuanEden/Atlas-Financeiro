@@ -41,7 +41,7 @@ describe('catálogo financeiro personalizado',()=>{
     expect(child).toBeDefined();
     expect(()=>resolveCatalogParent([],child!)).toThrow();
     expect(resolveCatalogParent([create('actual','Alimentação','expense')],child!)).toBe('actual');
-    expect(resolveCatalogParent([create('income','Alimentação','income')],child!)).toThrow();
+    expect(()=>resolveCatalogParent([create('income','Alimentação','income')],child!)).toThrow();
   });
   it('é idempotente após criação progressiva de todo o catálogo',()=>{
     let saved:Category[]=[];
