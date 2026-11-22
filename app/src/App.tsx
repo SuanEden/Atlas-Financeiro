@@ -48,6 +48,7 @@ const desktopNavigation = [
   { page: 'movements' as const, label: 'Movimentações', Icon: ListRestart },
   { page: 'accounts' as const, label: 'Contas', Icon: WalletCards },
   { page: 'categories' as const, label: 'Categorias', Icon: Tags },
+  { page: 'planning' as const, label: 'Planejamento', Icon: Target },
 ];
 
 export function App({bankPanel}:{bankPanel?:ReactNode}={}) {
