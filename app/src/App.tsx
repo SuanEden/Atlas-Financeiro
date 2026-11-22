@@ -10,6 +10,7 @@ import {
   Plus,
   Sun,
   Tags,
+  Target,
   WalletCards,
 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
@@ -30,6 +31,7 @@ import { AccountForm, AccountReconciliationForm, CategoryForm, DialogFrame, Meta
 import { AccountsView, BackupView, CategoriesView, Dashboard, MovementsView, type Page } from './ui/Views';
 import { useLocalFinance } from './ui/use-local-finance';
 import { planPersonalizedCategories, resolveCatalogParent } from './ui/personalized-categories';
+import { PersonalPlanning } from './planning/PersonalPlanning';
 
 type Modal =
   | { type: 'account' }
@@ -54,7 +56,7 @@ export function App({bankPanel}:{bankPanel?:ReactNode}={}) {
 
 export function FinancialWorkspace({finance,sessionControls,integration=false,entityManagementEnabled=true,exportJson,importJson,serverId,bankPanel,testMode=false}:{finance:ReturnType<typeof useLocalFinance>;sessionControls?:ReactNode;integration?:boolean;entityManagementEnabled?:boolean;exportJson?:()=>Promise<string>;importJson?:(json:string)=>Promise<number>;serverId?:string;bankPanel?:ReactNode;testMode?:boolean}) {
   const { state, loading, busy, error, clearError, execute, modifyEntity, recover, readState, context, userId } = finance;
-  const [page, setPage] = useState<Page | 'banks' | 'more'>('dashboard');
+  const [page, setPage] = useState<Page | 'banks' | 'more' | 'planning'>('dashboard');
   const [modal, setModal] = useState<Modal>();
   const [notice, setNotice] = useState('');
   const [deleteFailure, setDeleteFailure] = useState('');
@@ -195,7 +197,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
       </aside>
 
       <section className="workspace">
-        <header className="topbar"><div className="mobile-brand"><Brand /></div><div className="topbar-context"><span>VISÃO FINANCEIRA</span><strong>{page === 'dashboard' ? 'Visão geral' : page === 'movements' ? 'Movimentações' : page === 'accounts' ? 'Minhas contas' : page === 'banks' ? 'Bancos' : page === 'categories' ? 'Categorias' : page === 'backup' ? 'Modo nuvem' : 'Mais opções'}</strong></div>{page === 'dashboard' ? null : <button className="button button--primary topbar-create" onClick={openTransaction} disabled={state.accounts.length === 0}><Plus size={17} />Novo lançamento</button>}<span className="device-status"><HardDrive size={16} />{testMode ? 'Modo de teste · local' : integration ? 'Modo nuvem · cópia local' : 'Salvo neste dispositivo'}</span><button className="icon-button" type="button" onClick={toggleTheme} aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'} aria-pressed={dark}>{dark ? <Sun size={19} /> : <Moon size={19} />}</button></header>
+        <header className="topbar"><div className="mobile-brand"><Brand /></div><div className="topbar-context"><span>VISÃO FINANCEIRA</span><strong>{page === 'dashboard' ? 'Visão geral' : page === 'movements' ? 'Movimentações' : page === 'accounts' ? 'Minhas contas' : page === 'banks' ? 'Bancos' : page === 'categories' ? 'Categorias' : page === 'backup' ? 'Modo nuvem' : page === 'planning' ? 'Planejamento' : 'Mais opções'}</strong></div>{page === 'dashboard' ? null : <button className="button button--primary topbar-create" onClick={openTransaction} disabled={state.accounts.length === 0}><Plus size={17} />Novo lançamento</button>}<span className="device-status"><HardDrive size={16} />{testMode ? 'Modo de teste · local' : integration ? 'Modo nuvem · cópia local' : 'Salvo neste dispositivo'}</span><button className="icon-button" type="button" onClick={toggleTheme} aria-label={dark ? 'Usar tema claro' : 'Usar tema escuro'} aria-pressed={dark}>{dark ? <Sun size={19} /> : <Moon size={19} />}</button></header>
 
         {error === undefined ? null : <div className="error-banner" role="alert"><span>{error}</span><button onClick={clearError}>Fechar</button></div>}
         <div className="sr-only" role="status">{notice}</div>
@@ -205,10 +207,12 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
             {page === 'more' ? <section className="page-content more-page" aria-labelledby="more-title"><div className="page-heading"><div><p className="section-kicker">Seu espaço</p><h1 id="more-title">Mais opções</h1><p>Organize e proteja seus dados financeiros.</p></div></div><div className="more-menu">
               {(integration || bankPanel !== undefined) ? <button type="button" aria-label="Bancos" onClick={()=>setPage('banks')}><span className="more-menu-icon"><Landmark size={20}/></span><span><strong>Bancos conectados</strong><small>Conexões e movimentações bancárias</small></span><ChevronRight size={20}/></button> : null}
               <button type="button" aria-label="Contas" onClick={()=>setPage('accounts')}><span className="more-menu-icon"><WalletCards size={20}/></span><span><strong>Minhas contas</strong><small>Saldos, reservas e conciliação</small></span><ChevronRight size={20}/></button>
+              <button type="button" aria-label="Planejamento" onClick={()=>setPage('planning')}><span className="more-menu-icon"><Target size={20}/></span><span><strong>Planejamento</strong><small>Metas, obrigações, recorrências e despesas compartilhadas</small></span><ChevronRight size={20}/></button>
               <button type="button" aria-label="Categorias" onClick={()=>setPage('categories')}><span className="more-menu-icon"><Tags size={20}/></span><span><strong>Categorias</strong><small>Organize entradas e despesas</small></span><ChevronRight size={20}/></button>
               <button type="button" aria-label="Modo nuvem" onClick={()=>setPage('backup')}><span className="more-menu-icon"><Cloud size={20}/></span><span><strong>Modo nuvem</strong><small>Sincronização, backups e recuperação</small></span><ChevronRight size={20}/></button>
               <button type="button" onClick={toggleTheme}><span className="more-menu-icon">{dark?<Sun size={20}/>:<Moon size={20}/>}</span><span><strong>Aparência</strong><small>{dark?'Mudar para tema claro':'Mudar para tema escuro'}</small></span><ChevronRight size={20}/></button>
             </div></section> : null}
+            {page === 'planning' ? <PersonalPlanning ownerId={userId} accounts={state.accounts} categories={state.categories} ledger={state} /> : null}
             {page === 'dashboard' ? <Dashboard integration={integration} state={state} today={today} userId={userId} onAddAccount={() => setModal({ type: 'account' })} onAddTransaction={openTransaction} onNavigate={(next)=>setPage(next)} /> : null}
             {page === 'movements' ? <MovementsView integration={integration} state={state} onAdd={openTransaction} onEdit={(event) => setModal({ type: 'transaction', initial: event })} onReverse={(event) => setModal({ type: 'reverse', event })} /> : null}
             {page === 'accounts' ? <AccountsView state={state} integration={integration} canManage={entityManagementEnabled} onAdd={() => setModal({ type: 'account' })} onEdit={(account)=>setModal({type:'edit_account',account})} onDelete={(account)=>{setDeleteFailure('');setModal({type:'delete_entity',entity:account,kind:'account'});}} onRestore={(account)=>void restoreEntity('account',account.id).catch(()=>setDeleteFailure('Não foi possível reativar a conta.'))} onReconcile={(account) => setModal({ type: 'reconcile', account })} onTransfer={() => setModal({ type: 'transaction', kind: 'transfer' })} /> : null}
@@ -248,7 +252,7 @@ export function FinancialWorkspace({finance,sessionControls,integration=false,en
         <MobileNavButton active={page === 'movements'} label="Extrato" Icon={ListRestart} onClick={() => setPage('movements')} />
         <button className="bottom-add" onClick={openTransaction} disabled={state.accounts.length === 0} aria-label="Novo lançamento"><Plus size={27} /><span>Adicionar</span></button>
         {(integration || bankPanel !== undefined) ? <MobileNavButton active={page === 'banks'} label="Bancos" Icon={Landmark} onClick={() => setPage('banks')} /> : <MobileNavButton active={page === 'accounts'} label="Contas" Icon={WalletCards} onClick={() => setPage('accounts')} />}
-        <MobileNavButton active={['more','categories','backup',...(integration || bankPanel !== undefined ? ['accounts'] : [])].includes(page)} label="Mais" Icon={MoreHorizontal} onClick={() => setPage('more')} />
+        <MobileNavButton active={['more','categories','backup','planning',...(integration || bankPanel !== undefined ? ['accounts'] : [])].includes(page)} label="Mais" Icon={MoreHorizontal} onClick={() => setPage('more')} />
       </nav>
 
       {modal?.type === 'account' ? <DialogFrame title="Nova conta" onClose={() => setModal(undefined)}><AccountForm today={today} busy={busy} onCancel={() => setModal(undefined)} onSave={saveAccount} /></DialogFrame> : null}
