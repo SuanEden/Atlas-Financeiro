@@ -8,10 +8,26 @@ async function syntheticApp(page:Page) {
   await page.goto('/');
   await expect(page.getByRole('button',{name:'Entrar com Google',exact:true})).toBeVisible();
 }
+// A fixed mobile bottom nav must be tapped at its visible screen coordinates.
+// Playwright's locator.click() may auto-scroll the document while trying to click
+// the fixed button and then report an unrelated workspace as a pointer blocker.
+async function tapMobileNavButton(page:Page,name:string){
+  const button=page.getByRole('navigation',{name:'Navegação móvel'}).getByRole('button',{name,exact:true});
+  await expect(button).toBeVisible();
+  const box=await button.boundingBox();
+  if(!box)throw new Error(`Mobile navigation button "${name}" has no hit area.`);
+  const point={x:box.x+box.width/2,y:box.y+box.height/2};
+  const hit=await page.evaluate(({x,y})=>{
+    const button=document.elementFromPoint(x,y)?.closest('button');
+    return button?.getAttribute('aria-label')??button?.textContent?.trim()??null;
+  },point);
+  expect(hit,`Mobile navigation button "${name}" must be topmost at tap coordinates`).toContain(name);
+  await page.mouse.click(point.x,point.y);
+}
 async function navigateBackup(page:Page) {
   const mobile=(page.viewportSize()?.width??1280)<761;
   if(mobile){
-    await page.getByRole('navigation',{name:'Navegação móvel'}).getByRole('button',{name:'Mais',exact:true}).click();
+    await tapMobileNavButton(page,'Mais');
     await page.getByRole('button',{name:'Modo nuvem',exact:true}).click();
   }else await page.getByRole('button',{name:'Modo nuvem',exact:true}).click();
 }
