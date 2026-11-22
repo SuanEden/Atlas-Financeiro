@@ -48,7 +48,7 @@ describe('catálogo financeiro personalizado',()=>{
     for(let i=0;i<180;i++){
       const plan=planPersonalizedCategories(saved);
       if(!plan.length)break;
-      const current=plan[0];
+      const current=plan[0]!;
       const parent=resolveCatalogParent(saved,current);
       saved=[...saved,create('id-'+i,current.name,current.kind,parent)];
     }
