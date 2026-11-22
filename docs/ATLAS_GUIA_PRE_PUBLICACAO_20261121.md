@@ -15,6 +15,15 @@ Este processo prepara a implantação **sem alterar dados financeiros**. Não é
 - O preflight de produção exige a URL do **I3 principal**; o de staging exige a URL do **staging**. Impede confundir os projetos, não autentica usuários nem altera a base.
 - Nunca inserir `service_role`, `sb_secret_*`, senha de Postgres ou client secret no frontend.
 
+
+## Pacote testável sem acesso à Vercel
+
+O GitHub Actions do PR gera um artefato chamado `atlas-financeiro-local-preview` a partir de `app/dist`, sempre com `VITE_ATLAS_REMOTE_MODE=disabled`. Esse arquivo é uma **build estática local**, destinada à inspeção visual e aos testes de interface; **não** representa sincronização na nuvem nem integração Pluggy homologada.
+
+Para obter: abra o PR, selecione **Checks → Atlas validation**, abra a execução aprovada e em **Artifacts** baixe `atlas-financeiro-local-preview`. A versão deve ser servida por HTTPS/servidor estático (não abrir diretamente como `file://`). O artefato expira após 14 dias. A publicação deve reutilizar o domínio/hospedagem real e só ocorrer após a homologação e o vínculo correto.
+
+O CI gera esse pacote sem credenciais e não faz upload para Vercel, Supabase ou contas bancárias.
+
 ## Gate de lançamento
 
 1. Localizar o projeto **Vercel que já hospeda o Atlas**; a conexão Vercel disponível ao assistente não mostra esse projeto. Não criar outro projeto por conveniência.
