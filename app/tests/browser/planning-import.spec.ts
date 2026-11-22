@@ -1,0 +1,50 @@
+import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+
+test('arquivo de planejamento entra na área correta, sem importar como backup financeiro',async({page})=>{
+  await page.setViewportSize({width:1440,height:960});
+  await page.goto('/?test=1');
+  await page.getByRole('button',{name:'Modo nuvem',exact:false}).first().click();
+  await expect(page.getByRole('button',{name:'Abrir importação de Planejamento'})).toBeVisible();
+  await page.getByRole('button',{name:'Abrir importação de Planejamento'}).click();
+  await expect(page.getByRole('heading',{name:'Planejamento financeiro'})).toBeVisible();
+  const template={
+    schemaVersion:1,ownerId:'import-template',revision:0,
+    goals:[{id:'test-goal-01',name:'Meta de teste importada',targetCents:null,deadline:null,priority:'unset',status:'active',allocations:[]}],
+    recurrences:[],obligations:[],shared:[],rules:[],accountPreferences:[],eventNecessities:[]
+  };
+  const input=page.locator('.planning-backup input[type="file"]');
+  page.once('dialog',dialog=>dialog.accept());
+  await input.setInputFiles({name:'planejamento-test.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(template))});
+  await expect(page.locator('.planning-record strong').getByText('Meta de teste importada', { exact: true })).toBeVisible();
+  page.once('dialog',dialog=>dialog.accept());
+  await input.setInputFiles({name:'planejamento-test.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(template))});
+  await expect(page.locator('.planning-record strong').getByText('Meta de teste importada', { exact: true })).toHaveCount(1);
+  const passphrase='minha-senha-forte-1234';
+  await page.getByLabel(/Senha da cópia protegida/).fill(passphrase);
+  const pendingDownload=page.waitForEvent('download');
+  await page.getByRole('button',{name:'Exportar cópia criptografada'}).click();
+  const encrypted=readFileSync((await (await pendingDownload).path())!,'utf8');
+  expect(encrypted).toContain('atlas-financeiro-planning-encrypted');
+  expect(encrypted).not.toContain('Meta de teste importada');
+  await page.getByLabel(/Senha da cópia protegida/).fill(passphrase);
+  page.once('dialog',dialog=>dialog.accept());
+  await input.setInputFiles({name:'planejamento-protegido.json',mimeType:'application/json',buffer:Buffer.from(encrypted)});
+  await expect(page.locator('.planning-record strong').getByText('Meta de teste importada',{exact:true})).toHaveCount(1);
+  await page.reload();
+  await page.locator('.sidebar').getByRole('button',{name:'Planejamento'}).click();
+  await expect(page.locator('.planning-record strong').getByText('Meta de teste importada', { exact: true })).toBeVisible();
+});
+
+test('backup I2 rejeita arquivo de planejamento com orientação específica',async({page})=>{
+  await page.setViewportSize({width:1440,height:960});
+  await page.goto('/');
+  await page.locator('.sidebar').getByRole('button',{name:'Modo nuvem'}).click();
+  const plan={schemaVersion:1,ownerId:'import-template',revision:0,
+    goals:[],recurrences:[],obligations:[],shared:[],rules:[],accountPreferences:[]};
+  await page.getByLabel('Arquivo JSON de I2').setInputFiles({
+    name:'atlas-planejamento.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(plan))
+  });
+  await expect(page.getByRole('alert')).toContainText('Mais → Planejamento → Importar cópia JSON');
+  await expect(page.getByRole('button',{name:'Confirmar recuperação'})).toHaveCount(0);
+});

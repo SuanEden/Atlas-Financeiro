@@ -8,10 +8,26 @@ async function syntheticApp(page:Page) {
   await page.goto('/');
   await expect(page.getByRole('button',{name:'Entrar com Google',exact:true})).toBeVisible();
 }
+// A fixed mobile bottom nav must be tapped at its visible screen coordinates.
+// Playwright's locator.click() may auto-scroll the document while trying to click
+// the fixed button and then report an unrelated workspace as a pointer blocker.
+async function tapMobileNavButton(page:Page,name:string){
+  const button=page.getByRole('navigation',{name:'Navegação móvel'}).getByRole('button',{name,exact:true});
+  await expect(button).toBeVisible();
+  const box=await button.boundingBox();
+  if(!box)throw new Error(`Mobile navigation button "${name}" has no hit area.`);
+  const point={x:box.x+box.width/2,y:box.y+box.height/2};
+  const hit=await page.evaluate(({x,y})=>{
+    const button=document.elementFromPoint(x,y)?.closest('button');
+    return button?.getAttribute('aria-label')??button?.textContent?.trim()??null;
+  },point);
+  expect(hit,`Mobile navigation button "${name}" must be topmost at tap coordinates`).toContain(name);
+  await page.mouse.click(point.x,point.y);
+}
 async function navigateBackup(page:Page) {
   const mobile=(page.viewportSize()?.width??1280)<761;
   if(mobile){
-    await page.getByRole('navigation',{name:'Navegação móvel'}).getByRole('button',{name:'Mais',exact:true}).click();
+    await tapMobileNavButton(page,'Mais');
     await page.getByRole('button',{name:'Modo nuvem',exact:true}).click();
   }else await page.getByRole('button',{name:'Modo nuvem',exact:true}).click();
 }
@@ -20,34 +36,76 @@ async function expandCloudControls(page:Page) {
   await expect(page.getByRole('heading',{name:'Sincronização',exact:true})).toBeVisible();
 }
 test('Auth sintético: associação explícita, expiração offline, exportação I3 e logout bloqueiam sem apagar',async({page},info)=>{
+  // Comprehensive multi-stage device/auth/backup test; mobile CI can exceed the default 30s.
+  test.setTimeout(90_000);
   const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
   page.on('console',message=>{if(['error','warning'].includes(message.type()))errors.push(message.text());});
+  console.log('AUTH_STAGE_01_BEGAN');
   await syntheticApp(page);
+  console.log('AUTH_STAGE_02_LOGIN_VISIBLE');
   expect(new URL(page.url()).pathname).toBe('/');await expect(page).toHaveTitle('Atlas Financeiro');
   await expect(page.getByRole('heading',{name:'Visão geral'})).toHaveCount(0);
   await page.getByRole('button',{name:'Entrar com Google',exact:true}).click();
   await expect(page.getByRole('button',{name:'Iniciar uma base vazia'})).toBeDisabled();
   await page.getByRole('checkbox',{name:/Conferi a conta/}).check();
   await page.getByRole('button',{name:'Iniciar uma base vazia'}).click();
+  console.log('AUTH_STAGE_03_ASSOCIATED');
   await expect(page.getByRole('heading',{name:'Visão geral'})).toBeVisible();
+  console.log('AUTH_STAGE_031_BEFORE_CLOUD_NAV');
   await expandCloudControls(page);
+  console.log('AUTH_STAGE_032_CLOUD_NAV_OK');
   await expect(page.locator('.cloud-hub')).toContainText('Cópia local ativa');
   await expect(page.locator('.device-status')).toContainText('Modo nuvem');
   await expect(page.getByRole('button',{name:'Sincronizar agora'})).toHaveCount(0);
   const homeNav=page.getByRole('navigation',{name:(page.viewportSize()?.width??1280)<761?'Navegação móvel':'Navegação principal'});
-  await homeNav.getByRole('button',{name:'Início',exact:true}).click();
+  console.log('AUTH_NAV_HIT_TEST',JSON.stringify(await page.evaluate(()=>{
+    const nav=document.querySelector<HTMLElement>('.bottom-nav');
+    const ws=document.querySelector<HTMLElement>('.workspace');
+    const button=Array.from(nav?.querySelectorAll('button')??[]).find(b=>b.textContent?.includes('Início'));
+    const rect=button?.getBoundingClientRect();
+    const hit=rect?document.elementFromPoint(rect.left+rect.width/2,rect.top+rect.height/2):null;
+    const ns=nav?getComputedStyle(nav):null,wsStyle=ws?getComputedStyle(ws):null;
+    return {viewport:{w:innerWidth,h:innerHeight,scrollY},button:rect?{x:rect.x,y:rect.y,w:rect.width,h:rect.height}:null,
+      nav:nav?{position:ns?.position,zIndex:ns?.zIndex,display:ns?.display,top:nav.getBoundingClientRect().top,bottom:nav.getBoundingClientRect().bottom,backdrop:ns?.backdropFilter}:null,
+      workspace:{position:wsStyle?.position,zIndex:wsStyle?.zIndex},hit:hit?.outerHTML.slice(0,160)};
+  })));
+  console.log('AUTH_STAGE_033_BEFORE_HOME_NAV');
+  const homeButton=homeNav.getByRole('button',{name:'Início',exact:true});
+  if((page.viewportSize()?.width??1280)<761){
+    const box=await homeButton.boundingBox();
+    if(!box)throw new Error('Botão Início não possui área de toque na navegação móvel.');
+    const point={x:box.x+box.width/2,y:box.y+box.height/2};
+    const hit=await page.evaluate(({x,y})=>{
+      const element=document.elementFromPoint(x,y);
+      return element?.closest('button')?.textContent?.trim()??null;
+    },point);
+    expect(hit).toContain('Início');
+    await page.mouse.click(point.x,point.y);
+  }else await homeButton.click({timeout:8000});
+  await expect(page.getByRole('heading',{name:'Visão geral'})).toBeVisible();
+  console.log('AUTH_STAGE_034_HOME_NAV_OK');
   // Hold the transport offline: a financial write must stay pending while
   // authentication remains valid and the foreground timer is enabled.
   await page.evaluate(()=>localStorage.setItem('synthetic-transport-offline','yes'));
-  await page.getByRole('button',{name:'Criar minha primeira conta'}).click();
-  await page.getByLabel('Nome da conta').fill('Conta sintética de sessão');
-  await page.getByRole('dialog').getByRole('button',{name:'Criar conta',exact:true}).click();
+  console.log('AUTH_STAGE_035_OFFLINE_SET');
+  await page.getByRole('button',{name:'Criar minha primeira conta'}).click({timeout:8000});
+  console.log('AUTH_STAGE_036_ACCOUNT_DIALOG_OPEN');
+  await page.getByLabel('Nome da conta').fill('Conta sintética de sessão',{timeout:8000});
+  console.log('AUTH_STAGE_037_ACCOUNT_NAME_FILLED');
+  console.log('AUTH_STAGE_038_BEFORE_SAVE_ACCOUNT');
+  await page.getByRole('dialog').getByRole('button',{name:'Criar conta',exact:true}).click({timeout:8000});
+  console.log('AUTH_STAGE_039_SAVE_CLICKED');
+  console.log('AUTH_STAGE_04_ACCOUNT_CREATED');
   await expect(page.getByRole('heading',{name:'Nova conta'})).toHaveCount(0);
+  console.log('AUTH_STAGE_05_EXPIRING');
   await page.evaluate(async()=>{const path='/tests/auth-browser-entry.tsx';await (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).expireAndDisconnect();});
+  console.log('AUTH_STAGE_06_EXPIRED');
   await expandCloudControls(page);
   await expect(page.getByRole('region',{name:'Sincronização'}).getByText('Acesso offline',{exact:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'Sincronizar agora'})).toBeDisabled();
+  console.log('AUTH_STAGE_07_RELOAD');
   await page.reload();await expect(page.getByRole('heading',{name:'Visão geral'})).toBeVisible();
+  console.log('AUTH_STAGE_08_RELOADED');
   await expect(page.getByText('Conta sintética de sessão',{exact:true})).toBeVisible();
   await navigateBackup(page);
   await expect(page.getByRole('heading',{name:'Backup e dados',exact:true})).toBeVisible();
@@ -56,6 +114,7 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   await expect(page.getByText('Nuvem e dispositivo',{exact:true})).toBeVisible();
   await expect(page.locator('vite-error-overlay')).toHaveCount(0);
   await page.screenshot({path:join(tmpdir(),`atlas-i3-backup-safety-${info.project.name}.png`),fullPage:false});
+  console.log('AUTH_STAGE_09_BEFORE_EXPORT');
   const download=page.waitForEvent('download');await page.getByRole('button',{name:'Baixar backup'}).click();
   const json=readFileSync((await (await download).path())!,'utf8');const backup=JSON.parse(json);
   expect(backup).toMatchObject({format:'atlas-financeiro-sync-backup',meta:{cursor:'1',binding:'active'}});
@@ -69,23 +128,29 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   expect(json).not.toMatch(/access_token|refresh_token|provider_token/);
   await expect(page.getByLabel('Arquivo JSON de I2')).toHaveCount(0);
   await expandCloudControls(page);
+  console.log('AUTH_STAGE_10_LOGOUT');
   await page.getByRole('button',{name:'Sair e bloquear',exact:true}).click();
+  console.log('AUTH_STAGE_11_LOGGED_OUT');
   await expect(page.getByRole('button',{name:'Entrar com Google',exact:true})).toBeVisible();
   await expect(page.getByText('Conta sintética de sessão',{exact:true})).toHaveCount(0);
   await expect(page.getByRole('navigation')).toHaveCount(0);
   await page.screenshot({path:join(tmpdir(),`atlas-i3-locked-${info.project.name}.png`),fullPage:true});
   await page.reload();await expect(page.getByRole('button',{name:'Entrar com Google',exact:true})).toBeVisible();
   await expect(page.getByRole('heading',{name:'Visão geral'})).toHaveCount(0);
+  console.log('AUTH_STAGE_12_BEFORE_RELOGIN');
   await page.evaluate(()=>localStorage.removeItem('synthetic-offline'));
   await page.getByRole('button',{name:'Entrar com Google',exact:true}).click();
   await expect(page.getByText('Conta sintética de sessão',{exact:true})).toBeVisible();
   await navigateBackup(page);
+  console.log('AUTH_STAGE_13_BEFORE_SECOND_EXPORT');
   const repeatedDownload=page.waitForEvent('download');await page.getByRole('button',{name:'Baixar backup'}).click();
   const {exportedAt:_later,...reopenedCopy}=JSON.parse(readFileSync((await (await repeatedDownload).path())!,'utf8'));
   const {exportedAt:_earlier,...initialCopy}=backup;expect(reopenedCopy).toEqual(initialCopy);
   await page.evaluate(()=>localStorage.removeItem('synthetic-transport-offline'));
   await expandCloudControls(page);
+  console.log('AUTH_STAGE_14_BEFORE_SYNC');
   await page.getByRole('button',{name:'Sincronizar agora'}).click();
+  console.log('AUTH_STAGE_15_SYNC_CLICKED');
   await expect(page.getByRole('region',{name:'Sincronização',exact:true})).toContainText('Alterações confirmadas');
   await expect(page.getByRole('button',{name:'Sincronizar agora'})).toHaveCount(0);
   const confirmed=await page.evaluate(async()=>{const path='/tests/auth-browser-entry.tsx';return (await import(/* @vite-ignore */path) as typeof import('../auth-browser-entry')).inspect();});
@@ -93,6 +158,7 @@ test('Auth sintético: associação explícita, expiração offline, exportaçã
   expect(confirmed.confirmed?.accounts).toEqual(backup.projection.accounts);
   await page.screenshot({path:join(tmpdir(),`atlas-i3-session-${info.project.name}.png`),fullPage:true});
   expect(errors).toEqual([]);
+  console.log('AUTH_STAGE_16_DONE');
 });
 
 test('logout na segunda aba remove a visão da primeira sem apagar o namespace',async({page,context})=>{

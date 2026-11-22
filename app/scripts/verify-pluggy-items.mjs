@@ -1,9 +1,15 @@
 /** Explicitly opt-in, read-only deployment diagnostic. Never print tokens, IDs or bank data. */
-const banks = [
-  ['Nubank','71c06153-0d24-45ac-81f6-9de6f0d04282'],
-  ['InfinitePay','1c91ee97-e614-494f-b41a-5e203d5fa7ee'],
-];
+const raw=(process.env.ATLAS_PLUGGY_ALLOWED_ITEM_IDS??'').trim();
+const ids=raw?raw.split(',').map(x=>x.trim()):[];
+const valid=/^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i;
+const banks=ids.map((id,index)=>['connection-'+(index+1),id]);
+
 if (process.env.ATLAS_BANK_DIAGNOSE !== '1') {
+  process.exit(0);
+}
+if(!banks.length||banks.length>20||banks.some(([,id])=>!valid.test(id))||
+  new Set(banks.map(([,id])=>id)).size!==banks.length){
+  console.log('BANK_DIAGNOSTIC allowlist=missing_or_invalid');
   process.exit(0);
 }
 const {PLUGGY_CLIENT_ID: clientId, PLUGGY_CLIENT_SECRET: clientSecret} = process.env;

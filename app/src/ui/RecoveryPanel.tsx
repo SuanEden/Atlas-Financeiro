@@ -17,6 +17,16 @@ export function RecoveryPanel({ onRecover, busy }: { onRecover: (json: string) =
       if (file.size > MAX_I2_BACKUP_BYTES) throw new Error('O arquivo excede o limite de 10 MiB.');
       const text = await file.text();
       if (request !== reading.current) return;
+      // A planning document is not an I2/I3 financial backup. Guide the user
+      // to the correct importer instead of showing a misleading unknown field.
+      let root:unknown;
+      try{root=JSON.parse(text);}catch{/* Financial validator reports malformed JSON. */}
+      if(root&&typeof root==='object'&&!Array.isArray(root)){
+        const plan=root as Record<string,unknown>;
+        if(plan.schemaVersion===1&&typeof plan.ownerId==='string'&&Array.isArray(plan.goals)&&Array.isArray(plan.recurrences)){
+          throw new TypeError('Este é um arquivo de Planejamento, não um backup financeiro I2. Abra Mais → Planejamento → Importar cópia JSON.');
+        }
+      }
       const validated = validateI2Backup(text);
       setJson(text); setPreview(validated);
     } catch (reason) { if (request === reading.current) setError(reason instanceof Error ? reason.message : 'Arquivo inválido.'); }
