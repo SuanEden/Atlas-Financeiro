@@ -150,7 +150,8 @@ function Goals({plan,accounts,ledger,change,busy,onFailure}:{plan:FinancialPlan;
       const allocated=sumGoalAllocations(goal);
       return <article className="planning-record" key={goal.id}><div><strong>{goal.name}</strong><p>Reservado: {money(allocated)} · Alvo: {money(goal.targetCents)} · {goal.deadline??'Sem prazo'}</p><small>{goal.allocations.length} registro(s) de reserva · prioridade {goal.priority==='unset'?'não definida':goal.priority}</small><div className="planning-history">{goal.allocations.map(a=><div key={a.id}><small>{a.on}: {money(a.cents)} · {accounts.find(account=>account.id===a.accountId)?.name??'Conta não encontrada'} {a.canceledAt?'· Cancelada em '+a.canceledAt:''}</small>{!a.canceledAt?<button type="button" className="text-button" disabled={busy} onClick={()=>void change(prev=>({...prev,goals:updateItem(prev.goals,goal.id,g=>({...g,allocations:updateItem(g.allocations,a.id,old=>({...old,canceledAt:new Date().toISOString().slice(0,10)}))}))})).catch(onFailure)}>Cancelar reserva</button>:null}</div>)}</div></div>
         <label>Estado<select aria-label={'Estado '+goal.name} value={goal.status} disabled={busy} onChange={e=>void change(prev=>({...prev,goals:updateItem(prev.goals,goal.id,g=>({...g,status:e.target.value as Goal['status']}))})).catch(onFailure)}><option value="active">Ativa</option><option value="paused">Pausada</option><option value="completed">Concluída</option></select></label>
-      </article>;
+        <GoalEditor key={goal.id} goal={goal} change={change} busy={busy} onFailure={onFailure}/>
+    </article>;
     })}</div>
     {plan.goals.some(g=>g.status==='active')?<div className="planning-contribution"><h3>Reservar valor para uma meta</h3><div className="planning-grid">
       <label>Meta<select value={selected} onChange={e=>setSelected(e.target.value)}><option value="">Selecione</option>{plan.goals.filter(g=>g.status==='active').map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></label>
@@ -158,6 +159,26 @@ function Goals({plan,accounts,ledger,change,busy,onFailure}:{plan:FinancialPlan;
       <label>Valor da reserva<input inputMode="decimal" value={allocation} onChange={e=>setAllocation(e.target.value)}/></label>
     </div><button type="button" className="button button--secondary" disabled={busy||!selected||!accountId||!allocation} onClick={()=>void allocate().catch(onFailure)}>Reservar sem movimentar saldo</button></div>:null}
   </section>;
+}
+
+function GoalEditor({goal,change,busy,onFailure}:{goal:Goal;change:Editor;busy:boolean;onFailure:(reason:unknown)=>void}){
+  const [target,setTarget]=useState(goal.targetCents===null?'':String(goal.targetCents/100).replace('.',','));
+  const [deadline,setDeadline]=useState(goal.deadline??'');
+  const [priority,setPriority]=useState<Goal['priority']>(goal.priority);
+  async function save(){
+    const value=cents(target,true);
+    await change(prev=>({...prev,goals:updateItem(prev.goals,goal.id,row=>({
+      ...row,targetCents:value,deadline:deadline||null,priority
+    }))}));
+  }
+  return <details className="planning-edit"><summary>Editar meta e prazo</summary>
+    <div className="planning-grid">
+      <label>Valor-alvo (vazio se desconhecido)<input inputMode="decimal" value={target} onChange={e=>setTarget(e.target.value)}/></label>
+      <label>Prazo (opcional)<input type="date" value={deadline} onChange={e=>setDeadline(e.target.value)}/></label>
+      <label>Prioridade<select value={priority} onChange={e=>setPriority(e.target.value as Goal['priority'])}><option value="unset">A definir</option><option value="high">Alta</option><option value="medium">Média</option><option value="low">Baixa</option></select></label>
+    </div>
+    <button type="button" className="button button--secondary" disabled={busy} onClick={()=>void save().catch(onFailure)}>Salvar alterações da meta</button>
+  </details>;
 }
 
 function Recurrences({plan,categories,change,busy,onFailure}:{plan:FinancialPlan;categories:Category[];change:Editor;busy:boolean;onFailure:(reason:unknown)=>void}){
