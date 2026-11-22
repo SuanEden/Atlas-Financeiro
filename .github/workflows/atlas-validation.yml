@@ -29,6 +29,7 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
       - run: npm ci
+      - run: npm run preflight:local
       - run: npm run test -- --maxWorkers=2
       - run: npm run build
   browser-and-pwa:
