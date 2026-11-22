@@ -2,7 +2,7 @@ import { useEffect, useState, type ChangeEvent } from 'react';
 import type { Account, Category, LocalFinancialState } from '../domain';
 import { calculateAccountBalance, hasReconciledOpeningBalance, formatBRL, parseBRL } from '../domain';
 import {
-  emptyPlan, proposedGoals, proposedRecurringNames, positiveCents, reservedForAccount, canReserve,
+  emptyPlan, proposedGoals, proposedRecurringNames, positiveCents, reservedForAccount, canReserve, sumGoalAllocations,
   sharedSummary, type FinancialPlan, type Goal, type PlannedRecurrence, type PlannedObligation,
   type SharedExpense, type ApprovedRule, type AccountPreference, type PlanFrequency, type Importance,
 } from './model';
@@ -146,8 +146,8 @@ function Goals({plan,accounts,ledger,change,busy}:{plan:FinancialPlan;accounts:A
     </div>
     <button type="button" className="button button--primary" disabled={busy||!name.trim()} onClick={()=>void addGoal().catch(()=>{})}>Adicionar meta</button>
     <div className="planning-records">{plan.goals.map(goal=>{
-      const allocated=goal.allocations.reduce((sum,a)=>sum+a.cents,0);
-      return <article className="planning-record" key={goal.id}><div><strong>{goal.name}</strong><p>Reservado: {money(allocated)} · Alvo: {money(goal.targetCents)} · {goal.deadline??'Sem prazo'}</p><small>{goal.allocations.length} aporte(s) de planejamento · prioridade {goal.priority}</small></div>
+      const allocated=sumGoalAllocations(goal);
+      return <article className="planning-record" key={goal.id}><div><strong>{goal.name}</strong><p>Reservado: {money(allocated)} · Alvo: {money(goal.targetCents)} · {goal.deadline??'Sem prazo'}</p><small>{goal.allocations.length} registro(s) de reserva · prioridade {goal.priority}</small><div className="planning-history">{goal.allocations.map(a=><div key={a.id}><small>{a.on}: {money(a.cents)} · {accounts.find(account=>account.id===a.accountId)?.name??'Conta não encontrada'} {a.canceledAt?'· Cancelada em '+a.canceledAt:''}</small>{!a.canceledAt?<button type="button" className="text-button" disabled={busy} onClick={()=>void change(prev=>({...prev,goals:updateItem(prev.goals,goal.id,g=>({...g,allocations:updateItem(g.allocations,a.id,old=>({...old,canceledAt:new Date().toISOString().slice(0,10)}))}))})).catch(()=>{})}>Cancelar reserva</button>:null}</div>)}</div></div>
         <label>Estado<select aria-label={'Estado '+goal.name} value={goal.status} disabled={busy} onChange={e=>void change(prev=>({...prev,goals:updateItem(prev.goals,goal.id,g=>({...g,status:e.target.value as Goal['status']}))})).catch(()=>{})}><option value="active">Ativa</option><option value="paused">Pausada</option><option value="completed">Concluída</option></select></label>
       </article>;
     })}</div>
@@ -286,7 +286,7 @@ function Shared({plan,change,busy}:{plan:FinancialPlan;change:Editor;busy:boolea
       <div className="planning-grid"><label>Participante<select value={person} onChange={e=>setPerson(e.target.value)}><option value="">Selecione</option>{active.participants.map(p=><option key={p} value={p}>{p}</option>)}</select></label>
       <label>Valor recebido<input inputMode="decimal" value={contribution} onChange={e=>setContribution(e.target.value)}/></label></div>
       <button className="button button--secondary" type="button" disabled={busy||!person||!contribution} onClick={()=>void addContribution().catch(()=>{})}>Registrar somente no controle compartilhado</button>
-      <ul>{active.contributions.map(c=><li key={c.id}>{c.participant}: {money(c.cents)} em {c.on}</li>)}</ul>
+      <ul>{active.contributions.map(c=><li key={c.id}>{c.participant}: {money(c.cents)} em {c.on} {c.canceledAt?'(anulado em '+c.canceledAt+')':<button className="text-button" type="button" disabled={busy} onClick={()=>void change(prev=>({...prev,shared:updateItem(prev.shared,active.id,row=>({...row,contributions:updateItem(row.contributions,c.id,old=>({...old,canceledAt:new Date().toISOString().slice(0,10)}))}))})).catch(()=>{})}>Anular anotação</button>}</li>)}</ul>
     </div>:null}
   </section>;
 }
