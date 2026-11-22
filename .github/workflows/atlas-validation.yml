@@ -32,6 +32,15 @@ jobs:
       - run: npm run preflight:local
       - run: npm run test -- --maxWorkers=2
       - run: npm run build
+      # Build artifact is intentionally offline-only. It contains no bank tokens,
+      # secrets or remote-write configuration and never deploys automatically.
+      - name: Arquivar versão local para inspeção
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-financeiro-local-preview
+          path: app/dist/
+          if-no-files-found: error
+          retention-days: 14
   browser-and-pwa:
     runs-on: ubuntu-latest
     timeout-minutes: 35
