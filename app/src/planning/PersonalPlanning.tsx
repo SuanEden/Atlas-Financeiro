@@ -169,7 +169,7 @@ export function PersonalPlanning({ownerId,accounts,categories,ledger,cloud}:{own
   ];
   return <section className="page-content planning-page" aria-label="Planejamento pessoal">
     <div className="page-heading"><div><p className="section-kicker">ORGANIZAÇÃO PESSOAL</p><h1>Planejamento financeiro</h1><p>Metas, compromissos e regras — sem lançar ou movimentar dinheiro automaticamente.</p></div></div>
-    <p className="form-note" role="status"><strong>${cloud&&cloudEnabled?'Sincronização do Planejamento autorizada.':'Planejamento salvo neste navegador.'}</strong> ${cloud&&cloudEnabled?'As alterações são conferidas ao conectar, abrir ou editar. Conflitos não são sobrescritos.':'O Planejamento não acompanha automaticamente outros aparelhos sem ativar a opção de nuvem.'} Não está incluído no backup financeiro do extrato.</p>
+    <p className="form-note" role="status"><strong>{cloud&&cloudEnabled?'Sincronização do Planejamento autorizada.':'Planejamento salvo neste navegador.'}</strong> {cloud&&cloudEnabled?'As alterações são conferidas ao conectar, abrir ou editar. Conflitos não são sobrescritos.':'O Planejamento não acompanha automaticamente outros aparelhos sem ativar a opção de nuvem.'} Não está incluído no backup financeiro do extrato.</p>
     {cloud?<section className="planning-cloud-panel" aria-label="Sincronização do Planejamento">
       <h2>Planejamento entre dispositivos</h2>
       <p>Somente metas, recorrências e anotações. Nenhuma movimentação financeira será criada. O Supabase protege o acesso por conta, mas este recurso não oferece criptografia ponta a ponta.</p>
