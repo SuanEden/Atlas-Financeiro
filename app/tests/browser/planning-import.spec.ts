@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 
 test('arquivo de planejamento entra na área correta, sem importar como backup financeiro',async({page})=>{
   await page.setViewportSize({width:1440,height:960});
@@ -19,6 +20,17 @@ test('arquivo de planejamento entra na área correta, sem importar como backup f
   page.once('dialog',dialog=>dialog.accept());
   await input.setInputFiles({name:'planejamento-test.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(template))});
   await expect(page.locator('.planning-record strong').getByText('Meta de teste importada', { exact: true })).toHaveCount(1);
+  const passphrase='minha-senha-forte-1234';
+  await page.getByLabel(/Senha da cópia protegida/).fill(passphrase);
+  const pendingDownload=page.waitForEvent('download');
+  await page.getByRole('button',{name:'Exportar cópia criptografada'}).click();
+  const encrypted=readFileSync((await (await pendingDownload).path())!,'utf8');
+  expect(encrypted).toContain('atlas-financeiro-planning-encrypted');
+  expect(encrypted).not.toContain('Meta de teste importada');
+  await page.getByLabel(/Senha da cópia protegida/).fill(passphrase);
+  page.once('dialog',dialog=>dialog.accept());
+  await input.setInputFiles({name:'planejamento-protegido.json',mimeType:'application/json',buffer:Buffer.from(encrypted)});
+  await expect(page.locator('.planning-record strong').getByText('Meta de teste importada',{exact:true})).toHaveCount(1);
   await page.reload();
   await page.locator('.sidebar').getByRole('button',{name:'Planejamento'}).click();
   await expect(page.locator('.planning-record strong').getByText('Meta de teste importada', { exact: true })).toBeVisible();
