@@ -75,6 +75,7 @@ export function PersonalPlanning({ownerId,accounts,categories,ledger}:{ownerId:s
       setNotice('Cópia exportada. Guarde o arquivo em local privado.');
     }catch(e){setError(e instanceof Error?e.message:'Não foi possível exportar.');}
   }
+  const onFailure=(reason:unknown)=>setError(reason instanceof Error?reason.message:'Não foi possível validar o formulário.');
   const tabs:{id:Tab;label:string}[]=[
     {id:'goals',label:'Metas'}, {id:'recurrences',label:'Recorrências'},
     {id:'shared',label:'Compartilhadas'}, {id:'obligations',label:'Obrigações'},
@@ -89,17 +90,17 @@ export function PersonalPlanning({ownerId,accounts,categories,ledger}:{ownerId:s
     {loading?<p role="status">Carregando planejamento local…</p>:<><div className="planning-tabs" role="tablist" aria-label="Áreas do planejamento">
       {tabs.map(item=><button type="button" role="tab" aria-selected={tab===item.id} className={tab===item.id?'is-active':''} key={item.id} onClick={()=>setTab(item.id)}>{item.label}</button>)}
     </div>
-    {tab==='goals'?<Goals plan={plan} accounts={accounts} ledger={ledger} change={change} busy={busy}/>:null}
-    {tab==='recurrences'?<Recurrences plan={plan} categories={categories} change={change} busy={busy}/>:null}
-    {tab==='shared'?<Shared plan={plan} change={change} busy={busy}/>:null}
-    {tab==='obligations'?<Obligations plan={plan} change={change} busy={busy}/>:null}
-    {tab==='rules'?<Rules plan={plan} categories={categories} change={change} busy={busy}/>:null}
-    {tab==='accounts'?<AccountPreferences plan={plan} accounts={accounts} change={change} busy={busy}/>:null}
+    {tab==='goals'?<Goals plan={plan} accounts={accounts} ledger={ledger} change={change} busy={busy} onFailure={onFailure}/>:null}
+    {tab==='recurrences'?<Recurrences plan={plan} categories={categories} change={change} busy={busy} onFailure={onFailure}/>:null}
+    {tab==='shared'?<Shared plan={plan} change={change} busy={busy} onFailure={onFailure}/>:null}
+    {tab==='obligations'?<Obligations plan={plan} change={change} busy={busy} onFailure={onFailure}/>:null}
+    {tab==='rules'?<Rules plan={plan} categories={categories} change={change} busy={busy} onFailure={onFailure}/>:null}
+    {tab==='accounts'?<AccountPreferences plan={plan} accounts={accounts} change={change} busy={busy} onFailure={onFailure}/>:null}
     </>}
   </section>;
 }
 
-function Goals({plan,accounts,ledger,change,busy}:{plan:FinancialPlan;accounts:Account[];ledger:LocalFinancialState;change:Editor;busy:boolean}){
+function Goals({plan,accounts,ledger,change,busy,onFailure}:{plan:FinancialPlan;accounts:Account[];ledger:LocalFinancialState;change:Editor;busy:boolean;onFailure:(reason:unknown)=>void}){
   const [name,setName]=useState('');
   const [target,setTarget]=useState('');
   const [deadline,setDeadline]=useState('');
@@ -144,22 +145,22 @@ function Goals({plan,accounts,ledger,change,busy}:{plan:FinancialPlan;accounts:A
       <label>Prazo (opcional)<input type="date" value={deadline} onChange={e=>setDeadline(e.target.value)}/></label>
       <label>Prioridade<select value={priority} onChange={e=>setPriority(e.target.value as Goal['priority'])}><option value="unset">A definir</option><option value="high">Alta</option><option value="medium">Média</option><option value="low">Baixa</option></select></label>
     </div>
-    <button type="button" className="button button--primary" disabled={busy||!name.trim()} onClick={()=>void addGoal().catch(()=>{})}>Adicionar meta</button>
+    <button type="button" className="button button--primary" disabled={busy||!name.trim()} onClick={()=>void addGoal().catch(onFailure)}>Adicionar meta</button>
     <div className="planning-records">{plan.goals.map(goal=>{
       const allocated=sumGoalAllocations(goal);
-      return <article className="planning-record" key={goal.id}><div><strong>{goal.name}</strong><p>Reservado: {money(allocated)} · Alvo: {money(goal.targetCents)} · {goal.deadline??'Sem prazo'}</p><small>{goal.allocations.length} registro(s) de reserva · prioridade {goal.priority==='unset'?'não definida':goal.priority}</small><div className="planning-history">{goal.allocations.map(a=><div key={a.id}><small>{a.on}: {money(a.cents)} · {accounts.find(account=>account.id===a.accountId)?.name??'Conta não encontrada'} {a.canceledAt?'· Cancelada em '+a.canceledAt:''}</small>{!a.canceledAt?<button type="button" className="text-button" disabled={busy} onClick={()=>void change(prev=>({...prev,goals:updateItem(prev.goals,goal.id,g=>({...g,allocations:updateItem(g.allocations,a.id,old=>({...old,canceledAt:new Date().toISOString().slice(0,10)}))}))})).catch(()=>{})}>Cancelar reserva</button>:null}</div>)}</div></div>
-        <label>Estado<select aria-label={'Estado '+goal.name} value={goal.status} disabled={busy} onChange={e=>void change(prev=>({...prev,goals:updateItem(prev.goals,goal.id,g=>({...g,status:e.target.value as Goal['status']}))})).catch(()=>{})}><option value="active">Ativa</option><option value="paused">Pausada</option><option value="completed">Concluída</option></select></label>
+      return <article className="planning-record" key={goal.id}><div><strong>{goal.name}</strong><p>Reservado: {money(allocated)} · Alvo: {money(goal.targetCents)} · {goal.deadline??'Sem prazo'}</p><small>{goal.allocations.length} registro(s) de reserva · prioridade {goal.priority==='unset'?'não definida':goal.priority}</small><div className="planning-history">{goal.allocations.map(a=><div key={a.id}><small>{a.on}: {money(a.cents)} · {accounts.find(account=>account.id===a.accountId)?.name??'Conta não encontrada'} {a.canceledAt?'· Cancelada em '+a.canceledAt:''}</small>{!a.canceledAt?<button type="button" className="text-button" disabled={busy} onClick={()=>void change(prev=>({...prev,goals:updateItem(prev.goals,goal.id,g=>({...g,allocations:updateItem(g.allocations,a.id,old=>({...old,canceledAt:new Date().toISOString().slice(0,10)}))}))})).catch(onFailure)}>Cancelar reserva</button>:null}</div>)}</div></div>
+        <label>Estado<select aria-label={'Estado '+goal.name} value={goal.status} disabled={busy} onChange={e=>void change(prev=>({...prev,goals:updateItem(prev.goals,goal.id,g=>({...g,status:e.target.value as Goal['status']}))})).catch(onFailure)}><option value="active">Ativa</option><option value="paused">Pausada</option><option value="completed">Concluída</option></select></label>
       </article>;
     })}</div>
     {plan.goals.some(g=>g.status==='active')?<div className="planning-contribution"><h3>Reservar valor para uma meta</h3><div className="planning-grid">
       <label>Meta<select value={selected} onChange={e=>setSelected(e.target.value)}><option value="">Selecione</option>{plan.goals.filter(g=>g.status==='active').map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></label>
       <label>Conta livre conciliada<select value={accountId} onChange={e=>setAccountId(e.target.value)}><option value="">Selecione</option>{free.map(a=><option value={a.id} key={a.id}>{a.name} · disponível para novas reservas: {money(Math.max(0,Number(calculateAccountBalance(ledger,a.id))-reservedForAccount(plan,a.id)))}</option>)}</select></label>
       <label>Valor da reserva<input inputMode="decimal" value={allocation} onChange={e=>setAllocation(e.target.value)}/></label>
-    </div><button type="button" className="button button--secondary" disabled={busy||!selected||!accountId||!allocation} onClick={()=>void allocate().catch(()=>{})}>Reservar sem movimentar saldo</button></div>:null}
+    </div><button type="button" className="button button--secondary" disabled={busy||!selected||!accountId||!allocation} onClick={()=>void allocate().catch(onFailure)}>Reservar sem movimentar saldo</button></div>:null}
   </section>;
 }
 
-function Recurrences({plan,categories,change,busy}:{plan:FinancialPlan;categories:Category[];change:Editor;busy:boolean}){
+function Recurrences({plan,categories,change,busy,onFailure}:{plan:FinancialPlan;categories:Category[];change:Editor;busy:boolean;onFailure:(reason:unknown)=>void}){
   const [name,setName]=useState('');
   const [direction,setDirection]=useState<'income'|'expense'>('expense');
   const [amount,setAmount]=useState('');
@@ -197,14 +198,14 @@ function Recurrences({plan,categories,change,busy}:{plan:FinancialPlan;categorie
       <label>Categoria (opcional)<select value={categoryId} onChange={e=>setCategoryId(e.target.value)}><option value="">Não definida</option>{categories.filter(c=>c.kind===direction||c.kind==='both').map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
       {direction==='expense'?<label className="planning-check"><input type="checkbox" checked={shared} onChange={e=>setShared(e.target.checked)}/>Despesa compartilhada</label>:null}
     </div>
-    <button type="button" className="button button--primary" disabled={busy||!name.trim()} onClick={()=>void add().catch(()=>{})}>Salvar rascunho</button>
+    <button type="button" className="button button--primary" disabled={busy||!name.trim()} onClick={()=>void add().catch(onFailure)}>Salvar rascunho</button>
     <div className="planning-records">{plan.recurrences.map(item=><article key={item.id} className="planning-record"><div><strong>{item.name}</strong><p>{money(item.cents)} · {frequencyLabel[item.frequency]} · {item.dueDay?'dia '+item.dueDay:'vencimento desconhecido'} {item.shared?'· Compartilhada':''}</p><small>{item.necessity?necessityLabel[item.necessity]:'Receita'} · somente planejamento</small></div>
-      <label>Estado<select disabled={busy} value={item.status} onChange={e=>void change(prev=>({...prev,recurrences:updateItem(prev.recurrences,item.id,row=>({...row,status:e.target.value as PlannedRecurrence['status']}))})).catch(()=>{})}><option value="draft">Rascunho</option><option value="active" disabled={item.cents===null}>Confirmada para planejar</option><option value="paused">Pausada</option></select></label>
+      <label>Estado<select disabled={busy} value={item.status} onChange={e=>void change(prev=>({...prev,recurrences:updateItem(prev.recurrences,item.id,row=>({...row,status:e.target.value as PlannedRecurrence['status']}))})).catch(onFailure)}><option value="draft">Rascunho</option><option value="active" disabled={item.cents===null}>Confirmada para planejar</option><option value="paused">Pausada</option></select></label>
     </article>)}</div>
   </section>;
 }
 
-function Obligations({plan,change,busy}:{plan:FinancialPlan;change:Editor;busy:boolean}){
+function Obligations({plan,change,busy,onFailure}:{plan:FinancialPlan;change:Editor;busy:boolean;onFailure:(reason:unknown)=>void}){
   const [name,setName]=useState('');
   const [amount,setAmount]=useState('');
   const [status,setStatus]=useState<PlannedObligation['status']>('needs_confirmation');
@@ -230,12 +231,12 @@ function Obligations({plan,change,busy}:{plan:FinancialPlan;change:Editor;busy:b
       <label>Vencimento (opcional)<input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)}/></label>
       <label>Observações<input value={notes} maxLength={1000} onChange={e=>setNotes(e.target.value)}/></label>
     </div>
-    <button type="button" className="button button--primary" disabled={busy||!name.trim()} onClick={()=>void add().catch(()=>{})}>Registrar referência</button>
-    <div className="planning-records">{plan.obligations.map(item=><article className="planning-record" key={item.id}><div><strong>{item.name}</strong><p>{money(item.cents)} · {item.dueDate??'Sem vencimento'} · {item.status==='historical'?'Histórico':item.status==='planned'?'Planejamento':'Pendente de confirmação'}</p><small>{item.notes}</small></div><label>Situação<select value={item.status} disabled={busy} onChange={e=>void change(prev=>({...prev,obligations:updateItem(prev.obligations,item.id,row=>({...row,status:e.target.value as PlannedObligation['status']}))})).catch(()=>{})}><option value="needs_confirmation">Confirmar</option><option value="historical">Histórico</option><option value="planned">Planejado</option></select></label></article>)}</div>
+    <button type="button" className="button button--primary" disabled={busy||!name.trim()} onClick={()=>void add().catch(onFailure)}>Registrar referência</button>
+    <div className="planning-records">{plan.obligations.map(item=><article className="planning-record" key={item.id}><div><strong>{item.name}</strong><p>{money(item.cents)} · {item.dueDate??'Sem vencimento'} · {item.status==='historical'?'Histórico':item.status==='planned'?'Planejamento':'Pendente de confirmação'}</p><small>{item.notes}</small></div><label>Situação<select value={item.status} disabled={busy} onChange={e=>void change(prev=>({...prev,obligations:updateItem(prev.obligations,item.id,row=>({...row,status:e.target.value as PlannedObligation['status']}))})).catch(onFailure)}><option value="needs_confirmation">Confirmar</option><option value="historical">Histórico</option><option value="planned">Planejado</option></select></label></article>)}</div>
   </section>;
 }
 
-function Shared({plan,change,busy}:{plan:FinancialPlan;change:Editor;busy:boolean}){
+function Shared({plan,change,busy,onFailure}:{plan:FinancialPlan;change:Editor;busy:boolean;onFailure:(reason:unknown)=>void}){
   const [name,setName]=useState('');
   const [total,setTotal]=useState('');
   const [personal,setPersonal]=useState('');
@@ -276,7 +277,7 @@ function Shared({plan,change,busy}:{plan:FinancialPlan;change:Editor;busy:boolea
       <label>Minha parte (vazio = R$ 0,00)<input inputMode="decimal" value={personal} onChange={e=>setPersonal(e.target.value)}/></label>
       <label>Participantes (separados por vírgulas)<input value={participants} onChange={e=>setParticipants(e.target.value)}/></label>
     </div>
-    <button type="button" className="button button--primary" disabled={busy||!name.trim()||!total} onClick={()=>void add().catch(()=>{})}>Criar controle compartilhado</button>
+    <button type="button" className="button button--primary" disabled={busy||!name.trim()||!total} onClick={()=>void add().catch(onFailure)}>Criar controle compartilhado</button>
     <div className="planning-records">{plan.shared.map(row=>{
       const summary=sharedSummary(row);
       return <article className="planning-record" key={row.id}><div><strong>{row.name}</strong><p>Total {money(row.totalCents)} · Minha parte {money(row.personalCents)}</p><small>Recebido {money(summary.receivedCents)} · Pendente {money(summary.pendingCents)} · Crédito excedente {money(summary.surplusCents)}</small></div>
@@ -285,13 +286,13 @@ function Shared({plan,change,busy}:{plan:FinancialPlan;change:Editor;busy:boolea
     {active?<div className="planning-contribution"><h3>Registrar contribuição: {active.name}</h3>
       <div className="planning-grid"><label>Participante<select value={person} onChange={e=>setPerson(e.target.value)}><option value="">Selecione</option>{active.participants.map(p=><option key={p} value={p}>{p}</option>)}</select></label>
       <label>Valor recebido<input inputMode="decimal" value={contribution} onChange={e=>setContribution(e.target.value)}/></label></div>
-      <button className="button button--secondary" type="button" disabled={busy||!person||!contribution} onClick={()=>void addContribution().catch(()=>{})}>Registrar somente no controle compartilhado</button>
-      <ul>{active.contributions.map(c=><li key={c.id}>{c.participant}: {money(c.cents)} em {c.on} {c.canceledAt?'(anulado em '+c.canceledAt+')':<button className="text-button" type="button" disabled={busy} onClick={()=>void change(prev=>({...prev,shared:updateItem(prev.shared,active.id,row=>({...row,contributions:updateItem(row.contributions,c.id,old=>({...old,canceledAt:new Date().toISOString().slice(0,10)}))}))})).catch(()=>{})}>Anular anotação</button>}</li>)}</ul>
+      <button className="button button--secondary" type="button" disabled={busy||!person||!contribution} onClick={()=>void addContribution().catch(onFailure)}>Registrar somente no controle compartilhado</button>
+      <ul>{active.contributions.map(c=><li key={c.id}>{c.participant}: {money(c.cents)} em {c.on} {c.canceledAt?'(anulado em '+c.canceledAt+')':<button className="text-button" type="button" disabled={busy} onClick={()=>void change(prev=>({...prev,shared:updateItem(prev.shared,active.id,row=>({...row,contributions:updateItem(row.contributions,c.id,old=>({...old,canceledAt:new Date().toISOString().slice(0,10)}))}))})).catch(onFailure)}>Anular anotação</button>}</li>)}</ul>
     </div>:null}
   </section>;
 }
 
-function Rules({plan,categories,change,busy}:{plan:FinancialPlan;categories:Category[];change:Editor;busy:boolean}){
+function Rules({plan,categories,change,busy,onFailure}:{plan:FinancialPlan;categories:Category[];change:Editor;busy:boolean;onFailure:(reason:unknown)=>void}){
   const [identifierType,setIdentifierType]=useState<ApprovedRule['identifierType']>('merchant_id');
   const [identifier,setIdentifier]=useState('');
   const [categoryId,setCategoryId]=useState('');
@@ -315,13 +316,13 @@ function Rules({plan,categories,change,busy}:{plan:FinancialPlan;categories:Cate
       <label>Categoria<select value={categoryId} onChange={e=>setCategoryId(e.target.value)}><option value="">Selecione</option>{categories.filter(c=>c.kind==='income'||c.kind==='expense'||c.kind==='both').map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
     </div>
     <label className="planning-check"><input type="checkbox" checked={ack} onChange={e=>setAck(e.target.checked)}/>Eu conferi o identificador na origem e autorizo memorizar a categoria.</label>
-    <button type="button" className="button button--primary" disabled={busy||!ack||!identifier.trim()||!categoryId} onClick={()=>void add().catch(()=>{})}>Memorizar regra</button>
+    <button type="button" className="button button--primary" disabled={busy||!ack||!identifier.trim()||!categoryId} onClick={()=>void add().catch(onFailure)}>Memorizar regra</button>
     <div className="planning-records">{plan.rules.map(row=><article className="planning-record" key={row.id}><div><strong>{row.identifierType==='merchant_id'?'Estabelecimento':'Destinatário'}: {row.identifier}</strong><p>{categories.find(c=>c.id===row.categoryId)?.name??'Categoria não encontrada'} · autorizado em {row.approvedAt}</p></div>
-      <label>Regra<select value={row.enabled?'enabled':'disabled'} disabled={busy} onChange={e=>void change(prev=>({...prev,rules:updateItem(prev.rules,row.id,item=>({...item,enabled:e.target.value==='enabled'}))})).catch(()=>{})}><option value="enabled">Guardada</option><option value="disabled">Desativada</option></select></label></article>)}</div>
+      <label>Regra<select value={row.enabled?'enabled':'disabled'} disabled={busy} onChange={e=>void change(prev=>({...prev,rules:updateItem(prev.rules,row.id,item=>({...item,enabled:e.target.value==='enabled'}))})).catch(onFailure)}><option value="enabled">Guardada</option><option value="disabled">Desativada</option></select></label></article>)}</div>
   </section>;
 }
 
-function AccountPreferences({plan,accounts,change,busy}:{plan:FinancialPlan;accounts:Account[];change:Editor;busy:boolean}){
+function AccountPreferences({plan,accounts,change,busy,onFailure}:{plan:FinancialPlan;accounts:Account[];change:Editor;busy:boolean;onFailure:(reason:unknown)=>void}){
   const [accountId,setAccountId]=useState('');
   const current=plan.accountPreferences.find(x=>x.accountId===accountId);
   const [institution,setInstitution]=useState('');
@@ -342,7 +343,7 @@ function AccountPreferences({plan,accounts,change,busy}:{plan:FinancialPlan;acco
       <label>Liquidez<select value={liquidity} onChange={e=>setLiquidity(e.target.value as AccountPreference['liquidity'])}><option value="unknown">A confirmar</option><option value="immediate">Disponível imediatamente</option><option value="restricted">Resgate/uso restrito</option></select></label>
       <label>Restrição de uso<input value={restriction} maxLength={240} onChange={e=>setRestriction(e.target.value)} placeholder="Ex.: transporte, prazo de resgate"/></label>
     </div>
-    <button type="button" className="button button--primary" disabled={busy||!accountId} onClick={()=>void save().catch(()=>{})}>Salvar anotação</button>
+    <button type="button" className="button button--primary" disabled={busy||!accountId} onClick={()=>void save().catch(onFailure)}>Salvar anotação</button>
     <div className="planning-records">{accounts.map(a=><article key={a.id} className="planning-record"><div><strong>{a.name}</strong><p>{a.availability==='restricted'?'Uso restrito':a.availability==='reserved'?'Reservada':'Livre'} · {plan.accountPreferences.find(p=>p.accountId===a.id)?.institution||'Instituição não informada'}</p><small>{plan.accountPreferences.find(p=>p.accountId===a.id)?.usageRestriction||'Sem observações adicionais'}</small></div></article>)}</div>
   </section>;
 }
