@@ -11,7 +11,7 @@ const api=read('api/pluggy.ts');
 const diag=read('scripts/verify-pluggy-items.mjs');
 const plan=read('src/planning/PersonalPlanning.tsx');
 const mig=read('../supabase/migrations/20261122180000_pluggy_refresh_gate.sql');
-const policy=read('src/server/pluggy-policy.ts');
+
 
 assert(!/new Set\(\s*\['[\da-f]{8}-/i.test(api),'Gateway contém IDs de conexão bancária fixos no código.');
 assert(!/\['(?:Nubank|InfinitePay)',\s*'[\da-f]{8}-/i.test(diag),'Diagnóstico contém vínculos bancários fixos.');
@@ -20,7 +20,7 @@ assert(api.includes("claimRefresh(req,itemId)")&&api.includes("ATLAS_PLUGGY_REFR
 assert(!api.includes('refreshCooldowns'),'Cooldown de memória não serve como trava distribuída.');
 assert(!/resource.*health[\s\S]{0,250}await key\(\)/.test(api),
   'Endpoint público health não pode autenticar no banco.');
-assert(policy.includes('ATLAS_PLUGGY_ALLOWED_ITEM_IDS'),'Allowlist privada ausente.');
+assert(api.includes('ATLAS_PLUGGY_ALLOWED_ITEM_IDS'),'Allowlist privada ausente.');
 assert(mig.includes('on conflict (owner_id,item_id) do update')&&mig.includes('atlas_security.app_access'),
   'Migração deve validar acesso e reivindicar trava de forma atômica.');
 assert(plan.includes('encryptPlanningBackup')&&plan.includes('decryptPlanningBackup'),
